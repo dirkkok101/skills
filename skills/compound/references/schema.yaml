@@ -1,0 +1,230 @@
+# Schema for Compound Learning Documents
+# Supports both bug-fix learnings and feature-development learnings
+
+required_fields:
+  - module
+  - date
+  - learning_type
+  - component
+  - phase_discovered
+  - severity
+
+# Legacy fields (still supported for backwards compatibility)
+legacy_fields:
+  - problem_type      # Use learning_type instead
+  - symptoms          # Use "What Happened" section
+  - root_cause        # Use "The Insight" section
+  - resolution_type   # Use "Pattern/Solution" section
+
+field_definitions:
+  module:
+    type: enum
+    description: "Top-level system area"
+    values:
+      - Combat           # Combat system, attack/defense, spells in combat
+      - Dungeon          # Dungeon navigation, encounters, special tiles
+      - Town             # Inn, temple, shop, tavern, training grounds
+      - UI               # Overlays, panels, input handling, visual feedback
+      - Character        # Character creation, stats, leveling, classes
+      - Party            # Party management, formation, gold
+      - Data             # JSON data files, loaders, registry
+      - Services         # Service layer architecture, patterns
+      - Testing          # Test patterns, mocking, assertions
+      - Godot            # Godot-specific issues, scenes, signals, nodes
+      - Architecture     # Code organization, patterns, state management
+      - Performance      # Optimization, profiling, memory
+      - Workflow         # Process improvements, skill updates
+
+  date:
+    type: date
+    format: "YYYY-MM-DD"
+    description: "Date the learning was documented"
+
+  learning_type:
+    type: enum
+    description: "Category of learning captured"
+    values:
+      - Pattern_Discovery    # Found reusable code pattern
+      - Gotcha_Pitfall       # Hit non-obvious issue
+      - Design_Validation    # Design decision proved correct/incorrect
+      - Process_Improvement  # Workflow could be better
+      - Documentation_Gap    # Missing docs caused confusion
+      - Context_Gap          # Bead/plan missing needed context
+      - Bug_Fix              # Traditional bug fix (legacy compatibility)
+
+  phase_discovered:
+    type: enum
+    description: "Which workflow phase revealed this learning"
+    values:
+      - Design       # During /brainstorm
+      - Planning     # During /plan
+      - Execution    # During /execute (bead implementation)
+      - Review       # During /review cycle
+      - Maintenance  # Outside feature workflow (bug fixes, etc.)
+
+  component:
+    type: enum
+    description: "Specific component affected"
+    values:
+      # Combat components
+      - AttackService
+      - DefenseService
+      - SpellCastingService
+      - CombatOrchestrator
+      - CombatRoundExecutor
+      - BreathAttackService
+      - InitiativeService
+      - FleeService
+      - MonsterAIService
+      - StatusRecoveryService
+      - CharacterHelpers
+      - RegenerationService
+      - CombatStatusEffectService
+      - CharacterResistanceService
+      - ItemProtectionService
+      - HamanMahamanService
+      # Dungeon components
+      - NavigationService
+      - EncounterService
+      - EncounterTriggerService
+      - FightMapService
+      - SpecialTileEffectService
+      - LightService
+      - MinimapService
+      - TileInspectionService
+      - TeleportService
+      # Town components
+      - InnService
+      - TempleService
+      - ShopService
+      - TrainingGroundsService
+      - TavernService
+      - BishopIdentificationService
+      # Character/Party components
+      - CharacterService
+      - PartyService
+      - SpellLearningService
+      - EquipmentService
+      - ItemUseService
+      # Data components
+      - GameDataRegistry
+      - GameInitializationService
+      - MonsterLoader
+      - SpellLoader
+      - ItemLoader
+      - FormulaService
+      - StatModifierService
+      # Treasure/Chest components
+      - TreasureService
+      - ChestService
+      # UI components
+      - CombatOverlay
+      - VictoryOverlay
+      - DefeatOverlay
+      - DungeonView
+      - Minimap
+      - StatusPanel
+      # Testing components
+      - TestRandomService
+      - TestFactories
+      - IntegrationTestRegistry
+      - CombatTestBase
+      # Models
+      - Item
+      - Character
+      - Monster
+      - Spell
+      - Party
+      # Skills/Workflow
+      - BrainstormSkill
+      - PlanSkill
+      - BeadsSkill
+      - ExecuteSkill
+      - ReviewSkill
+      - CompoundSkill
+      # Other
+      - Multiple
+      - Other
+
+  severity:
+    type: enum
+    description: "Impact level - how much time/effort this learning saves"
+    values:
+      - Critical    # Prevents major bugs or wasted effort
+      - High        # Significant time savings
+      - Medium      # Moderate improvement
+      - Low         # Minor convenience
+
+  feature:
+    type: string
+    description: "Name of feature being developed (if applicable)"
+    optional: true
+
+  cross_references:
+    type: list
+    description: "Related learnings or patterns"
+    optional: true
+
+  prevention_checklist:
+    type: list
+    description: "Items to check in future work"
+    optional: true
+
+  bead_context:
+    type: list
+    description: "Context references to include in future beads"
+    optional: true
+
+# Legacy field definitions (for backwards compatibility)
+legacy_field_definitions:
+  problem_type:
+    type: enum
+    description: "[LEGACY] Category of problem encountered - use learning_type instead"
+    values:
+      - Bug
+      - Design
+      - Integration
+      - Performance
+      - Testing
+      - Data
+      - UX
+
+  symptoms:
+    type: list
+    description: "[LEGACY] Observable behaviors - use 'What Happened' section"
+    min_items: 1
+
+  root_cause:
+    type: enum
+    description: "[LEGACY] Fundamental cause - use 'The Insight' section"
+    values:
+      - State_Management
+      - Missing_Logic
+      - Duplicate_Logic
+      - Race_Condition
+      - Data_Mismatch
+      - API_Misuse
+      - Test_Flakiness
+      - Configuration
+      - Edge_Case
+
+  resolution_type:
+    type: enum
+    description: "[LEGACY] How resolved - use 'Pattern/Solution' section"
+    values:
+      - Extract_Helper
+      - Add_Logic
+      - Fix_State
+      - Refactor
+      - Add_Test
+      - Fix_Test
+      - Update_Config
+      - Document
+
+validation_rules:
+  - "date must be in YYYY-MM-DD format"
+  - "learning_type must be specified"
+  - "phase_discovered should reflect where the learning came from"
+  - "if severity is Critical or High, prevention_checklist should be provided"
+  - "if learning_type is Context_Gap, bead_context should specify what to include"
+  - "if learning_type is Process_Improvement, consider skill updates"

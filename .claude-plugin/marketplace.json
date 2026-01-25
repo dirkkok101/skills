@@ -1,0 +1,26 @@
+{
+  "name": "dirkkok-skills",
+  "owner": {
+    "name": "Dirk Kok",
+    "email": "dirkkok101@github.com"
+  },
+  "metadata": {
+    "description": "Feature development workflow skills for structured software development with brainstorming, planning, task management, execution, review, and learning capture",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "feature-workflow",
+      "description": "Complete feature development workflow: brainstorm (idea to validated design), plan (design to implementation plan), beads (plan to intent-based tasks), execute (tasks to working code), review (parallel agent code review), compound (capture learnings). Requires br (beads-rust) CLI for task management.",
+      "source": "./",
+      "skills": [
+        "./skills/brainstorm",
+        "./skills/plan",
+        "./skills/beads",
+        "./skills/execute",
+        "./skills/review",
+        "./skills/compound"
+      ]
+    }
+  ]
+}

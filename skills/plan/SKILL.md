@@ -1,7 +1,6 @@
 ---
 name: plan
 description: Transform validated designs into hierarchical implementation plans that serve as permanent documentation. Plans contain intent, pseudocode, and diagrams - never source code. Requires design approval.
-disable-model-invocation: true
 argument-hint: "[feature-name] or path to design doc"
 ---
 

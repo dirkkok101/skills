@@ -1,7 +1,6 @@
 ---
 name: execute
 description: Execute approved beads using sub-agent model. Each bead is a work package - agent loads surgical context, designs, implements, and verifies. Continues until feature complete.
-disable-model-invocation: true
 argument-hint: "[epic-id] or [feature-name]"
 ---
 

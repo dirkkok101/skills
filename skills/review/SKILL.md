@@ -1,7 +1,6 @@
 ---
 name: review
 description: Multi-perspective code review using parallel agents. Consolidates findings by severity for user approval.
-disable-model-invocation: true
 argument-hint: "[feature-name] or [file paths]"
 ---
 

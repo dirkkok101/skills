@@ -1,7 +1,6 @@
 ---
 name: brainstorm
 description: Transform rough ideas into validated designs through deep understanding, research, and documentation synthesis. Designs become permanent project documentation.
-disable-model-invocation: true
 argument-hint: "[feature description]"
 ---
 

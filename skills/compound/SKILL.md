@@ -1,7 +1,6 @@
 ---
 name: compound
 description: Capture learnings from feature development to make future work easier. Called after review cycles during execute phase. Each call captures one focused learning.
-disable-model-invocation: true
 argument-hint: "[learning-topic] or 'review' to process review findings"
 ---
 

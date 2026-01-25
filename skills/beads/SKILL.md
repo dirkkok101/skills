@@ -1,7 +1,6 @@
 ---
 name: beads
 description: Convert approved plans into intent-based beads with self-assessment gate. Each bead is a work package for a sub-agent that loads surgical context to implement. No source code in beads.
-disable-model-invocation: true
 argument-hint: "[feature-name] or path to plan"
 ---
 

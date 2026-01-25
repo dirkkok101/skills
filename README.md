@@ -6,12 +6,12 @@ A complete feature development workflow for Claude Code with structured phases: 
 
 | Skill | Purpose | Output |
 |-------|---------|--------|
-| `/brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
-| `/plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
-| `/beads` | Create intent-based work packages (tasks) | Beads in `br` database |
-| `/execute` | Implement beads with surgical context loading | Working code |
-| `/review` | Multi-agent parallel code review | Findings and fixes |
-| `/compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
+| `/workflow:brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
+| `/workflow:plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
+| `/workflow:beads` | Create intent-based work packages (tasks) | Beads in `br` database |
+| `/workflow:execute` | Implement beads with surgical context loading | Working code |
+| `/workflow:review` | Multi-agent parallel code review | Findings and fixes |
+| `/workflow:compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
 
 ## Prerequisites
 
@@ -55,7 +55,7 @@ your-project/
 ### Install Plugin
 
 ```bash
-/plugin install feature-workflow@dirkkok-skills
+/plugin install workflow@dirkkok-skills
 ```
 
 ## Usage
@@ -63,25 +63,25 @@ your-project/
 ### Workflow
 
 ```
-/brainstorm → "design approved" → /plan → "plan approved" → /beads → "beads approved" → /execute → /review → /compound
+/workflow:brainstorm → "design approved" → /workflow:plan → "plan approved" → /workflow:beads → "beads approved" → /workflow:execute → /workflow:review → /workflow:compound
 ```
 
 ### Starting a Feature
 
 ```
-/brainstorm I want to add user authentication
+/workflow:brainstorm I want to add user authentication
 ```
 
 ### Quick Reference
 
 | Command | When to Use |
 |---------|-------------|
-| `/brainstorm [idea]` | Starting a new feature |
-| `/plan [feature]` | After design is approved |
-| `/beads [feature]` | After plan is approved |
-| `/execute [epic-id]` | After beads are approved |
-| `/review` | After implementation complete |
-| `/compound [topic]` | After review to capture learnings |
+| `/workflow:brainstorm [idea]` | Starting a new feature |
+| `/workflow:plan [feature]` | After design is approved |
+| `/workflow:beads [feature]` | After plan is approved |
+| `/workflow:execute [epic-id]` | After beads are approved |
+| `/workflow:review` | After implementation complete |
+| `/workflow:compound [topic]` | After review to capture learnings |
 
 ## Philosophy
 

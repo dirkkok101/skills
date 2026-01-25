@@ -236,18 +236,23 @@ br label add bd-{id} config         # Configuration changes
 **Link beads based on plan dependencies:**
 
 ```bash
-# Task 2 depends on Task 1
+# Task 2 depends on Task 1 (task2 blocked by task1)
 br dep add bd-{task2} bd-{task1}
 
-# All tasks link to epic
-br dep add bd-{task1} bd-{epic}
+# Epic blocked by final task (epic completes when all work done)
+br dep add bd-{epic} bd-{final-task}
 ```
+
+**Dependency Direction:**
+- `br dep add A B` means A is **blocked by** B
+- Tasks block each other based on execution order
+- Epic is blocked by the final task, so it auto-completes when work finishes
 
 **Verify:**
 ```bash
 br dep cycles    # Should be empty
-br dep tree bd-{epic}
-br ready         # Should show first task(s)
+br dep tree bd-{epic}   # Shows epic → final-task → ... → first-task
+br ready         # Should show first task(s) with no blockers
 ```
 
 ---

@@ -51,7 +51,7 @@ When asked to build a feature:
 ## Workflow Overview
 
 ```
-/workflow:brainstorm → /workflow:plan → /workflow:beads → /workflow:execute → /workflow:review → /workflow:compound
+/brainstorm → /plan → /beads → /execute → /review → /compound
        ↓                    ↓                 ↓                  ↓                  ↓                  ↓
   "design approved"   "plan approved"   "beads approved"      "done"        "changes approved"      "done"
 ```
@@ -60,12 +60,12 @@ When asked to build a feature:
 
 | Phase | Skill | Output | Exit Signal |
 |-------|-------|--------|-------------|
-| 1 | `/workflow:brainstorm` | Design doc | "design approved" |
-| 2 | `/workflow:plan` | Plan doc | "plan approved" |
-| 3 | `/workflow:beads` | Beads | "beads approved" |
-| 4 | `/workflow:execute` | Working code | "done" |
-| 5 | `/workflow:review` | Findings | "changes approved" |
-| 6 | `/workflow:compound` | Learnings | "done" |
+| 1 | `/brainstorm` | Design doc | "design approved" |
+| 2 | `/plan` | Plan doc | "plan approved" |
+| 3 | `/beads` | Beads | "beads approved" |
+| 4 | `/execute` | Working code | "done" |
+| 5 | `/review` | Findings | "changes approved" |
+| 6 | `/compound` | Learnings | "done" |
 
 ## Key Rules
 
@@ -81,14 +81,14 @@ The workflow skills create and use this structure:
 ```
 your-project/
 ├── docs/
-│   ├── designs/      # Created by /workflow:brainstorm
+│   ├── designs/      # Created by /brainstorm
 │   │   └── {feature}/
 │   │       └── design.md
-│   ├── plans/        # Created by /workflow:plan
+│   ├── plans/        # Created by /plan
 │   │   └── {feature}/
 │   │       ├── overview.md
 │   │       └── 01-{component}.md
-│   ├── learnings/    # Created by /workflow:compound
+│   ├── learnings/    # Created by /compound
 │   │   └── {category}.md
 │   ├── reference/    # Your project's reference docs (optional)
 │   └── systems/      # Your project's system docs (optional)

@@ -4,14 +4,14 @@ A complete feature development workflow for Claude Code with structured phases: 
 
 ## Overview
 
-| Skill | Purpose | Output |
-|-------|---------|--------|
-| `/workflow:brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
-| `/workflow:plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
-| `/workflow:beads` | Create intent-based work packages (tasks) | Beads in `br` database |
-| `/workflow:execute` | Implement beads with surgical context loading | Working code |
-| `/workflow:review` | Multi-agent parallel code review | Findings and fixes |
-| `/workflow:compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
+| Command | Purpose | Output |
+|---------|---------|--------|
+| `/brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
+| `/plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
+| `/beads` | Create intent-based work packages (tasks) | Beads in `br` database |
+| `/execute` | Implement beads with surgical context loading | Working code |
+| `/review` | Multi-agent parallel code review | Findings and fixes |
+| `/compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
 
 ## Installation
 
@@ -72,9 +72,9 @@ your-project/
 ├── .beads/
 │   └── beads.db        # Created by br init
 └── docs/               # Created by workflow skills
-    ├── designs/        # Created by /workflow:brainstorm
-    ├── plans/          # Created by /workflow:plan
-    └── learnings/      # Created by /workflow:compound
+    ├── designs/        # Created by /brainstorm
+    ├── plans/          # Created by /plan
+    └── learnings/      # Created by /compound
 ```
 
 ## Usage
@@ -82,25 +82,25 @@ your-project/
 ### Workflow
 
 ```
-/workflow:brainstorm → "design approved" → /workflow:plan → "plan approved" → /workflow:beads → "beads approved" → /workflow:execute → /workflow:review → /workflow:compound
+/brainstorm → "design approved" → /plan → "plan approved" → /beads → "beads approved" → /execute → /review → /compound
 ```
 
 ### Starting a Feature
 
 ```
-/workflow:brainstorm I want to add user authentication
+/brainstorm I want to add user authentication
 ```
 
 ### Quick Reference
 
 | Command | When to Use |
 |---------|-------------|
-| `/workflow:brainstorm [idea]` | Starting a new feature |
-| `/workflow:plan [feature]` | After design is approved |
-| `/workflow:beads [feature]` | After plan is approved |
-| `/workflow:execute [epic-id]` | After beads are approved |
-| `/workflow:review` | After implementation complete |
-| `/workflow:compound [topic]` | After review to capture learnings |
+| `/brainstorm [idea]` | Starting a new feature |
+| `/plan [feature]` | After design is approved |
+| `/beads [feature]` | After plan is approved |
+| `/execute [epic-id]` | After beads are approved |
+| `/review` | After implementation complete |
+| `/compound [topic]` | After review to capture learnings |
 
 ## What the Templates Provide
 
@@ -125,7 +125,7 @@ your-project/
 - **Documentation-First**: All phases produce permanent documentation
 - **Intent Over Implementation**: Beads contain objectives, not source code
 - **Surgical Context**: Each bead specifies exactly which files to read
-- **Continuous Learning**: `/workflow:compound` captures learnings for future features
+- **Continuous Learning**: `/compound` captures learnings for future features
 - **Explicit Approval**: Each phase requires user approval before proceeding
 
 ## License

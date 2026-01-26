@@ -6,12 +6,14 @@ A complete feature development workflow for Claude Code with structured phases: 
 
 | Command | Purpose | Output |
 |---------|---------|--------|
-| `/brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
-| `/plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
-| `/beads` | Create intent-based work packages (tasks) | Beads in `br` database |
-| `/execute` | Implement beads with surgical context loading | Working code |
-| `/review` | Multi-agent parallel code review | Findings and fixes |
-| `/compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
+| `/workflow:brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
+| `/workflow:plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
+| `/workflow:beads` | Create intent-based work packages (tasks) | Beads in `br` database |
+| `/workflow:execute` | Implement beads with surgical context loading | Working code |
+| `/workflow:review` | Multi-agent parallel code review | Findings and fixes |
+| `/workflow:compound` | Capture learnings for future work | `docs/learnings/{category}.md` |
+
+> **Note:** All commands use the `workflow:` namespace prefix because this is a marketplace plugin. This prevents conflicts with other plugins.
 
 ## Installation
 
@@ -72,35 +74,81 @@ your-project/
 ├── .beads/
 │   └── beads.db        # Created by br init
 └── docs/               # Created by workflow skills
-    ├── designs/        # Created by /brainstorm
-    ├── plans/          # Created by /plan
-    └── learnings/      # Created by /compound
+    ├── designs/        # Created by /workflow:brainstorm
+    ├── plans/          # Created by /workflow:plan
+    └── learnings/      # Created by /workflow:compound
 ```
+
+## Updating the Plugin
+
+If skills show only short descriptions instead of the full workflow, you need to update to the latest version.
+
+### Check Your Version
+
+Run `/plugin` in Claude Code, go to the **Installed** tab. You should see version **1.2.0** or higher.
+
+### Update to Latest
+
+```bash
+claude plugin update workflow@dirkkok-skills
+```
+
+Or through the interactive UI:
+1. Run `/plugin`
+2. Go to **Installed** tab
+3. Select `workflow`
+4. Choose the update option
+
+### Enable Auto-Updates (Recommended)
+
+To receive future updates automatically:
+1. Run `/plugin`
+2. Go to **Marketplaces** tab
+3. Select `dirkkok-skills`
+4. Select **Enable auto-update**
+
+### Troubleshooting: Skills Not Loading Full Content
+
+If skills only show a short description instead of the full workflow:
+
+1. **Clear plugin cache:**
+   ```bash
+   rm -rf ~/.claude/plugins/cache
+   ```
+
+2. **Reinstall the plugin:**
+   ```bash
+   claude plugin update workflow@dirkkok-skills
+   ```
+
+3. **Restart Claude Code** completely
+
+4. **Verify installation:** Run `/plugin`, check the **Installed** tab shows version 1.1.0+
 
 ## Usage
 
 ### Workflow
 
 ```
-/brainstorm → "design approved" → /plan → "plan approved" → /beads → "beads approved" → /execute → /review → /compound
+/workflow:brainstorm → "design approved" → /workflow:plan → "plan approved" → /workflow:beads → "beads approved" → /workflow:execute → /workflow:review → /workflow:compound
 ```
 
 ### Starting a Feature
 
 ```
-/brainstorm I want to add user authentication
+/workflow:brainstorm I want to add user authentication
 ```
 
 ### Quick Reference
 
 | Command | When to Use |
 |---------|-------------|
-| `/brainstorm [idea]` | Starting a new feature |
-| `/plan [feature]` | After design is approved |
-| `/beads [feature]` | After plan is approved |
-| `/execute [epic-id]` | After beads are approved |
-| `/review` | After implementation complete |
-| `/compound [topic]` | After review to capture learnings |
+| `/workflow:brainstorm [idea]` | Starting a new feature |
+| `/workflow:plan [feature]` | After design is approved |
+| `/workflow:beads [feature]` | After plan is approved |
+| `/workflow:execute [epic-id]` | After beads are approved |
+| `/workflow:review` | After implementation complete |
+| `/workflow:compound [topic]` | After review to capture learnings |
 
 ## What the Templates Provide
 
@@ -125,7 +173,7 @@ your-project/
 - **Documentation-First**: All phases produce permanent documentation
 - **Intent Over Implementation**: Beads contain objectives, not source code
 - **Surgical Context**: Each bead specifies exactly which files to read
-- **Continuous Learning**: `/compound` captures learnings for future features
+- **Continuous Learning**: `/workflow:compound` captures learnings for future features
 - **Explicit Approval**: Each phase requires user approval before proceeding
 
 ## License

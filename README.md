@@ -1,11 +1,12 @@
 # Feature Workflow Skills
 
-A complete feature development workflow for Claude Code with structured phases: brainstorm, plan, beads, execute, review, and compound.
+A complete feature development workflow for Claude Code with structured phases: diagnose, brainstorm, plan, beads, execute, review, and compound.
 
 ## Overview
 
 | Command | Purpose | Output |
 |---------|---------|--------|
+| `/workflow:diagnose` | Investigate bugs with root cause analysis and adaptive triage | Fix, beads, or design handoff |
 | `/workflow:brainstorm` | Transform ideas into validated designs | `docs/designs/{feature}/design.md` |
 | `/workflow:plan` | Convert designs into hierarchical implementation plans | `docs/plans/{feature}/overview.md` |
 | `/workflow:beads` | Create intent-based work packages (tasks) | Beads in `br` database |
@@ -85,7 +86,7 @@ If skills show only short descriptions instead of the full workflow, you need to
 
 ### Check Your Version
 
-Run `/plugin` in Claude Code, go to the **Installed** tab. You should see version **1.3.0** or higher.
+Run `/plugin` in Claude Code, go to the **Installed** tab. You should see version **1.5.0** or higher.
 
 ### Update to Latest
 
@@ -123,14 +124,22 @@ If skills only show a short description instead of the full workflow:
 
 3. **Restart Claude Code** completely
 
-4. **Verify installation:** Run `/plugin`, check the **Installed** tab shows version 1.1.0+
+4. **Verify installation:** Run `/plugin`, check the **Installed** tab shows version 1.5.0+
 
 ## Usage
 
 ### Workflow
 
+**Feature Development:**
 ```
 /workflow:brainstorm → "design approved" → /workflow:plan → "plan approved" → /workflow:beads → "beads approved" → /workflow:execute → /workflow:review → /workflow:compound
+```
+
+**Bug Investigation:**
+```
+/workflow:diagnose → Fix-in-Place (simple bugs)
+                  → /workflow:beads → /workflow:execute (medium issues)
+                  → /workflow:brainstorm (complex/systemic issues)
 ```
 
 ### Starting a Feature
@@ -143,6 +152,7 @@ If skills only show a short description instead of the full workflow:
 
 | Command | When to Use |
 |---------|-------------|
+| `/workflow:diagnose [symptom]` | Something is broken or behaving unexpectedly |
 | `/workflow:brainstorm [idea]` | Starting a new feature |
 | `/workflow:plan [feature]` | After design is approved |
 | `/workflow:beads [feature]` | After plan is approved |
@@ -170,6 +180,8 @@ If skills only show a short description instead of the full workflow:
 
 ## Philosophy
 
+- **Evidence-Driven Diagnosis**: Investigate with reproduction and evidence, not guesses
+- **Adaptive Triage**: Right-size the response—simple bugs get quick fixes, complex issues get proper design
 - **Documentation-First**: All phases produce permanent documentation
 - **Intent Over Implementation**: Beads contain objectives, not source code
 - **Surgical Context**: Each bead specifies exactly which files to read

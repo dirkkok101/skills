@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(head:*)",
+      "Bash(ls:*)",
+      "Bash(tree:*)",
+      "Bash(br create:*)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:docs.claude.com)"
     ]
   }
 }

@@ -17,7 +17,7 @@
     {
       "name": "docs",
       "description": "Documentation lifecycle skills: audit existing docs for gaps and staleness (docs:audit), generate and update documentation from templates (docs:write), record architectural decisions using MADR (docs:adr). Supports Diataxis framework, AI-optimization files (CLAUDE.md, AGENTS.md, llms.txt), architecture docs (C4, arc42), and project files (README, CONTRIBUTING).",
-      "source": "docs-skills/"
+      "source": "./docs-skills"
     }
   ]
 }

@@ -1,0 +1,13 @@
+{
+  "name": "docs",
+  "description": "Documentation lifecycle skills: audit existing docs for gaps and staleness (docs:audit), generate and update documentation from templates (docs:write), record architectural decisions using MADR (docs:adr). Supports Diataxis framework, AI-optimization files (CLAUDE.md, AGENTS.md, llms.txt), architecture docs (C4, arc42), and project files (README, CONTRIBUTING).",
+  "version": "1.0.0",
+  "author": {
+    "name": "Dirk Kok",
+    "email": "dirkkok101@github.com"
+  },
+  "homepage": "https://github.com/dirkkok101/skills",
+  "repository": "https://github.com/dirkkok101/skills",
+  "license": "MIT",
+  "keywords": ["docs", "documentation", "audit", "adr", "diataxis", "madr", "claude-md", "agents-md"]
+}

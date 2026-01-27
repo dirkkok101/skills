@@ -285,6 +285,21 @@ Writing a README with placeholder text and no project-specific details
 
 ---
 
+❌ **Skipping AI-friendliness**
+```
+"Documentation is complete" (but no AGENTS.md, CLAUDE.md)
+```
+
+✅ **Including AI optimization**
+```
+"Documentation complete. Also generated:"
+"- AGENTS.md for cross-platform AI agent support"
+"- CLAUDE.md with project-specific instructions"
+"- llms.txt index for context optimization"
+```
+
+---
+
 ## Exit Signals
 
 | Signal | Meaning |

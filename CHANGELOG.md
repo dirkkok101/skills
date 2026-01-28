@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-01-28
+
+### Changed
+- **workflow:review**: Added three-layer context isolation (review agents → consolidation agent → executive summary) to prevent context bloat and finding loss
+- **workflow:review**: Added conditional design-intent and plan-intent agents that verify implementation against upstream design and plan documents
+- **workflow:review**: Consolidation agent now writes structured summary to `.beads/review-summary.md` with executive summary first for selective reading
+- **workflow:review**: Expanded from 6 to up to 8 agents (6 core + 2 conditional)
+- **workflow:review**: Added project root resolution step for reliable document path handling
+
 ## [1.7.0] - 2026-01-28
 
 ### Changed

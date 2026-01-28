@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-01-28
+
+### Changed
+- **workflow:review**: Redesigned agent orchestration to use background execution with consolidation agent, preventing context bloat and lost findings
+- **workflow:review**: Added Core Principles, Anti-Patterns sections per skill-creator guidelines
+- **workflow:review**: Moved trigger conditions into frontmatter description for proper skill triggering
+- **workflow:review**: Generalized build/test commands to be project-agnostic (removed hardcoded dotnet references)
+
 ## [1.6.0] - 2026-01-27
 
 ### Added

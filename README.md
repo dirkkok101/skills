@@ -86,7 +86,7 @@ If skills show only short descriptions instead of the full workflow, you need to
 
 ### Check Your Version
 
-Run `/plugin` in Claude Code, go to the **Installed** tab. You should see version **1.6.0** or higher.
+Run `/plugin` in Claude Code, go to the **Installed** tab. You should see version **1.7.0** or higher.
 
 ### Update to Latest
 
@@ -124,7 +124,7 @@ If skills only show a short description instead of the full workflow:
 
 3. **Restart Claude Code** completely
 
-4. **Verify installation:** Run `/plugin`, check the **Installed** tab shows version 1.6.0+
+4. **Verify installation:** Run `/plugin`, check the **Installed** tab shows version 1.7.0+
 
 ## Usage
 

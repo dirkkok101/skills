@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Workflow and documentation skills for structured software development: feature lifecycle (diagnose, brainstorm, plan, execute, review) and documentation lifecycle (audit, write, ADR)",
-    "version": "1.8.0"
+    "version": "1.9.0"
   },
   "plugins": [
     {

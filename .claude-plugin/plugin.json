@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "Complete feature development workflow: diagnose (bug investigation with adaptive triage), brainstorm (idea to validated design), plan (design to implementation plan), beads (plan to intent-based tasks), execute (tasks to working code), review (parallel agent code review), compound (capture learnings). Requires br (beads-rust) CLI for task management.",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "author": {
     "name": "Dirk Kok",
     "email": "dirkkok101@github.com"

@@ -220,14 +220,16 @@ Return findings in this format:
 Use `Read` or `Bash` with `tail` to check each output file. Wait until all agents (6-8) have completed. You will receive notifications as each background agent finishes.
 
 **Step 3.2 - Launch Consolidation Agent:**
-Launch a single Task agent (subagent_type: `general-purpose`, **`run_in_background: true`**) that reads all output files (6-8) and writes a structured summary to `.beads/review-summary.md`.
+Generate a timestamp for this review session (e.g., `date +%Y%m%d-%H%M%S` → `20250129-143052`).
+
+Launch a single Task agent (subagent_type: `general-purpose`, **`run_in_background: true`**) that reads all output files (6-8) and writes a structured summary to `docs/reviews/review-{timestamp}.md` (e.g., `docs/reviews/review-20250129-143052.md`). Create the `docs/reviews/` directory if it doesn't exist.
 
 The consolidation agent runs in the background so its full output stays on disk. The main agent then selectively reads only the executive summary section, keeping the main conversation context compact.
 
 **Consolidation Agent Prompt Template:**
 ```
 Read the following review agent output files and produce a consolidated review summary.
-Write the result to `.beads/review-summary.md` using the Write tool.
+Write the result to `docs/reviews/review-{timestamp}.md` using the Write tool. Create the directory if needed.
 
 Output files:
 - {output_file_1} (code-reviewer)
@@ -295,15 +297,15 @@ Minor notes, no action required.
 **Step 3.3 - Read Executive Summary Only:**
 Once the consolidation agent completes, read only the executive summary section:
 ```
-Read .beads/review-summary.md with limit: 50
+Read docs/reviews/review-{timestamp}.md with limit: 50
 ```
-This gives you the stats, must-fix table, and agent status without pulling the full report into context. The full findings remain on disk at `.beads/review-summary.md` for Phase 6.
+This gives you the stats, must-fix table, and agent status without pulling the full report into context. The full findings remain on disk at `docs/reviews/review-{timestamp}.md` for Phase 6.
 
 **Why this three-layer isolation works:**
 | Layer | What | Where |
 |-------|------|-------|
 | Review agents | Raw findings | 6-8 output files (background) |
-| Consolidation agent | Deduplicated structured report | `.beads/review-summary.md` (background) |
+| Consolidation agent | Deduplicated structured report | `docs/reviews/review-{timestamp}.md` (background) |
 | Main agent | Executive summary only | Conversation context (selective read) |
 
 The consolidation agent gets its own fresh context to hold all 6-8 reports. The main agent never reads the full report — only the compact executive summary enters the conversation context. This prevents compaction from losing findings.
@@ -341,14 +343,14 @@ Present the executive summary read in Step 3.3. Do NOT read the full findings fi
 
 {Executive summary from Step 3.3 — stats + must-fix table + agent status}
 
-📄 **Full report:** `.beads/review-summary.md` (includes Should Consider and Observations)
+📄 **Full report:** `docs/reviews/review-{timestamp}.md` (includes Should Consider and Observations)
 
 ---
 
 ## Recommended Actions
 
 1. **Must Fix items are blocking** - These should be addressed
-2. **Should Consider items are in the full report** - Review at `.beads/review-summary.md`
+2. **Should Consider items are in the full report** - Review at `docs/reviews/review-{timestamp}.md`
 
 Select which items to implement:
 - "all" - Implement all Must Fix + Should Consider
@@ -363,14 +365,14 @@ Select which items to implement:
 
 **Only implement what user approves.**
 
-**If user selects "all" or "should-consider" items:** Read the full findings from `.beads/review-summary.md` at this point (offset past the executive summary to the "Full Findings" section). Read only the relevant section — do not load the entire file if only specific items are needed.
+**If user selects "all" or "should-consider" items:** Read the full findings from `docs/reviews/review-{timestamp}.md` at this point (offset past the executive summary to the "Full Findings" section). Read only the relevant section — do not load the entire file if only specific items are needed.
 
 **For each approved fix:**
 
 1. **Make the change:**
    - Follow the suggestion exactly
    - Keep changes minimal
-   - If detail is needed on a specific finding, read that section from `.beads/review-summary.md` or the original agent output file
+   - If detail is needed on a specific finding, read that section from `docs/reviews/review-{timestamp}.md` or the original agent output file
 
 2. **Run tests** (project test command)
 
@@ -413,7 +415,7 @@ Options:
 - Always use all 6 core agents in parallel with `run_in_background: true`, plus design-intent and/or plan-intent agents when their respective documents exist
 - Never do manual review instead of agents
 - Provide full context to each agent
-- Always use a consolidation agent (`run_in_background: true`) to read output files and write to `.beads/review-summary.md`
+- Always use a consolidation agent (`run_in_background: true`) to read output files and write to `docs/reviews/review-{timestamp}.md`
 - Never read raw agent output files or the full summary file into the main conversation
 - Read only the executive summary (~50 lines) from the summary file into context
 
@@ -437,7 +439,7 @@ Options:
 - Verify all agents completed (check Agent Completion Status table in executive summary)
 - Check for false positives in consolidated summary
 - Cross-reference with learnings
-- If detail is needed on a specific finding, read that section from `.beads/review-summary.md` or the original agent output file (do not load the entire file)
+- If detail is needed on a specific finding, read that section from `docs/reviews/review-{timestamp}.md` or the original agent output file (do not load the entire file)
 
 ---
 
@@ -455,7 +457,7 @@ Consolidation agent (foreground) → full deduplicated report enters context →
 
 ✅ **Three-layer context isolation**
 ```
-6-8 agents (background) → output files → consolidation agent (background) → .beads/review-summary.md → main agent reads ONLY executive summary (~50 lines)
+6-8 agents (background) → output files → consolidation agent (background) → docs/reviews/review-{timestamp}.md → main agent reads ONLY executive summary (~50 lines)
 ```
 
 ❌ **Reading raw agent output files directly into the main conversation**
@@ -467,13 +469,13 @@ Read output_file_1... Read output_file_2... (all 6-8 reports enter main context)
 ❌ **Reading the full summary file into the main conversation**
 ```
 # Don't do this — the full report can still be large enough to cause compaction
-Read .beads/review-summary.md (entire file enters main context)
+Read docs/reviews/review-{timestamp}.md (entire file enters main context)
 ```
 
 ✅ **Selective reading of executive summary only**
 ```
 # Read only the first ~50 lines (stats + must-fix table + agent status)
-Read .beads/review-summary.md with limit: 50
+Read docs/reviews/review-{timestamp}.md with limit: 50
 # Full findings stay on disk, read on-demand during Phase 6
 ```
 

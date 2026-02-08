@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "version": "1.0.0",
+  "description": "OpenAI/Codex tool definitions for workflow phases. Additive integration; Claude plugin remains unchanged.",
+  "tools": [
+    {
+      "name": "workflow_diagnose",
+      "description": "Investigate a bug or unexpected behavior and produce root-cause triage guidance.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "symptom"
+        ],
+        "properties": {
+          "symptom": {
+            "type": "string",
+            "description": "Observed issue and expected behavior mismatch."
+          },
+          "context": {
+            "type": "string",
+            "description": "Optional reproduction details, logs, or suspected area."
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_brainstorm",
+      "description": "Turn a feature idea into a validated design document in docs/designs.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string",
+            "description": "Feature name or idea to design."
+          },
+          "design_path": {
+            "type": "string",
+            "description": "Optional explicit design document path under docs/designs/."
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_plan",
+      "description": "Create an implementation plan from an approved design under docs/plans.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string",
+            "description": "Feature slug used to locate docs/designs/{feature}/design.md."
+          },
+          "design_approved": {
+            "type": "boolean",
+            "description": "Whether explicit design approval has been granted.",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_beads",
+      "description": "Convert an approved plan into intent-based beads using br.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "feature"
+        ],
+        "properties": {
+          "feature": {
+            "type": "string",
+            "description": "Feature slug used to locate docs/plans/{feature}/overview.md."
+          },
+          "plan_approved": {
+            "type": "boolean",
+            "description": "Whether explicit plan approval has been granted.",
+            "default": false
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 4,
+            "description": "Optional default bead priority for created tasks."
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_execute",
+      "description": "Execute approved beads and report implementation progress.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Epic id or feature name to execute."
+          },
+          "beads_approved": {
+            "type": "boolean",
+            "description": "Whether explicit beads approval has been granted.",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_review",
+      "description": "Review implemented changes and summarize findings for approval.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "scope": {
+            "type": "string",
+            "description": "Optional feature name or file scope for review."
+          },
+          "base_ref": {
+            "type": "string",
+            "description": "Optional git base ref for diff, default: main."
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_compound",
+      "description": "Capture a focused learning into docs/learnings after execute/review work.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "topic"
+        ],
+        "properties": {
+          "topic": {
+            "type": "string",
+            "description": "Learning topic to capture."
+          },
+          "category": {
+            "type": "string",
+            "description": "Target learning category file name (without extension)."
+          }
+        }
+      }
+    },
+    {
+      "name": "workflow_docs",
+      "description": "OpenAI docs skill for docs/ operations. Supports find, summarize, and update under docs/ only.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "action"
+        ],
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": [
+              "find",
+              "summarize",
+              "update"
+            ],
+            "description": "Operation to run on docs/ content."
+          },
+          "query": {
+            "type": "string",
+            "description": "Substring to match for find (path or file text)."
+          },
+          "path": {
+            "type": "string",
+            "description": "Relative path under docs/ for summarize or update."
+          },
+          "content": {
+            "type": "string",
+            "description": "Full file content used when action=update (overwrite)."
+          },
+          "max_results": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 50,
+            "description": "Maximum number of matches returned for find."
+          }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "find"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "query"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "summarize"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "path"
+              ]
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "action": {
+                  "const": "update"
+                }
+              }
+            },
+            "then": {
+              "required": [
+                "path",
+                "content"
+              ]
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

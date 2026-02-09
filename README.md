@@ -196,8 +196,14 @@ No migration is required for Claude users.
 Use these OpenAI-specific assets:
 
 1. Load `templates/OPENAI_AGENT.md` as your system/agent instruction file.
-2. Register function tools from `openai/tools.json`.
+2. Register OpenAI **function tools** from `openai/tools.json` (`type: "function"` format).
 3. Optionally use `openai/bootstrap.ts` as a reference dispatcher implementation.
+
+Quick validation:
+
+```bash
+node openai/validate-tools.mjs
+```
 
 The OpenAI/Codex workflow mirrors the same phases:
 `diagnose → brainstorm → plan → beads → execute → review → compound`
@@ -207,7 +213,7 @@ with the same approval gates (`design approved`, `plan approved`, `beads approve
 
 The OpenAI tool `workflow_docs` is a docs-focused skill equivalent for operating under `docs/`:
 - `find` searches recursively in `docs/`
-- `summarize` reads a specific file under `docs/`
+- `summarize` returns a concise summary (and can optionally include full content)
 - `update` overwrites a specific file under `docs/` (creating parent directories as needed)
 
 This maps directly to the workflow documentation structure:

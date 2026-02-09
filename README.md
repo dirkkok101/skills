@@ -178,6 +178,49 @@ If skills only show a short description instead of the full workflow:
 - Dependency management
 - Query and search commands
 
+## OpenAI / Codex Integration
+
+This repository is model-agnostic. The existing Claude Code plugin and marketplace workflow remain unchanged, and OpenAI/Codex support is provided as an additive integration layer.
+
+### For Claude Code Users
+
+Continue using the plugin exactly as documented above:
+- `/plugin install workflow@dirkkok-skills`
+- `templates/CLAUDE.md` and `templates/AGENTS.md`
+- `/workflow:*` commands
+
+No migration is required for Claude users.
+
+### For OpenAI/Codex Users
+
+Use these OpenAI-specific assets:
+
+1. Load `templates/OPENAI_AGENT.md` as your system/agent instruction file.
+2. Register OpenAI **function tools** from `openai/tools.json` (`type: "function"` format).
+3. Optionally use `openai/bootstrap.ts` as a reference dispatcher implementation.
+
+Quick validation:
+
+```bash
+node openai/validate-tools.mjs
+```
+
+The OpenAI/Codex workflow mirrors the same phases:
+`diagnose → brainstorm → plan → beads → execute → review → compound`
+with the same approval gates (`design approved`, `plan approved`, `beads approved`, etc.).
+
+### OpenAI Docs Skill Mapping
+
+The OpenAI tool `workflow_docs` is a docs-focused skill equivalent for operating under `docs/`:
+- `find` searches recursively in `docs/`
+- `summarize` returns a concise summary (and can optionally include full content)
+- `update` overwrites a specific file under `docs/` (creating parent directories as needed)
+
+This maps directly to the workflow documentation structure:
+- `docs/designs`
+- `docs/plans`
+- `docs/learnings`
+
 ## Philosophy
 
 - **Evidence-Driven Diagnosis**: Investigate with reproduction and evidence, not guesses

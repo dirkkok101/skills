@@ -221,6 +221,50 @@ This maps directly to the workflow documentation structure:
 - `docs/plans`
 - `docs/learnings`
 
+## Gemini CLI Integration
+
+The repository supports the [Gemini CLI](https://github.com/google/gemini-cli) via Agent Skills and Extensions.
+
+### For Gemini CLI Users
+
+1. **Install the Extensions:**
+
+   ```bash
+   # Install workflow skills
+   gemini extensions install https://github.com/dirkkok101/skills
+
+   # Install documentation skills
+   gemini extensions install https://github.com/dirkkok101/skills --path docs-skills
+   ```
+
+2. **Set Up Your Project:**
+
+   Copy the template files to your project root:
+   ```bash
+   # From this repository's templates/ folder, copy to your project:
+   # - templates/GEMINI.md → your-project/GEMINI.md
+   # - templates/AGENTS.md → your-project/AGENTS.md
+   ```
+
+   Or download directly:
+   ```bash
+   curl -o GEMINI.md https://raw.githubusercontent.com/dirkkok101/skills/main/templates/GEMINI.md
+   curl -o AGENTS.md https://raw.githubusercontent.com/dirkkok101/skills/main/templates/AGENTS.md
+   ```
+
+3. **Usage:**
+
+   Gemini CLI automatically discovers and activates these skills when relevant. The agent will call `activate_skill` to load the full instructions for:
+   - `brainstorm`
+   - `plan`
+   - `beads`
+   - `execute`
+   - `review`
+   - `compound`
+   - `diagnose`
+
+   The workflow follows the same phases and approval gates as documented in the [Usage](#usage) section.
+
 ## Philosophy
 
 - **Evidence-Driven Diagnosis**: Investigate with reproduction and evidence, not guesses

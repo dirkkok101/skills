@@ -1,0 +1,9 @@
+{
+  "name": "workflow-skills",
+  "version": "1.9.0",
+  "description": "Complete feature development workflow skills: diagnose, brainstorm, plan, beads, execute, review, and compound.",
+  "author": "Dirk Kok",
+  "license": "MIT",
+  "homepage": "https://github.com/dirkkok101/skills",
+  "repository": "https://github.com/dirkkok101/skills"
+}

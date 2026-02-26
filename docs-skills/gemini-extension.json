@@ -1,0 +1,9 @@
+{
+  "name": "documentation-skills",
+  "version": "1.9.0",
+  "description": "Documentation lifecycle skills: audit existing docs for gaps and staleness, generate and update documentation from templates, and record architectural decisions using MADR.",
+  "author": "Dirk Kok",
+  "license": "MIT",
+  "homepage": "https://github.com/dirkkok101/skills",
+  "repository": "https://github.com/dirkkok101/skills"
+}

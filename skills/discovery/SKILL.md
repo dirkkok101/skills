@@ -1,8 +1,8 @@
 ---
 name: discovery
 description: >
-  Domain-aware requirements elicitation between brainstorm and PRD. Walks through
-  domain-specific checklists, maps actors and workflows, captures UI flows,
+  Deep requirements elicitation between brainstorm and PRD through structured
+  dialogue. Maps actors and workflows, walks domain-specific checklists,
   analyses integrations and security, and produces a discovery brief that feeds
   directly into PRD. Use after brainstorm for complex features, when user says
   'discover requirements', 'deep dive', 'requirements elicitation', or when
@@ -12,15 +12,11 @@ argument-hint: "[feature name or brainstorm reference]"
 
 # Discovery: Approach → Domain-Aware Requirements
 
-**Philosophy:** The gap between "we picked an approach" (brainstorm) and "we have formal requirements" (PRD) is where complex features fail. Discovery fills that gap with domain-specific depth. **Discovery is a working process — the PRD is the authoritative document.** Discovery produces a brief that feeds into PRD; the PRD absorbs and formalises discovery's findings. The discovery brief is reference material, not a duplicate of the PRD.
+**Philosophy:** The gap between "we picked an approach" (brainstorm) and "we have formal requirements" (PRD) is where complex features fail. Discovery fills that gap with domain-specific depth — mapping every actor, walking every workflow, surfacing every integration point and security concern. Discovery is a working process — the PRD is the authoritative document. Discovery produces a brief that feeds into PRD; the PRD absorbs and formalises discovery's findings.
 
-## Core Principles
+## Why This Matters
 
-1. **Domain-driven** — Load domain reference, walk the checklist, don't guess
-2. **Actor-complete** — Every human, system, and background process enumerated
-3. **Workflow-first** — Map current state before designing desired state
-4. **Visually grounded** — ASCII diagrams for workflows, navigation, data flows
-5. **Security-aware** — STRIDE-lite for auth features, compliance checkpoints for regulated
+Complex features fail when requirements are discovered during implementation instead of before it. A missing actor, an overlooked integration, or an unidentified compliance requirement can force expensive rework weeks into development. Discovery prevents this by systematically walking through the problem domain before a single line of code is written. The cost of discovery is hours; the cost of missed requirements is weeks.
 
 ---
 
@@ -29,7 +25,7 @@ argument-hint: "[feature name or brainstorm reference]"
 Run this skill when:
 - Brainstorm scope classifier says COMPREHENSIVE
 - User says "discover requirements", "deep dive requirements", "requirements elicitation"
-- Feature touches auth/identity, multiple user roles, external integrations, or complex UI
+- Feature touches auth, multiple user roles, external integrations, or complex UI
 - After brainstorm, before PRD, for any non-trivial feature
 
 Do NOT run when:
@@ -39,55 +35,53 @@ Do NOT run when:
 
 ---
 
-## Critical Sequence
+## Collaborative Model
 
-### Phase 0: Prerequisites & Domain Detection
+```
+Phase 1: Actor & Workflow Mapping
+  ── PAUSE 1: "Here are the actors and workflows. Complete?" ──
+Phase 2: Domain Requirements Elicitation
+  ── PAUSE 2: "Here are the domain requirements. Scope right?" ──
+Phase 3: Integration, Security & Risk Analysis
+Phase 4: Synthesis & Brief
+  ── PAUSE 3: "Discovery complete. Ready for PRD?" ──
+```
 
-**Step 0.1 — Resolve Project Root:**
+---
+
+## Prerequisites
 
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 mkdir -p "${PROJECT_ROOT}/docs/discovery/{feature}"
 ```
 
-**Step 0.2 — Import Brainstorm Output:**
+**Import upstream artifacts:**
 
 ```bash
+# Brainstorm (primary input)
 cat "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md"
+
+# Research brief (if /research was run)
+cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
+
+# Past learnings
+ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 ```
 
-Extract: problem statement, chosen approach, boundaries, scope classification, recommended domain.
+Extract from brainstorm: problem statement, chosen approach, boundaries, scope classification.
+
+Import research findings by tag:
+- **[CONSTRAINT]** → note for boundaries
+- **[RISK]** → seed for risk register
+- **[PRIOR-ART]** → inform domain requirements
+- **[UNKNOWN]** → flag for investigation during discovery
 
 If no brainstorm exists, ask user for: feature name, problem statement, chosen approach, key constraints.
 
-**Step 0.3 — Detect Domain:**
-
-Scan feature description and brainstorm for domain signals:
-
-| Domain | Signals |
-|--------|---------|
-| Identity/Auth | login, auth, user, roles, permissions, OIDC, OAuth, tokens, SSO, MFA, password, session, client registration, scopes, claims |
-| Data Platform | data model, reporting, dashboard, computed values, curation, MCP, formulas, KPIs, metrics, ETL, import, export |
-| Mobile/EHS | mobile, offline, sync, inspection, incident, field, GPS, camera, checklist, observation, safety |
-| General SaaS | tenant, subscription, billing, onboarding, admin, configuration, notification, webhook, API key |
-
-Present detection to user: "Detected domain: {domain}. Loading {domain} reference. Correct? Any additional domains?"
-
-**Step 0.4 — Load References:**
-
-Read the domain reference file(s):
-- `skills/_shared/references/{domain}.md`
-- `skills/_shared/references/ascii-conventions.md`
-
-If domain reference doesn't exist, note this and proceed with generic elicitation.
-
-**Step 0.5 — Initialise Context Files:**
-
-Create in `${PROJECT_ROOT}/docs/discovery/{feature}/`:
-- `progress.md` — phase tracking
-- `findings.md` — working notes accumulated during discovery
-
 ---
+
+## Critical Sequence
 
 ### Phase 1: Actor & Workflow Mapping
 
@@ -95,33 +89,39 @@ Create in `${PROJECT_ROOT}/docs/discovery/{feature}/`:
 
 Not just "users" — enumerate every distinct entity that interacts with this feature.
 
-Ask: **"Who or what interacts with this feature? Think about: human roles, external systems, background processes, other NXGN products."**
+Ask: **"Who or what interacts with this feature? Think about: human roles, external systems, background processes, other products."**
 
-Document as table:
-
-```
+```markdown
 | Actor | Type | Key Actions | Frequency |
 |-------|------|-------------|-----------|
 | {role} | Human / System / Automated | {what they do} | {how often} |
 ```
 
 Types:
-- **Human**: Tenant Admin, End User, Support Engineer, Auditor
-- **System**: Client App, External IdP, Email Service, Key Vault
-- **Automated**: Background Job, Scheduler, Event Handler
+- **Human**: Named roles from the actual organisation (Tenant Admin, Inspector, Auditor)
+- **System**: External systems (Identity Provider, Email Service, Payment Gateway)
+- **Automated**: Background jobs, schedulers, event handlers
+
+For each human actor, capture a Jobs-to-be-Done statement:
+
+```markdown
+| Actor | Job-to-be-Done |
+|-------|----------------|
+| {role} | When {situation}, I want to {motivation}, so I can {outcome} |
+```
 
 **Step 1.2 — Map Current-State Workflow:**
 
 Ask: **"How does this work TODAY? Walk me through the current process step by step."**
 
-Create ASCII workflow diagram using conventions from `ascii-conventions.md`:
+Create ASCII workflow diagram using conventions from `_shared/references/ascii-conventions.md`:
 
 ```
 ( Current Trigger )
        |
        v
 +------------------+
-|  Current Step 1  |  ⚠ pain point annotation
+|  Current Step 1  |  ⚠ pain point
 +------------------+
        |
        v
@@ -133,7 +133,7 @@ Create ASCII workflow diagram using conventions from `ascii-conventions.md`:
 
 Annotate pain points inline with ⚠ markers.
 
-If there is no current process (greenfield feature), note this and skip to desired state.
+If greenfield (no current process), note this and skip to desired state.
 
 **Step 1.3 — Map Desired-State Workflow:**
 
@@ -144,42 +144,57 @@ Create ASCII workflow diagram showing how the feature SHOULD work:
        |
        v
 +------------------+
-|  New Step 1      |  ✓ improvement annotation
+|  New Step 1      |  ✓ improvement
 +------------------+
 ```
 
 **Step 1.4 — Gap Analysis:**
 
-Compare current vs. desired:
-
-```
+```markdown
 | Gap | Current | Desired | Impact |
 |-----|---------|---------|--------|
 | {what changes} | {how it works now} | {how it should work} | {benefit} |
 ```
 
-**Output:** `workflow-map.md` with actor table, both workflow diagrams, and gap analysis.
+**PAUSE 1:** Present actors, workflows, and gaps.
+"Here are the actors and workflows I've mapped. Are all actors accounted for? Do the workflows match reality?"
 
 ---
 
-### Phase 2: Domain-Specific Requirements Elicitation
+### Phase 2: Domain Requirements Elicitation
 
-**Step 2.1 — Walk Domain Checklist:**
+**Step 2.1 — Identify Domain Areas:**
 
-Load the domain checklist from the domain reference file.
+Based on the feature description and brainstorm, identify which domain areas need investigation. Common areas include:
 
-**Batch mode (preferred):** Present the entire category at once and ask the user to mark items, rather than walking through one-by-one. This prevents user fatigue on large checklists.
+- Authentication and authorisation
+- Data model and persistence
+- User interface and navigation
+- Integrations and external systems
+- Background processing and async workflows
+- Reporting and analytics
+- Notifications and communications
+- Configuration and administration
+- Multi-tenancy and isolation
 
-```
-## {Category Name} — mark each item:
+Present to user: "This feature touches {areas}. Any others?"
+
+**Step 2.2 — Walk Domain Checklist:**
+
+If the project has domain reference files, load the relevant checklist. If not, generate questions based on the identified domain areas.
+
+**Batch mode (preferred):** Present an entire category at once:
+
+```markdown
+## {Category} — mark each item:
 
   [ ] Item 1: {description}
   [ ] Item 2: {description}
   [ ] Item 3: {description}
-  ...
 
 For each item, reply with:
-  IN — in scope for this feature
+  IN — in scope (Must Have)
+  SHOULD — in scope (Should Have)
   DEF — deferred to v2+
   OUT — excluded
   Or use shortcuts: "all IN", "1-3 IN, 4-5 DEF, rest OUT"
@@ -189,115 +204,90 @@ For each IN SCOPE item, follow up with:
 - What are the business rules?
 - What are the constraints or limits?
 - What edge cases should we handle?
-- What validation is needed?
 
-**One-at-a-time mode (fallback):** If the checklist is short (under 10 items) or the user prefers interactive exploration, walk through one category at a time.
+**Step 2.3 — Example Mapping (complex requirements):**
 
-Ask one category at a time. Do NOT present all categories simultaneously.
-
-**Step 2.2 — Document Domain Requirements:**
-
-Group by domain checklist category:
+For high-priority or complex requirements, capture concrete examples:
 
 ```markdown
-### {Category Name}
+**Rule:** {business rule}
+**Example:** {scenario that follows the rule}
+**Counter-example:** {scenario that must fail}
+**Question:** {open question about edge cases}
+```
 
-#### IN SCOPE
+This surfaces hidden assumptions and edge cases that abstract descriptions miss.
+
+**Step 2.4 — Document Domain Requirements:**
+
+Group by domain area:
+
+```markdown
+### {Domain Area}
+
+#### Must Have
 DR-{MODULE}-{DESCRIPTIVE-NAME}: {Requirement title}
   Description: {what it does}
   Business rules: {specific rules with parameters}
   Constraints: {limits, validation rules}
   Edge cases: {what happens when...}
-  Maps to FR: {FR-{MODULE}-{NAME} — filled in during PRD phase}
+  Evidence: {Direct / Indirect / Assumption}
 
+#### Should Have
 DR-{MODULE}-{DESCRIPTIVE-NAME}: ...
 
-#### DEFERRED (v2+)
+#### Deferred (v2+)
 - {Requirement} — Reason: {why deferred}
 
-#### EXCLUDED
+#### Excluded
 - {Requirement} — Reason: {why excluded}
 ```
 
-**Output:** `domain-requirements.md`
+**Evidence quality:**
+- **Direct** — user interview data, support tickets, analytics
+- **Indirect** — analogous features, competitor analysis, expert opinion
+- **Assumption** — needs validation (flag for PRD)
+
+**PAUSE 2:** Present domain requirements summary.
+"Discovered {N} requirements across {N} domain areas. {N} Must Have, {N} Should Have, {N} Deferred. Does the scope look right?"
 
 ---
 
-### Phase 3: UI/UX Flow Mapping
+### Phase 3: Integration, Security & Risk Analysis
 
-**Skip this phase if the feature has no user interface.**
+**Step 3.1 — UI/UX Flow Mapping (skip if no UI):**
 
-**Step 3.1 — Screen Inventory:**
-
-Ask: **"What screens or views does this feature need?"**
-
-```
+```markdown
 | Screen | Purpose | Entry Point | Key Actions |
 |--------|---------|-------------|-------------|
-| {name} | {what user does here} | {how they get here} | {buttons/forms} |
+| {name} | {what user does} | {how they get here} | {buttons/forms} |
 ```
 
-**Step 3.2 — Navigation Flow:**
-
-ASCII diagram showing how users move between screens:
-
+ASCII navigation flow:
 ```
 [Screen A] ──"action"──> [Screen B] ──"action"──> [Screen C]
-     |                                                  |
-     +────"action"───> [Screen D] <────"action"─────────+
 ```
 
-**Step 3.3 — Screen States:**
+Screen states for each: Loading, Populated, Empty, Error, Saving.
 
-For each screen, identify states:
+**Step 3.2 — External System Touchpoints:**
 
-```
-| Screen | States |
-|--------|--------|
-| {name} | Loading, Populated, Empty, Error, Saving |
-```
-
-**Step 3.4 — Key Mockup Sketches (optional):**
-
-Quick layout sketches for complex screens. Full mockups go in technical-design.
-Use UI mockup conventions from `ascii-conventions.md`.
-
-**Output:** `ux-flows.md`
-
----
-
-### Phase 4: Integration & Security Analysis
-
-**Step 4.1 — External System Touchpoints:**
-
-```
-| System | Direction | Data | Protocol | Frequency | Auth |
-|--------|-----------|------|----------|-----------|------|
-| {name} | In/Out/Both | {what data} | REST/gRPC/SMTP | {rate} | {how} |
+```markdown
+| System | Direction | Data | Protocol | Auth |
+|--------|-----------|------|----------|------|
+| {name} | In/Out/Both | {what data} | REST/gRPC/events | {how} |
 ```
 
-**Step 4.2 — Data Flow Diagram (Context Level):**
+ASCII data flow diagram (context level) showing data movement across system boundaries.
 
-ASCII DFD showing data movement across system boundaries:
-
-```
-[External Entity]
-     |
-     | {data description}
-     v
-(1.0 Process) ---- {data} ----> |= D1 Store |
-```
-
-Use DFD conventions from `ascii-conventions.md`.
-
-**Step 4.3 — Security Analysis:**
+**Step 3.3 — Security Analysis:**
 
 For features touching auth, PII, or sensitive operations, do STRIDE-lite:
 
-```
-| Threat Category | Applies? | Threat | Mitigation |
-|-----------------|----------|--------|------------|
-| Spoofing | Yes/No | {specific threat} | {specific mitigation} |
+```markdown
+| Threat | Applies? | Specific Risk | Mitigation |
+|--------|----------|---------------|------------|
+| Spoofing | Yes/No | {threat} | {mitigation} |
 | Tampering | Yes/No | ... | ... |
 | Repudiation | Yes/No | ... | ... |
 | Info Disclosure | Yes/No | ... | ... |
@@ -305,78 +295,111 @@ For features touching auth, PII, or sensitive operations, do STRIDE-lite:
 | Elevation of Privilege | Yes/No | ... | ... |
 ```
 
-For non-security features, do abbreviated analysis (just note "no significant security implications" with reasoning).
+For non-security features, note "No significant security implications — {reasoning}" and move on.
 
-**Step 4.4 — Compliance Checkpoints:**
+**Step 3.4 — Compliance Checkpoints:**
 
-```
+If regulatory requirements apply:
+
+```markdown
 | Regulation | Requirement | How Addressed | Status |
 |-----------|-------------|---------------|--------|
-| POPIA | {specific requirement} | {how the feature addresses it} | Addressed/Gap |
-| SOC 2 | ... | ... | ... |
+| {regulation} | {specific requirement} | {approach} | Addressed/Gap |
 ```
 
-Skip if no regulatory requirements apply to this feature.
+Skip if no regulatory requirements apply.
 
-**Output:** `integration-analysis.md`
+**Step 3.5 — Feasibility Assessment:**
+
+For each requirement, assess technical feasibility:
+
+```markdown
+| Requirement | Feasibility | Confidence | Action Needed |
+|-------------|-------------|------------|---------------|
+| DR-{MODULE}-{NAME} | Known pattern | High | None |
+| DR-{MODULE}-{NAME} | Uncertain | Low | Spike needed |
+| DR-{MODULE}-{NAME} | Complex | Medium | Research needed |
+```
+
+Low confidence items should generate explicit spike or research recommendations.
+
+**Step 3.6 — Risk Register:**
+
+Consolidate risks identified throughout discovery:
+
+```markdown
+| Risk | Category | Likelihood | Impact | Mitigation |
+|------|----------|-----------|--------|------------|
+| {risk} | Value/Usability/Feasibility/Viability | High/Med/Low | High/Med/Low | {approach} |
+```
+
+**Pre-mortem prompt:** Ask the user: "Imagine this feature shipped and was considered a failure 6 months later. What are the top 3 reasons it failed?" Add responses to the risk register.
 
 ---
 
-### Phase 5: Requirements Synthesis
+### Phase 4: Synthesis & Brief
 
-**Step 5.1 — Consolidate:**
-
-Merge findings from all phases into a unified view.
-
-**Step 5.2 — Cross-Reference with Brainstorm Boundaries:**
+**Step 4.1 — Cross-Reference with Brainstorm Boundaries:**
 
 For each discovered requirement:
 - Within brainstorm scope? → Keep
-- Exceeds scope? → Flag for user: "This requirement wasn't in the original scope. Expand scope or defer?"
+- Exceeds scope? → Flag: "This requirement wasn't in the original scope. Expand scope or defer?"
 - Conflicts with anti-requirements? → Resolve with user
 
-**Step 5.3 — Requirements Summary:**
+**Step 4.2 — Requirements Summary:**
 
+```markdown
+| Domain Area | Must Have | Should Have | Deferred | Excluded |
+|-------------|----------|------------|----------|----------|
+| {area} | {count} | {count} | {count} | {count} |
+| Total | {total} | {total} | {total} | {total} |
 ```
-| Category | In Scope | Deferred | Excluded |
-|----------|----------|----------|----------|
-| {domain category} | {count} | {count} | {count} |
-| Total | {total} | {total} | {total} |
+
+**Step 4.3 — Glossary:**
+
+Define domain terms that emerged during discovery. This becomes the ubiquitous language for PRD and technical design.
+
+```markdown
+| Term | Definition |
+|------|-----------|
+| {term} | {what it means in this feature's context} |
 ```
 
-**Step 5.4 — Open Questions:**
+**Step 4.4 — Discovery Readiness Checklist:**
 
-List unresolved items that PRD needs to address.
+```markdown
+Discovery is ready for PRD when:
+- [ ] Every actor has at least one JTBD documented
+- [ ] Desired-state workflow covers all actors
+- [ ] All domain areas fully dispositioned (in/deferred/out)
+- [ ] No "Low confidence" feasibility items without a spike/research plan
+- [ ] Open questions are non-blocking for initial PRD draft
+- [ ] User has confirmed scope boundaries
+```
 
----
-
-### Phase 6: Self-Review & Route
+**Step 4.5 — Self-Review:**
 
 **2 rounds minimum. Exit on 2 consecutive clean rounds.**
 
-**Known limitation:** Self-review is performed by the same agent that produced the document. The same biases and blind spots that influenced the output may persist during review. Mitigate by: following the themes strictly as a checklist, inviting user to spot-check specific sections, and noting where you're least confident.
-
-#### 4 Review Themes
-
 **Theme 1: Domain Completeness**
-- [ ] All domain checklist items addressed (in scope, deferred, or excluded)?
-- [ ] No obvious gaps between domain reference and captured requirements?
-- [ ] Business rules documented for all in-scope items?
+- [ ] All domain areas addressed?
+- [ ] Business rules documented for Must Have items?
+- [ ] Edge cases identified?
 
 **Theme 2: Workflow Accuracy**
-- [ ] Current-state workflow matches actual reality?
+- [ ] Current-state workflow matches reality?
 - [ ] Desired-state workflow achievable within boundaries?
-- [ ] All actors from Phase 1 appear in at least one workflow?
+- [ ] All actors appear in at least one workflow?
 
 **Theme 3: Scope Discipline**
-- [ ] Nothing exceeds brainstorm boundaries without explicit user approval?
-- [ ] Deferred items have version targets?
+- [ ] Nothing exceeds brainstorm boundaries without user approval?
+- [ ] Deferred items have clear rationale?
 - [ ] Excluded items have clear reasoning?
 
 **Theme 4: Traceability**
-- [ ] Every requirement traceable to an actor and a workflow step?
+- [ ] Every requirement traceable to an actor and workflow step?
 - [ ] Every UI screen traceable to a workflow step?
-- [ ] Every integration point identified in data flow?
+- [ ] Every integration point identified?
 
 ---
 
@@ -388,12 +411,11 @@ Save to: `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
 # Discovery Brief: {Feature Name}
 
 > Domain-aware requirements for {feature}.
-> Domain(s): {detected domains}
 > Brainstorm: docs/brainstorm/{feature}/brainstorm.md
 
 ## Actors
-| Actor | Type | Key Actions | Frequency |
-|-------|------|-------------|-----------|
+| Actor | Type | Key Actions | JTBD |
+|-------|------|-------------|------|
 
 ## Workflows
 ### Current State
@@ -407,29 +429,27 @@ Save to: `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
 |-----|---------|---------|--------|
 
 ## Domain Requirements
-{Grouped by domain checklist category}
-### {Category}
-#### In Scope
-DR-{MODULE}-{DESCRIPTIVE-NAME}: {requirement with rules, constraints, edge cases}
-...
-#### Deferred (v2+)
+{Grouped by domain area}
+### {Area}
+#### Must Have
+DR-{MODULE}-{NAME}: {requirement with rules, constraints, edge cases, evidence}
+#### Should Have
+DR-{MODULE}-{NAME}: ...
+#### Deferred
 - {requirement} — {reason}
 #### Excluded
 - {requirement} — {reason}
 
-## UI/UX Flows
+## UI/UX Flows (if applicable)
 ### Screen Inventory
 | Screen | Purpose | Entry Point | Key Actions |
-...
 ### Navigation Flow
 {ASCII navigation diagram}
 ### Screen States
 | Screen | States |
-...
 
 ## Integrations
-| System | Direction | Data | Protocol | Frequency |
-...
+| System | Direction | Data | Protocol | Auth |
 ### Data Flow Diagram
 {ASCII DFD — context level}
 
@@ -437,27 +457,61 @@ DR-{MODULE}-{DESCRIPTIVE-NAME}: {requirement with rules, constraints, edge cases
 {STRIDE table or "No significant security implications — {reasoning}"}
 
 ## Compliance
-{Regulation table or "No regulatory requirements for this feature"}
+{Regulation table or "No regulatory requirements"}
+
+## Feasibility Assessment
+| Requirement | Feasibility | Confidence | Action |
+
+## Risk Register
+| Risk | Category | Likelihood | Impact | Mitigation |
 
 ## Requirements Summary
-| Category | In Scope | Deferred | Excluded |
-...
+| Domain Area | Must | Should | Deferred | Excluded |
 Total discovered: {count}
+
+## Glossary
+| Term | Definition |
 
 ## Open Questions
 - {items for PRD to resolve}
-
-## Self-Review Log
-### Round 1
-Issues: {count}
-- [{theme}] {issue} → Fix: {fix}
-### Round 2
-Issues: 0 ✅
 
 ---
 *Discovery completed: {date}*
 *Next step: /prd*
 ```
+
+**PAUSE 3:** Present summary and route.
+
+```markdown
+## Discovery Complete
+
+**Feature:** {name}
+**Requirements:** {N} Must Have, {N} Should Have, {N} Deferred
+**Risks:** {N} identified
+**Feasibility flags:** {N} need spikes, {N} need research
+**Open questions:** {N} for PRD to resolve
+
+Ready for next step:
+1. "start prd" → /prd (default — feeds discovery into PRD)
+2. "refine" → continue iterating discovery
+3. "park" / "abandon"
+```
+
+---
+
+## Anti-Patterns
+
+**Surface-Level Actor Mapping** — Listing "the user" instead of specific roles. Different roles have different needs, permissions, and workflows. "Tenant Admin" and "End User" are not interchangeable.
+
+**Designing During Discovery** — Discovery captures WHAT is needed, not HOW to build it. If you're drawing database schemas or writing API specs, you've crossed into /technical-design territory. Stay at the requirements level.
+
+**Scope Creep Through Checklists** — Domain checklists surface many possible requirements. Not everything discovered needs to be in scope. The "Deferred" and "Excluded" categories exist for a reason — use them aggressively.
+
+**Assumption-as-Fact** — Stating user needs without evidence. When the user says "users want X", ask "how do you know?" If the answer is "I think so", mark it as an assumption that needs validation, not a confirmed requirement.
+
+**Skipping Security for "Simple" Features** — Features that seem simple can have security implications (information disclosure, privilege escalation) that only surface during STRIDE analysis. At minimum, document "No significant security implications — {reasoning}" so the decision is explicit.
+
+**Workflow Without Pain Points** — A current-state workflow that shows no pain points is either wrong or the feature doesn't need building. Annotate where things break today — these pain points justify the feature's existence.
 
 ---
 
@@ -465,42 +519,14 @@ Issues: 0 ✅
 
 | Signal | Next Skill |
 |--------|-----------|
-| "start prd" | /prd (default — feeds discovery brief into PRD) |
-| "start technical-design" | /technical-design (if PRD not needed — technical improvement) |
+| "start prd" | /prd (default — feeds discovery into PRD) |
 | "refine" | Continue iterating discovery |
 | "park" | Save for later |
 | "abandon" | Don't proceed |
 
-**Exit message:** Present summary with requirement counts, then route to /prd.
+**Exit message:** "Discovery complete. Run /prd to formalise requirements."
 
 ---
 
-## Quality Standards
-
-### Actor Completeness
-- Every human role, system, and automated process identified
-- No "the user" — specific role names from actual customer organisations
-
-### Workflow Accuracy
-- Current state reflects reality, not aspirations
-- Desired state achievable within complexity budget
-- Pain points annotated on current state
-
-### Domain Coverage
-- Every domain checklist item has a disposition (in scope, deferred, excluded)
-- Business rules have specific parameters, not vague descriptions
-- Edge cases identified for all in-scope items
-
-### Traceability
-- Every requirement links to an actor and workflow
-- Every screen links to a workflow step
-- Every integration links to a data flow
-
-### ASCII Quality
-- All diagrams follow conventions from `ascii-conventions.md`
-- Diagrams under 100 characters wide
-- Realistic data in mockup sketches
-
----
-
-*Skill Version: 1.0*
+*Skill Version: 3.0*
+*v3: PAUSE points, removed project-specific domains, research import, JTBD per actor, example mapping, evidence quality, feasibility assessment, risk register with pre-mortem, glossary, discovery readiness checklist, anti-patterns*

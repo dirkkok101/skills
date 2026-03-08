@@ -58,7 +58,7 @@ ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 **Step 0.2 — Load References:**
 
 Read ASCII conventions: `_shared/references/ascii-conventions.md`
-Read .NET patterns: `references/dotnet-patterns.md`
+Read project-specific patterns: check project CLAUDE.md for pattern references
 Read domain patterns: `_shared/references/{domain}.md` (from discovery domain classification)
 
 **Step 0.3 — Diagram Selection:**
@@ -169,7 +169,7 @@ Show ALL new/changed entities with properties, types, constraints, relationships
 For each entity:
 - All properties with types and constraints
 - Relationships (navigation properties, foreign keys)
-- EF Core notes (indexes, unique constraints, query filters)
+- ORM notes (indexes, unique constraints, query filters)
 - Soft delete strategy if applicable
 
 **Step 2.3 — Migration Strategy:**
@@ -186,7 +186,7 @@ Output: `data-model.md`
 
 ### Phase 3: API Specification (IF feature has API surface)
 
-Load: `references/dotnet-patterns.md` AND `_shared/references/{domain}.md`
+Load: project-specific pattern references (see project CLAUDE.md) AND `_shared/references/{domain}.md`
 
 **For each endpoint:**
 
@@ -382,7 +382,7 @@ From discovery security analysis, specify technical mitigations:
 | Commands | Create/Update/Delete handlers | L | Medium | FR-REGISTER through FR-DELETE |
 | Queries | List/Get handlers | S | Low | FR-LIST, FR-DETAIL |
 | API | Endpoints, auth policies | M | Low | All FRs |
-| Validation | FluentValidation rules | S | Low | FR-REGISTER through FR-DELETE |
+| Validation | Input validation rules | S | Low | FR-REGISTER through FR-DELETE |
 | UI | Forms, lists, detail views | L | Medium | All FRs |
 | Integration | Downstream provisioning | M | High | FR-PROVISION |
 
@@ -414,7 +414,7 @@ From discovery security analysis, specify technical mitigations:
 2. **API Completeness** — Every FR has an endpoint? DTOs defined? Error codes specific?
 3. **Data Model Integrity** — ER matches API needs? Relationships correct? Migrations safe?
 4. **Diagram Accuracy** — Sequences match endpoints? Flows match use cases?
-5. **Pattern Consistency** — CQRS respected? Validation in right layer? Naming conventions?
+5. **Pattern Consistency** — Project architecture patterns respected? Validation in right layer? Naming conventions?
 6. **Testability** — Every handler unit-testable? Dependencies injectable?
 7. **Traceability** — Every endpoint maps to FR? Every FR maps to UC?
 8. **ASCII Quality** — Diagrams under 100 chars? Conventions followed? Aligned properly?
@@ -474,11 +474,13 @@ ${PROJECT_ROOT}/docs/designs/{feature}/
 
 ## Reference Files
 
-For detailed .NET/C# patterns: `references/dotnet-patterns.md`
+For project-specific patterns: check project CLAUDE.md for pattern reference files
 For domain-specific patterns: `_shared/references/{domain}.md`
 For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
+For an example patterns file (.NET/C#): `templates/examples/dotnet-patterns.md`
 
 ---
 
 *Skill Version: 2.0*
 *Added in v2: C4-based architecture, ASCII-native diagrams, diagram selection logic, alternatives emphasis*
+*v2.1: Removed framework-specific references; projects supply their own pattern files*

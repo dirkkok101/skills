@@ -193,7 +193,7 @@ br create "{Task title}" --type task -p 2 \
 
 ## Verification
 - **Test:** {What behavior to test}
-- **Command:** `dotnet test --filter "{TestPattern}"`
+- **Command:** `{project test command} --filter "{TestPattern}"`
 - **Commit:** `{type}({scope}): {message}`
 ```
 
@@ -202,16 +202,15 @@ br create "{Task title}" --type task -p 2 \
 ### What Beads Do NOT Contain
 
 ❌ **Source code**
-```csharp
-// DON'T include implementation
-public bool KnownCursed { get; init; }
+```
+// DON'T include implementation code in any language
+knownCursed: boolean  // or property definition
 ```
 
 ❌ **Test code**
-```csharp
+```
 // DON'T include test implementation
-[Fact]
-public void Test() { ... }
+test("should work") { ... }
 ```
 
 ❌ **Copy-paste snippets**
@@ -238,8 +237,8 @@ Add KnownCursed boolean property to Item record to track curse discovery
 
 ✅ **Context references**
 ```
-- Read: Src/Models/Item.cs - understand existing curse flags
-- Pattern: CursedForOwner property - follow same pattern
+- Read: src/models/entity.ext - understand existing property patterns
+- Pattern: ExistingProperty - follow same pattern
 ```
 
 ✅ **Approach guidance**
@@ -325,10 +324,10 @@ ls {pattern file paths from beads}
 
 | Bead | Status | Notes |
 |------|--------|-------|
-| bd-001: Add KnownCursed property | ✓ Ready | Pattern clear from Item.cs |
-| bd-002: Set flag on equip | ✓ Ready | EquipmentService pattern known |
-| bd-003: Shop identify detection | ⚠ Needs: pattern | Which method handles shop identify? |
-| bd-004: Block cursed item sale | ✓ Ready | ShopService.SellItem clear |
+| bd-001: Add tracking property | ✓ Ready | Pattern clear from Entity model |
+| bd-002: Set flag on action | ✓ Ready | Service pattern known |
+| bd-003: Detection logic | ⚠ Needs: pattern | Which method handles detection? |
+| bd-004: Block invalid operation | ✓ Ready | Service method clear |
 | bd-005: Full integration test | ✗ Too Large | Covers 3 different flows |
 ```
 
@@ -346,12 +345,12 @@ For "Too Large" items:
 ```markdown
 ### Resolutions Applied
 
-**bd-003:** Added context reference to ShopService.IdentifyItem pattern
+**bd-003:** Added context reference to detection service pattern
 
 **bd-005:** Split into:
-- bd-005a: Integration test - equip curse detection flow
-- bd-005b: Integration test - shop identify curse flow
-- bd-005c: Integration test - sell blocking flow
+- bd-005a: Integration test - detection flow
+- bd-005b: Integration test - identification flow
+- bd-005c: Integration test - blocking flow
 ```
 
 **Re-assess until ALL beads show "✓ Ready"**
@@ -477,46 +476,46 @@ Options:
 
 ```markdown
 ## Objective
-Add KnownCursed boolean property to Item record to track when player discovers an item is cursed.
+Add IsVerified boolean property to Account entity to track when an account has been verified.
 
 ## Depends On
 - None (first bead in sequence)
 
 ## Implements
-- FR-ITEM-CURSE-DISCOVERY: Track when player discovers an item is cursed
-- UC-ITEM-001: Equip item and discover curse
+- FR-ACCOUNT-VERIFY: Track account verification status
+- UC-ACCOUNT-001: User verifies their account
 
 ## Validates Against
-- BDD: @UC-ITEM-001 — Scenario: "Player equips cursed item and discovers curse"
-- Unit: Item_KnownCursed property defaults and serialization
+- BDD: @UC-ACCOUNT-001 — Scenario: "User completes verification and account is marked verified"
+- Unit: Account_IsVerified property defaults and persistence
 
 ## Success Criteria
-- Property exists on Item record
+- Property exists on Account entity
 - Defaults to false
-- Follows same pattern as existing curse flags
-- Serializes/deserializes correctly
+- Follows same pattern as existing status flags
+- Persists correctly through data layer
 
 ## Failure Criteria
 - ❌ Don't add redundant properties
-- ❌ Don't break existing serialization
+- ❌ Don't break existing data serialization
 
 ## Context to Load
-- **Read:** `Src/Models/Item.cs` - understand existing curse flag pattern
-- **Pattern:** `CursedForOwner` property - follow same structure
-- **Reference:** `docs/plans/curse-awareness/01-models.md` - design rationale
+- **Read:** `src/models/account.ext` - understand existing status flag pattern
+- **Pattern:** `IsActive` property - follow same structure
+- **Reference:** `docs/plans/account-verification/01-models.md` - design rationale
 
 ## Approach
-Add boolean property following existing pattern. Use same default and serialization approach as CursedForOwner.
+Add boolean property following existing pattern. Use same default and persistence approach as IsActive.
 
 ## Acceptance Criteria (from PRD)
-  Given an item with a hidden curse
-  When the player equips the item
-  Then the KnownCursed flag is set to true
+  Given an unverified account
+  When the user completes verification
+  Then the IsVerified flag is set to true
 
 ## Verification
 - **Test:** Property exists and defaults correctly
-- **Command:** `dotnet test --filter "Item_KnownCursed"`
-- **Commit:** `feat(models): add KnownCursed property to Item`
+- **Command:** `{project test command} --filter "Account_IsVerified"`
+- **Commit:** `feat(models): add IsVerified property to Account`
 ```
 
 ### Bad Example ❌
@@ -524,21 +523,18 @@ Add boolean property following existing pattern. Use same default and serializat
 ```markdown
 ## Task 2
 
-Add the KnownCursed property:
+Add the IsVerified property:
 
-```csharp
-public bool KnownCursed { get; init; }
+```
+isVerified: boolean = false
 ```
 
 Then add this test:
 
-```csharp
-[Fact]
-public void Item_HasKnownCursedProperty()
-{
-    var item = new Item { KnownCursed = true };
-    item.KnownCursed.Should().BeTrue();
-}
+```
+test Account_HasIsVerifiedProperty:
+    account = new Account(isVerified: true)
+    assert account.isVerified == true
 ```
 
 See plan for details.

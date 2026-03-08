@@ -32,8 +32,8 @@ Before starting, verify:
 - [ ] Beads exist for the feature (`br ready` shows tasks)
 - [ ] Beads have been approved by user
 - [ ] All beads assessed as "Ready" during /beads
-- [ ] Tests pass before starting: `dotnet test`
-- [ ] Build succeeds: `dotnet build`
+- [ ] Tests pass before starting (run project test command)
+- [ ] Build succeeds (run project build command)
 - [ ] If no beads, run `/beads` first
 
 ---
@@ -115,7 +115,7 @@ br dep tree bd-{epic}       # See full feature structure (optional)
 
 **Step 1.2 - Verify Baseline:**
 ```bash
-dotnet build && dotnet test
+{project build command} && {project test command}
 ```
 
 If baseline fails, fix issues before proceeding.
@@ -168,8 +168,8 @@ Read ONLY the files specified in the bead's "Context to Load" section:
 
 ```bash
 # Example from bead:
-# - Read: Src/Models/Item.cs - understand existing curse flags
-# - Pattern: CursedForOwner property - follow same structure
+# - Read: src/models/entity.ext - understand existing property patterns
+# - Pattern: ExistingProperty - follow same structure
 ```
 
 Load these files. Understand the patterns. Do NOT load:
@@ -200,7 +200,7 @@ Write code following:
 **Write test first:**
 - Test should verify the success criteria
 - Test should check failure criteria aren't violated
-- Use project test patterns (TestFactories, CombatTestBase, etc.)
+- Use project test patterns and conventions (see project CLAUDE.md)
 
 **Then implement:**
 - Minimal code to make test pass
@@ -214,7 +214,7 @@ Write code following:
 {command from bead's Verification section}
 
 # Run full test suite
-dotnet test
+{project test command}
 ```
 
 All tests must pass before proceeding.
@@ -444,7 +444,7 @@ Reply with:
 
 **Step 6.1 - Final Quality Gates:**
 ```bash
-dotnet build && dotnet test
+{project build command} && {project test command}
 ```
 
 **Step 6.2 - Verify All Beads Closed:**

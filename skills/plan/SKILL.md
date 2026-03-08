@@ -203,7 +203,7 @@ For each component, create `NN-{component}.md`:
 
 ### Patterns to Follow
 {Which existing codebase patterns to follow.
- "Follow the pattern established in {ExistingService} for CQRS handlers."}
+ "Follow the pattern established in {ExistingService} for command/query handlers."}
 
 ## Context to Load
 {Specific files the executing agent should read:}

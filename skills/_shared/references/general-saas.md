@@ -59,9 +59,9 @@ configuration, notifications, webhooks, billing, or onboarding.
 
 ## Technical Patterns
 
-### Multi-Tenancy (EF Core)
-- Global query filter: `.HasQueryFilter(e => e.TenantId == currentTenantId)`
-- TenantId on every entity, set automatically via SaveChanges interceptor
+### Multi-Tenancy (ORM)
+- Global query filter on every entity: filter by TenantId automatically
+- TenantId on every entity, set automatically via ORM interceptor/middleware
 - Tenant resolution: from JWT claim, from subdomain, or from header
 
 ### Pagination
@@ -70,14 +70,14 @@ configuration, notifications, webhooks, billing, or onboarding.
 - Always return: items, totalCount, hasNextPage, cursor/pageInfo
 
 ### Background Jobs
-- IHostedService for simple scheduled tasks
-- Hangfire or similar for complex job queues
+- Hosted background services for simple scheduled tasks
+- Job queue framework for complex job queues
 - Idempotency keys on all background operations
 - Dead letter queue for failed jobs
 
-### Angular Patterns
+### Frontend Patterns
 - Smart/dumb component pattern (container loads data, presentational renders)
-- Reactive forms with async validators for server-side checks
-- NgRx or signal-based state for complex page state
+- Forms with async validators for server-side checks
+- State management for complex page state
 - Infinite scroll or virtual scroll for large lists
 - Skeleton loaders during data fetch

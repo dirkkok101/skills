@@ -75,8 +75,8 @@ git diff HEAD~{N} --name-only
 
 **Feature:** {description}
 **Files Changed:**
-- `path/to/file1.cs` (lines {start}-{end})
-- `path/to/file2.cs` (lines {start}-{end})
+- `path/to/file1` (lines {start}-{end})
+- `path/to/file2` (lines {start}-{end})
 - ...
 
 **Specific Concerns:**
@@ -144,7 +144,7 @@ Rate each finding with criticality (1-10):
 
 Return findings in this format:
 ### Finding {N}
-**File:** `path/to/file.cs:line`
+**File:** `path/to/file:line`
 **Criticality:** {1-10}
 **Issue:** {description}
 **Suggestion:** {how to fix}
@@ -176,7 +176,7 @@ Rate each finding with criticality (1-10):
 
 Return findings in this format:
 ### Finding {N}
-**File:** `path/to/file.cs:line`
+**File:** `path/to/file:line`
 **Design Section:** {which section above}
 **Criticality:** {1-10}
 **Issue:** {description}
@@ -210,7 +210,7 @@ Rate each finding with criticality (1-10):
 
 Return findings in this format:
 ### Finding {N}
-**File:** `path/to/file.cs:line`
+**File:** `path/to/file:line`
 **Plan Section:** {which sub-plan and task}
 **Criticality:** {1-10}
 **Issue:** {description}
@@ -246,7 +246,7 @@ Rate each finding with criticality (1-10):
 
 Return findings in this format:
 ### Finding {N}
-**File:** `path/to/file.cs:line`
+**File:** `path/to/file:line`
 **Requirement:** {FR/NFR/DR ID}
 **Criticality:** {1-10}
 **Issue:** {description}
@@ -311,7 +311,7 @@ Issues that MUST be addressed before approval.
 
 | # | File:Line | Issue | Agents |
 |---|-----------|-------|--------|
-| 1 | `file.cs:123` | {description} | code-reviewer, simplifier |
+| 1 | `file:123` | {description} | code-reviewer, simplifier |
 
 ### Agent Completion Status
 | Agent | Findings Count | Completed |
@@ -327,12 +327,12 @@ Recommended improvements for code quality.
 
 | # | File:Line | Issue | Suggestion |
 |---|-----------|-------|------------|
-| 1 | `file.cs:78` | {description} | {suggestion} |
+| 1 | `file:78` | {description} | {suggestion} |
 
 ### Observations (Criticality 1-4)
 Minor notes, no action required.
 
-- `file.cs:90` - {observation}
+- `file:90` - {observation}
 
 ---
 ```

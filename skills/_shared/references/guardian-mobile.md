@@ -44,9 +44,9 @@ patterns, field inspections, safety observations, or sync operations.
 _This section should be expanded as Guardian development produces learnings.
 Use /compound with category `domain:guardian` to add patterns here._
 
-### Ionic/Angular Patterns
-- Capacitor plugins for native features (camera, GPS, filesystem)
-- SQLite storage for offline data
+### Mobile Framework Patterns
+- Native bridge plugins for device features (camera, GPS, filesystem)
+- Local database storage for offline data (SQLite or equivalent)
 - Background sync service
 - Platform-specific UI considerations (iOS vs. Android)
 

@@ -148,7 +148,7 @@ Research available frameworks, libraries, and patterns:
 - **Purpose:** {what it provides}
 - **Maturity:** Established / Growing / Experimental
 - **Community:** Active / Moderate / Minimal
-- **Fit with our stack:** {.NET/C# compatibility}
+- **Fit with our stack:** {compatibility with project tech stack}
 - **Trade-offs:** {pros vs cons}
 - **Source:** {docs link}
 - **Confidence:** Strong / Moderate / Weak

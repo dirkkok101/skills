@@ -219,7 +219,7 @@ STEPPER                      SEARCH
   ✓      ●      ○
 
 TABLE SORT                   CHIP / TAG
-Name          ↕              [ Angular ✕]  [ .NET ✕]
+Name          ↕              [ Tag One ✕]  [ Tag Two ✕]
 ```
 
 Rules:

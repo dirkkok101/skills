@@ -1,5 +1,6 @@
 # Schema for Compound Learning Documents
 # Supports both bug-fix learnings and feature-development learnings
+# Projects should extend the module and component enums for their domain.
 
 required_fields:
   - module
@@ -19,21 +20,19 @@ legacy_fields:
 field_definitions:
   module:
     type: enum
-    description: "Top-level system area"
+    description: "Top-level system area — extend this list for your project"
     values:
-      - Combat           # Combat system, attack/defense, spells in combat
-      - Dungeon          # Dungeon navigation, encounters, special tiles
-      - Town             # Inn, temple, shop, tavern, training grounds
-      - UI               # Overlays, panels, input handling, visual feedback
-      - Character        # Character creation, stats, leveling, classes
-      - Party            # Party management, formation, gold
-      - Data             # JSON data files, loaders, registry
-      - Services         # Service layer architecture, patterns
-      - Testing          # Test patterns, mocking, assertions
-      - Godot            # Godot-specific issues, scenes, signals, nodes
-      - Architecture     # Code organization, patterns, state management
-      - Performance      # Optimization, profiling, memory
-      - Workflow         # Process improvements, skill updates
+      - API               # API layer, endpoints, request/response
+      - Data              # Data model, database, migrations
+      - Services          # Service/business logic layer
+      - UI                # Frontend components, pages, forms
+      - Auth              # Authentication, authorization
+      - Integration       # External system integrations
+      - Testing           # Test patterns, mocking, assertions
+      - Infrastructure    # Deployment, configuration, CI/CD
+      - Architecture      # Code organization, patterns, state management
+      - Performance       # Optimization, profiling, memory
+      - Workflow          # Process improvements, skill updates
 
   date:
     type: date
@@ -56,93 +55,42 @@ field_definitions:
     type: enum
     description: "Which workflow phase revealed this learning"
     values:
-      - Design       # During /brainstorm
+      - Brainstorm   # During /brainstorm
+      - Discovery    # During /discovery
+      - PRD          # During /prd
+      - Design       # During /technical-design
       - Planning     # During /plan
       - Execution    # During /execute (bead implementation)
       - Review       # During /review cycle
+      - Testing      # During test authoring/debugging
       - Maintenance  # Outside feature workflow (bug fixes, etc.)
 
   component:
     type: enum
-    description: "Specific component affected"
+    description: "Specific component affected — extend this list for your project"
     values:
-      # Combat components
-      - AttackService
-      - DefenseService
-      - SpellCastingService
-      - CombatOrchestrator
-      - CombatRoundExecutor
-      - BreathAttackService
-      - InitiativeService
-      - FleeService
-      - MonsterAIService
-      - StatusRecoveryService
-      - CharacterHelpers
-      - RegenerationService
-      - CombatStatusEffectService
-      - CharacterResistanceService
-      - ItemProtectionService
-      - HamanMahamanService
-      # Dungeon components
-      - NavigationService
-      - EncounterService
-      - EncounterTriggerService
-      - FightMapService
-      - SpecialTileEffectService
-      - LightService
-      - MinimapService
-      - TileInspectionService
-      - TeleportService
-      # Town components
-      - InnService
-      - TempleService
-      - ShopService
-      - TrainingGroundsService
-      - TavernService
-      - BishopIdentificationService
-      # Character/Party components
-      - CharacterService
-      - PartyService
-      - SpellLearningService
-      - EquipmentService
-      - ItemUseService
-      # Data components
-      - GameDataRegistry
-      - GameInitializationService
-      - MonsterLoader
-      - SpellLoader
-      - ItemLoader
-      - FormulaService
-      - StatModifierService
-      # Treasure/Chest components
-      - TreasureService
-      - ChestService
-      # UI components
-      - CombatOverlay
-      - VictoryOverlay
-      - DefeatOverlay
-      - DungeonView
-      - Minimap
-      - StatusPanel
-      # Testing components
-      - TestRandomService
-      - TestFactories
-      - IntegrationTestRegistry
-      - CombatTestBase
-      # Models
-      - Item
-      - Character
-      - Monster
-      - Spell
-      - Party
+      # Generic component categories
+      - Controller         # API controller/endpoint
+      - Service            # Business logic service
+      - Repository         # Data access layer
+      - Model              # Domain model/entity
+      - Validator           # Input validation
+      - Middleware          # Request pipeline middleware
+      - Migration          # Database migration
+      - Configuration      # App configuration
+      - TestUtility        # Test helpers, factories, base classes
+      - IntegrationTest    # Integration test infrastructure
       # Skills/Workflow
       - BrainstormSkill
+      - DiscoverySkill
+      - PRDSkill
+      - DesignSkill
       - PlanSkill
       - BeadsSkill
       - ExecuteSkill
       - ReviewSkill
       - CompoundSkill
-      # Other
+      # Catch-all
       - Multiple
       - Other
 

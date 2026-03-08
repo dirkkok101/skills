@@ -40,11 +40,11 @@ Run this skill when:
 | Category | Captures | Example |
 |----------|----------|---------|
 | `brainstorm` | Problem framing insights, scope classification accuracy | "5 Whys revealed the real problem was X not Y" |
-| `discovery` | Domain insights, checklist gaps, workflow patterns | "OpenIddict requires X when configuring Y" |
+| `discovery` | Domain insights, checklist gaps, workflow patterns | "Auth framework requires X when configuring Y" |
 | `prd` | Requirements patterns, acceptance criteria that worked | "Security criteria on FRs caught issue during review" |
 | `design` | Architecture decisions, pattern discoveries | "Cursor pagination was better than offset for this use case" |
 | `plan` | Decomposition insights, sizing accuracy | "Sub-plan 03 should have been split — too large for one bead" |
-| `execution` | Implementation patterns, codebase gotchas | "EF Core query filter for TenantId must be added to EVERY entity" |
+| `execution` | Implementation patterns, codebase gotchas | "ORM tenant filter must be added to EVERY entity" |
 | `review` | Common issues found, review process improvements | "Upstream compliance check caught missing index from design" |
 | `testing` | Test patterns, edge cases discovered | "BDD scenario for concurrent secret rotation uncovered race condition" |
 
@@ -61,7 +61,7 @@ Run this skill when:
 
 | Category | Captures | Reference File |
 |----------|----------|---------------|
-| `domain:identity` | OpenIddict gotchas, auth flow nuances | `_shared/references/identity-auth.md` |
+| `domain:identity` | Auth framework gotchas, auth flow nuances | `_shared/references/identity-auth.md` |
 | `domain:capstone-data` | Data model patterns, MCP interactions | `_shared/references/capstone-data.md` |
 | `domain:guardian` | Mobile/offline patterns, sync edge cases | `_shared/references/guardian-mobile.md` |
 | `domain:saas` | Multi-tenancy patterns, admin patterns | `_shared/references/general-saas.md` |
@@ -189,7 +189,7 @@ Present extracted learnings to user for confirmation before saving.
 
 ## Quality Standards
 
-- **Specific, not vague** — "EF Core requires X when Y" not "watch out for EF Core issues"
+- **Specific, not vague** — "ORM requires X when Y" not "watch out for ORM issues"
 - **Actionable** — Prevention section tells you what to DO differently
 - **Categorised** — Correct category enables future discovery by brainstorm and discovery skills
 - **Domain-connected** — If it's a domain insight, it updates the reference file

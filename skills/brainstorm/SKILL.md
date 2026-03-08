@@ -383,8 +383,8 @@ What's next?
 ❌ **Writing detailed requirements** — that's PRD's job
 ✅ **Defining boundaries and approaches**
 
-❌ **File-level thinking** — "Update CombatService.cs"
-✅ **Component-level thinking** — "Combat resolution determines outcomes"
+❌ **File-level thinking** — "Update OrderService.ext"
+✅ **Component-level thinking** — "Order processing determines outcomes"
 
 ❌ **Skipping "Do Less"** — always include minimal option
 ✅ **Genuine alternatives** — different approaches, not variations

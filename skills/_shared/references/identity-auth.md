@@ -21,7 +21,7 @@ Walk through each item with the user. For each, determine: IN SCOPE, DEFERRED, o
 - [ ] Role-based access control (RBAC) — roles, role hierarchy
 - [ ] Permission-based access — granular permissions per role
 - [ ] Claims-based authorization — custom claims on tokens
-- [ ] Policy-based authorization — ASP.NET Core policies
+- [ ] Policy-based authorization — framework-level policy enforcement
 - [ ] Tenant isolation — users see only their tenant's data
 - [ ] Resource-level authorization — per-object access control
 - [ ] API scope enforcement — OAuth scopes on endpoints
@@ -79,23 +79,25 @@ Walk through each item with the user. For each, determine: IN SCOPE, DEFERRED, o
 - [ ] POPIA compliance (purpose limitation, data minimization)
 - [ ] SOC 2 evidence (access control, change management)
 
-## Technical Patterns (ASP.NET Core + OpenIddict)
+## Technical Patterns
 
-### OpenIddict Entities
-- OpenIddictApplication: ClientId, DisplayName, RedirectUris, Permissions, Type, ClientSecret
-- OpenIddictAuthorization: Subject, Application, Scopes, Status, Type
-- OpenIddictToken: Type, Subject, Application, ExpirationDate, Status
-- OpenIddictScope: Name, DisplayName, Resources, Description
+_These patterns are framework-agnostic. Your project's CLAUDE.md specifies which frameworks implement them._
 
-### ASP.NET Core Identity Entities
-- ApplicationUser: extends IdentityUser with TenantId, FullName, IsActive, LastLogin
-- ApplicationRole: extends IdentityRole with TenantId, Description, IsSystem
+### OAuth/OIDC Entities (typical)
+- Application: ClientId, DisplayName, RedirectUris, Permissions, Type, ClientSecret
+- Authorization: Subject, Application, Scopes, Status, Type
+- Token: Type, Subject, Application, ExpirationDate, Status
+- Scope: Name, DisplayName, Resources, Description
+
+### User Entities (typical)
+- User: extends base user with TenantId, FullName, IsActive, LastLogin
+- Role: extends base role with TenantId, Description, IsSystem
 - UserClaim, RoleClaim: custom claims for authorization
 
 ### Authorization Patterns
-- [Authorize(Policy = "TenantAdmin")] — policy-based on endpoints
-- IAuthorizationHandler — custom handlers for resource-level auth
-- ClaimsPrincipal extensions — tenant context extraction
+- Policy-based authorization on endpoints
+- Custom handlers for resource-level auth
+- Claims/token-based tenant context extraction
 - Tenant middleware — resolve tenant from token claims
 
 ### API Patterns
@@ -105,16 +107,16 @@ Walk through each item with the user. For each, determine: IN SCOPE, DEFERRED, o
 - Consistent error response format with problem details (RFC 7807)
 
 ### Security Patterns
-- Client secrets: BCrypt hashed, never stored in plaintext, shown once on creation
+- Client secrets: hashed (BCrypt or equivalent), never stored in plaintext, shown once on creation
 - Redirect URIs: exact match validation, no wildcards in production
 - PKCE: enforced for public clients, optional for confidential
 - Rate limiting: per-tenant, per-endpoint for sensitive operations
 - CORS: strict origin allowlist per application
 - CSP headers: prevent XSS in admin UI
 
-### Angular UI Patterns
-- AuthGuard, RoleGuard, PermissionGuard on routes
+### Frontend Auth Patterns
+- Route guards for authentication, roles, and permissions
 - HTTP interceptor for token refresh
-- Reactive forms with server-side validation error mapping
+- Forms with server-side validation error mapping
 - Pessimistic UI updates for destructive operations (delete, revoke)
 - Optimistic UI updates for non-destructive (edit, toggle)

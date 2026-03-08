@@ -56,29 +56,29 @@ When asked to build a feature:
 2. Confirm current phase and expected next phase.
 3. Use the workflow sequence below with explicit gates.
 
-## Workflow Sequence
+## Scope-Based Routing
 
-```
-workflow_diagnose  -> diagnose output triage
-workflow_brainstorm -> "design approved"
-workflow_plan       -> "plan approved"
-workflow_beads      -> "beads approved"
-workflow_execute    -> "done"
-workflow_review     -> "changes approved"
-workflow_compound   -> "done"
-```
+Brainstorm classifies features using weighted complexity signals:
+
+| Scope | Path |
+|-------|------|
+| **BRIEF** (0-2 pts) | brainstorm → plan → beads → execute → review → compound |
+| **STANDARD** (3-4 pts) | brainstorm → prd → technical-design → plan → beads → execute → review → compound |
+| **COMPREHENSIVE** (5+ pts) | brainstorm → discovery → prd → technical-design → plan → beads → execute → review → compound |
 
 ## Phase Outputs and Exit Signals
 
 | Phase | Tool | Primary Output | Required Exit Signal |
 |-------|------|----------------|----------------------|
 | 1 | `workflow_diagnose` | Root cause + triage path | User confirms next path |
-| 2 | `workflow_brainstorm` | `docs/designs/{feature}/design.md` | `design approved` |
-| 3 | `workflow_plan` | `docs/plans/{feature}/overview.md` (+ sub-plans) | `plan approved` |
-| 4 | `workflow_beads` | Beads created in `br` | `beads approved` |
-| 5 | `workflow_execute` | Working code + tests | `done` |
-| 6 | `workflow_review` | Findings and proposed fixes | `changes approved` |
-| 7 | `workflow_compound` | Learning entry in `docs/learnings/` | `done` |
+| 2 | `workflow_brainstorm` | `docs/brainstorm/{feature}/brainstorm.md` | "start discovery" / "start prd" / "start plan" |
+| 3 | `workflow_discovery` | `docs/discovery/{feature}/discovery-brief.md` | "start prd" |
+| 4 | `workflow_prd` | `docs/prd/{feature}/prd.md` | `prd approved` |
+| 5 | `workflow_plan` | `docs/plans/{feature}/overview.md` (+ sub-plans) | `plan approved` |
+| 6 | `workflow_beads` | Beads created in `br` with FR tags | `beads approved` |
+| 7 | `workflow_execute` | Working code + upstream verification | `done` |
+| 8 | `workflow_review` | Findings with PRD compliance | `changes approved` |
+| 9 | `workflow_compound` | Learning entry in `docs/learnings/` | `done` |
 
 ---
 
@@ -88,8 +88,13 @@ Workflow documentation is stored under the project root `docs/` directory:
 
 ```text
 docs/
-├── designs/      # Brainstorm/design outputs
+├── research/     # Deep investigation briefs
+├── brainstorm/   # Problem framing and approach selection
+├── discovery/    # Domain-aware requirements (COMPREHENSIVE)
+├── prd/          # Product requirements documents
+├── designs/      # Technical design and architecture
 ├── plans/        # Implementation plans and sub-plans
+├── reviews/      # Code review summaries
 └── learnings/    # Compound learning capture
 ```
 

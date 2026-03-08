@@ -1,52 +1,284 @@
 ---
 name: plan
-description: Transform validated designs into hierarchical implementation plans that serve as permanent documentation. Plans contain intent, pseudocode, and diagrams - never source code. Requires design approval.
+description: >
+  Transform validated designs into hierarchical implementation plans with
+  traceability to requirements and test cases. Plans contain intent,
+  pseudocode, and diagrams — never source code. Each sub-plan references
+  the FRs it implements and the BDD scenarios that verify it. Requires
+  design approval.
 argument-hint: "[feature-name] or path to design doc"
 ---
 
 # Plan: Design → Documentation-First Implementation Plan
 
-**Philosophy:** Plans are permanent documentation, not throwaway artifacts. They explain WHAT to build and WHY, not HOW to write the code. Agents are trusted to implement from intent by reading codebase patterns.
+**Philosophy:** Plans are permanent documentation, not throwaway artifacts. They explain WHAT to build and WHY, not HOW to write the code. Agents are trusted to implement from intent by reading codebase patterns. Each sub-plan traces back to requirements and forward to tests.
 
 ## Core Principles
 
-1. **No source code** - Plans contain intent, pseudocode, diagrams
-2. **Hierarchical structure** - Overview for high-level review, sub-plans for focused detail
-3. **Permanent documentation** - Plans explain rationale for future developers
-4. **Human context management** - Reviewable in layers, not one massive file
-5. **Agent context management** - Sub-plans loadable independently
+1. **No source code** — Plans contain intent, pseudocode, diagrams
+2. **Hierarchical structure** — Overview for high-level review, sub-plans for focused detail
+3. **Traceable** — Every sub-plan references FRs it implements and BDD scenarios that verify it
+4. **Permanent documentation** — Plans explain rationale for future developers
+5. **Agent context management** — Sub-plans loadable independently by executing agents
 
 ---
 
 ## Trigger Conditions
 
 Run this skill when:
-- Design has been approved (`/brainstorm` completed)
+- Design has been approved
 - User says "write the plan", "plan this", "create plan for..."
-- A design document exists at `${PROJECT_ROOT}/docs/designs/{feature}/design.md`
+- A design document exists at `${PROJECT_ROOT}/docs/designs/{feature}/`
 
 ## Prerequisites
 
 **Step 0: Resolve Project Root:**
 
-**CRITICAL:** All documentation must be created in the project root `docs/` folder, not in subdirectories like `tools/*/docs/`.
-
 ```bash
-# Resolve project root (works in worktrees too)
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
-echo "Project root: ${PROJECT_ROOT}"
-
-# Verify docs folder exists at project root
 ls "${PROJECT_ROOT}/docs/"
 ```
 
-All subsequent paths in this skill use `${PROJECT_ROOT}/docs/` to ensure documentation lands in the correct location regardless of current working directory.
-
 **Verify before starting:**
-- [ ] PROJECT_ROOT resolved correctly (shows project root path)
-- [ ] Design document exists at `${PROJECT_ROOT}/docs/designs/{feature}/design.md`
-- [ ] Design has been approved by user
-- [ ] If no design doc, run `/brainstorm` first
+- [ ] PROJECT_ROOT resolved correctly
+
+**Determine plan mode:**
+
+| Mode | Input Required | When |
+|------|---------------|------|
+| **BRIEF** | Brainstorm only (no design doc) | BRIEF scope — simple changes |
+| **STANDARD** | Design document | STANDARD/COMPREHENSIVE scope |
+
+**BRIEF mode:** If brainstorm scope = BRIEF and no design doc exists, plan decomposes directly from the brainstorm output and PRD brief. Skip the work decomposition import from technical-design.
+
+```bash
+# STANDARD mode: Design document exists
+ls "${PROJECT_ROOT}/docs/designs/{feature}/" 2>/dev/null && echo "STANDARD mode"
+
+# BRIEF mode: No design doc, work from brainstorm + PRD
+ls "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md" 2>/dev/null && echo "BRIEF mode"
+```
+
+**Import upstream artifacts:**
+
+```bash
+# Design docs (primary input)
+ls "${PROJECT_ROOT}/docs/designs/{feature}/"
+
+# PRD for requirement traceability
+cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
+
+# Work decomposition from design Phase 12
+grep -A 50 "Work Decomposition" "${PROJECT_ROOT}/docs/designs/{feature}/design.md" 2>/dev/null
+```
+
+---
+
+## Critical Sequence
+
+### Phase 1: Decomposition
+
+**Step 1.1 — Import Work Decomposition:**
+
+**STANDARD mode:** If the technical design includes a Work Decomposition section (Phase 12), import it as the starting point. Don't redo this work.
+
+**BRIEF mode:** No design doc exists. Decompose directly from brainstorm boundaries and PRD brief:
+- Each Must-Have requirement becomes a component
+- Group related requirements into logical components
+- Estimate complexity from the brainstorm's complexity budget
+- Create a simple dependency order (data → logic → API → UI)
+
+If no decomposition exists (STANDARD mode without Phase 12), create one from the design docs:
+
+```markdown
+| Component | Scope | Complexity | Risk | Implements FRs |
+|-----------|-------|------------|------|---------------|
+| {component} | {what's in scope} | S/M/L/XL | Low/Med/High | FR-{NNN}, FR-{NNN} |
+```
+
+**Step 1.2 — Map FRs to Components:**
+
+Every FR from the PRD must appear in at least one component. Verify:
+
+```markdown
+### FR Coverage
+| FR | Component | Status |
+|----|-----------|--------|
+| FR-{MODULE}-001 | Data Model, Commands | ✅ Covered |
+| FR-{MODULE}-002 | Commands, API | ✅ Covered |
+| FR-{MODULE}-003 | UI | ✅ Covered |
+| FR-{MODULE}-004 | — | ⚠ Not covered (deferred?) |
+```
+
+Flag any uncovered Must-Have FRs as blocking issues.
+
+**Step 1.3 — Dependency Ordering:**
+
+Create dependency graph from design's suggested execution order:
+
+```
+Data Model ──> Commands ──> API ──> UI
+    |              |
+    +──> Queries ──+
+    |
+    +──> Integration
+```
+
+---
+
+### Phase 2: Overview Document
+
+Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
+
+```markdown
+# Implementation Plan: {Feature Name}
+
+> Plan for implementing {feature} based on the approved technical design.
+
+## Design Reference
+- Design: `docs/designs/{feature}/design.md`
+- PRD: `docs/prd/{feature}/prd.md`
+- Discovery: `docs/discovery/{feature}/discovery-brief.md`
+
+## Component Breakdown
+{Table from Phase 1.1}
+
+## FR Coverage
+{Table from Phase 1.2}
+
+## Execution Order
+{Dependency graph from Phase 1.3}
+
+## Sub-Plans
+| # | Component | File | Complexity | Depends On |
+|---|-----------|------|------------|-----------|
+| 01 | Data Model | 01-data-model.md | M | — |
+| 02 | Commands | 02-commands.md | L | 01 |
+| 03 | Queries | 03-queries.md | S | 01 |
+| 04 | API | 04-api.md | M | 02, 03 |
+| 05 | UI | 05-ui.md | L | 04 |
+| 06 | Integration | 06-integration.md | M | 01 |
+
+## Testing Summary
+| Sub-Plan | BDD Scenarios | Unit Tests | Integration Tests |
+|----------|--------------|------------|------------------|
+| 01-data-model | — | Entity validation | Migration up/down |
+| 02-commands | @UC-{MODULE}-001 | Handler logic | — |
+| 04-api | @smoke | — | Contract tests |
+| 05-ui | @e2e | — | — |
+
+---
+*Plan created: {date}*
+*Based on approved design: {date}*
+```
+
+---
+
+### Phase 3: Sub-Plan Documents
+
+For each component, create `NN-{component}.md`:
+
+```markdown
+# Sub-Plan: {Component Name}
+
+## Traceability
+- **Implements:** FR-{MODULE}-001, FR-{MODULE}-002, FR-{MODULE}-003
+- **Use Cases:** UC-{MODULE}-001, UC-{MODULE}-002
+- **Design Reference:** docs/designs/{feature}/{relevant-file}.md
+- **Validates Against:** BDD scenarios tagged @UC-{MODULE}-001
+
+## Prerequisites
+- [ ] {Previous sub-plan} completed
+- [ ] {Required infrastructure in place}
+
+## Intent
+
+### What to Build
+{High-level description of what this component does and why.
+ Reference the design doc for detailed specs.}
+
+### Key Design Decisions
+{Summarise relevant decisions from the design's Alternatives section.
+ "We chose X over Y because Z — see design.md for full analysis."}
+
+### Patterns to Follow
+{Which existing codebase patterns to follow.
+ "Follow the pattern established in {ExistingService} for CQRS handlers."}
+
+## Context to Load
+{Specific files the executing agent should read:}
+- `docs/designs/{feature}/data-model.md` — entity definitions
+- `src/{project}/{folder}/` — existing patterns to follow
+- `docs/designs/{feature}/api-spec.md` — endpoint specs
+
+## Steps (Intent, Not Code)
+
+### Step 1: {What, Not How}
+{Describe the objective and constraints.
+ Reference specific sections of the design doc.
+ Include pseudocode if logic is complex.}
+
+Pseudocode (if complex):
+```
+FOR each entity in design.data-model
+  Create entity class following BaseEntity pattern
+  Add EF configuration with indexes from design
+  Create migration
+```
+
+### Step 2: {What, Not How}
+...
+
+## Verification
+
+### Automated
+- [ ] BDD scenarios tagged @UC-{MODULE}-001 pass
+- [ ] Unit tests for {key logic} pass
+- [ ] Migration runs up and down cleanly
+
+### Manual
+- [ ] {Specific check that can't be automated}
+
+## Acceptance Criteria (from PRD)
+{Copy the relevant Given/When/Then criteria from the PRD's FR definitions.
+ These are what the executing agent must satisfy.}
+```
+
+---
+
+### Phase 4: Self-Review
+
+**2 rounds, 4 themes:**
+
+**Theme 1: Completeness**
+- [ ] Every Must-Have FR covered by at least one sub-plan?
+- [ ] Every sub-plan has context references?
+- [ ] Dependencies between sub-plans are clear?
+
+**Theme 2: Independence**
+- [ ] Each sub-plan independently loadable by an agent?
+- [ ] No circular dependencies?
+- [ ] Context references point to actual files?
+
+**Theme 3: Traceability**
+- [ ] Every sub-plan lists FRs it implements?
+- [ ] Every sub-plan references BDD scenarios for verification?
+- [ ] FR coverage table has no gaps for Must-Haves?
+
+**Theme 4: Clarity**
+- [ ] Intent is clear without being implementation-specific?
+- [ ] Key design decisions summarised (not duplicated)?
+- [ ] Steps are at the right level (not too vague, not code)?
+
+---
+
+## Exit Signals
+
+| Signal | Meaning |
+|--------|--------|
+| "plan approved" | Proceed to /beads |
+| "refine" | Continue iterating |
+| "park" / "abandon" | Save or cancel |
 
 ---
 
@@ -54,435 +286,16 @@ All subsequent paths in this skill use `${PROJECT_ROOT}/docs/` to ensure documen
 
 ```
 ${PROJECT_ROOT}/docs/plans/{feature}/
-├── overview.md           # High-level breakdown (~100-150 lines)
-├── 01-{component}.md     # Sub-plan for first component (~50-80 lines)
-├── 02-{component}.md     # Sub-plan for second component
-├── ...
-└── diagrams/             # Visual documentation
-    ├── {name}.md         # Mermaid diagrams
-    └── ...
-```
-
-**IMPORTANT:** Always use the `${PROJECT_ROOT}` variable resolved in Prerequisites to ensure plans are created in the project root, not in subdirectories.
-
----
-
-## Critical Sequence
-
-### Phase 1: Load Design Context
-
-**Step 1.1 - Find Design Document:**
-```bash
-ls "${PROJECT_ROOT}/docs/designs/{feature}/design.md"
-```
-
-**Step 1.2 - Extract from Design:**
-- Goal and problem statement
-- Chosen approach and rationale
-- Components identified (from Work Decomposition Preview)
-- Success/failure criteria
-- Architectural decisions
-- Boundaries (in scope, out of scope, anti-requirements)
-- Learnings applied (these inform plan structure)
-
-**Step 1.3 - Use Work Decomposition Preview:**
-
-The design's Work Decomposition Preview directly informs plan structure:
-
-| Design Section | Maps To |
-|----------------|---------|
-| Logical Components | Sub-plans (one per component) |
-| Context Considerations | Bead sizing guidance |
-| Suggested Execution Order | Dependency structure |
-
-**Step 1.4 - Verify Readiness:**
-```
-[ ] Design document is complete
-[ ] Work Decomposition Preview exists
-[ ] No critical open questions
-[ ] Components are identified
-[ ] Boundaries are clear
-```
-
-If not ready, suggest running `/brainstorm` first.
-
----
-
-### Phase 2: Task Decomposition
-
-**Step 2.1 - Identify Logical Components:**
-Break the feature into logical work areas:
-- Model changes (data structures)
-- Service logic (business rules)
-- Integration (wiring components)
-- UI changes (if applicable)
-- Configuration (data files)
-
-**Step 2.2 - Map Tasks to Components:**
-Each component becomes a sub-plan. Tasks within a component are steps in that sub-plan.
-
-**Step 2.3 - Identify Dependencies:**
-Which components must complete before others?
-
----
-
-### Phase 3: Write Overview Plan
-
-Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
-
-```markdown
-# Plan: {Feature Name}
-
-> Implementation plan for {feature}. See [design document](../../designs/{feature}/design.md) for problem statement and architectural decisions.
-
-## Summary
-
-{2-3 sentences: what this plan achieves}
-
-## Architecture Overview
-
-{Brief description of how components fit together. Reference design doc for detailed rationale.}
-
-## Task Breakdown
-
-| # | Component | Sub-Plan | Description |
-|---|-----------|----------|-------------|
-| 1 | {name} | [01-{name}.md](01-{name}.md) | {brief description} |
-| 2 | {name} | [02-{name}.md](02-{name}.md) | {brief description} |
-| ... | ... | ... | ... |
-
-## Dependencies
-
-```mermaid
-graph LR
-    A[01-models] --> B[02-services]
-    B --> C[03-integration]
-```
-
-## Success Criteria
-
-- {Observable outcome from design}
-- {Observable outcome from design}
-
-## Verification
-
-- [ ] All unit tests pass
-- [ ] Integration tests pass
-- [ ] {Manual verification step}
-
-## References
-
-- Design: [design.md](../../designs/{feature}/design.md)
-- Related docs: {list relevant reference docs}
-
----
-*Plan created: {date}*
-*Components: {N} sub-plans*
+├── overview.md
+├── 01-data-model.md
+├── 02-commands.md
+├── 03-queries.md
+├── 04-api.md
+├── 05-ui.md
+└── 06-integration.md
 ```
 
 ---
 
-### Phase 4: Write Sub-Plans
-
-For each component, create `${PROJECT_ROOT}/docs/plans/{feature}/NN-{component}.md`:
-
-```markdown
-# Sub-Plan: {Component Name}
-
-> Part of [{Feature} Plan](overview.md)
-
-## Objective
-
-{What this component achieves - 2-3 sentences}
-
-## Context
-
-{How this component fits into the larger feature. What it depends on, what depends on it.}
-
-## Tasks
-
-### Task 1: {Name}
-
-**Objective:** {What to achieve}
-
-**Approach:**
-{Description in plain language of what needs to happen}
-
-**Pseudocode:**
-```
-WHEN {trigger condition}:
-  IF {condition}:
-    {action}
-  ELSE:
-    {alternative action}
-
-  {next step}
-```
-
-**Pattern Reference:**
-- Similar to: `{path to similar existing code}`
-- Follow pattern in: `{service or component name}`
-
-**Success Criteria:**
-- {Observable outcome}
-- {Observable outcome}
-
-**Failure Criteria:**
-- ❌ {Anti-pattern to avoid}
-- ❌ {Common mistake}
-
-**Verification:**
-- Test: {What to test}
-- Manual: {How to verify manually if applicable}
-
----
-
-### Task 2: {Name}
-...
-
-## Component Success Criteria
-
-- {All tasks complete}
-- {Component-level verification}
-
-## References
-
-- Docs: `{relevant reference docs}`
-- Patterns: `{existing code to reference}`
-- Learnings: `{relevant learnings entries}`
-```
-
----
-
-### Phase 5: Create Diagrams (When Valuable)
-
-Create diagrams in `${PROJECT_ROOT}/docs/plans/{feature}/diagrams/` when they clarify:
-- State machines
-- Data flow
-- Sequence of operations
-- Component relationships
-
-**Diagram Format (Mermaid in Markdown):**
-
-```markdown
-# {Diagram Name}
-
-## Purpose
-{What this diagram explains}
-
-## Diagram
-
-```mermaid
-{diagram code}
-```
-
-## Notes
-{Any clarifications}
-```
-
-**When to Include Diagrams:**
-- State with multiple transitions → State diagram
-- Multi-step process → Sequence diagram
-- Data transformation → Flowchart
-- Component relationships → Component diagram
-
-**When NOT to Include:**
-- Simple CRUD operations
-- Single-step changes
-- Obvious flows
-
----
-
-### Phase 6: Self-Review (Minimum 2 Rounds)
-
-**Exit criteria:** Two consecutive rounds with zero issues found.
-**Typical:** 2-3 rounds total.
-
-**Review Process for EACH Round:**
-1. Clear mental context
-2. Re-read design document fresh
-3. Re-read all plan files fresh
-4. Apply ALL review themes below
-5. Fix any issues found
-6. If issues found, proceed to next round
-7. If no issues, check if previous round was also clean → exit
-
----
-
-#### Review Themes (Apply ALL Each Round)
-
-**Theme 1: No Source Code**
-- Plans contain pseudocode, NOT implementation code
-- No copy-paste code blocks
-- No exact method signatures
-- Intent is clear without seeing implementation
-
-**Theme 2: Hierarchical Review**
-- Overview is readable in ~2 minutes
-- Sub-plans are focused on single component
-- User can drill down only where needed
-- Each file stands alone with context
-
-**Theme 3: Documentation Value**
-- Future developer could understand WHY
-- Rationale for decisions is captured
-- Trade-offs are documented
-- Connects to design doc for deeper context
-
-**Theme 4: Task Quality**
-- Each task has clear objective
-- Success/failure criteria are observable
-- Pattern references point to real code
-- Pseudocode clarifies logic without dictating syntax
-
-**Theme 5: Agent Executability**
-- Tasks can become beads
-- Context references are specific
-- An agent could implement from this intent
-- No ambiguous requirements
-
-**Theme 6: Completeness**
-- All components from design have sub-plans
-- Dependencies are mapped
-- Verification steps exist
-- Nothing is assumed or implicit
-
----
-
-#### Review Log Format
-
-```markdown
-## Self-Review Log
-
-### Round 1
-**Issues Found:** 2
-- [Source Code] Task 3 had C# code block → Converted to pseudocode
-- [Completeness] Missing sub-plan for configuration → Added 04-config.md
-
-### Round 2 (fresh read)
-**Issues Found:** 1
-- [Documentation] Missing rationale for approach → Added context section
-
-### Round 3 (fresh read)
-**Issues Found:** 0
-- All themes pass ✅
-```
-
-**Exit criteria:** Two consecutive rounds with zero issues.
-
----
-
-### Phase 7: Present to User
-
-```markdown
-## Plan Summary
-
-**Feature:** {name}
-**Overview:** `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`
-**Sub-Plans:** {N} component plans
-
-### Structure
-
-```
-${PROJECT_ROOT}/docs/plans/{feature}/
-├── overview.md        (~{N} lines)
-├── 01-{name}.md       (~{N} lines)
-├── 02-{name}.md       (~{N} lines)
-├── ...
-└── diagrams/
-    └── {name}.md
-```
-
-### Component Overview
-
-| # | Component | Tasks | Focus |
-|---|-----------|-------|-------|
-| 1 | {name} | {N} | {brief} |
-| 2 | {name} | {N} | {brief} |
-
-### Self-Review Summary
-
-| Round | Issues | Key Fixes |
-|-------|--------|-----------|
-| 1 | 2 | Converted code to pseudocode, added missing sub-plan |
-| 2 | 1 | Added rationale documentation |
-| 3 | 0 | ✅ All themes pass |
-
-### Review Guidance
-
-1. **Start with:** `overview.md` for high-level understanding
-2. **Drill into:** Sub-plans for components you want to verify
-3. **Check diagrams:** If visual clarification helps
-
----
-
-Ready for review. Options:
-1. "plan approved" → Proceed to /beads
-2. Request changes to specific sub-plans
-3. "needs diagram" → Add visual for specific component
-4. "back to design" → Revise design first
-```
-
----
-
-## Quality Standards
-
-### Plan Documents
-- No source code (pseudocode only)
-- Hierarchical (overview + sub-plans)
-- Documentation value (explains WHY)
-- Specific pattern references
-- Observable success criteria
-
-### Self-Review
-- Minimum 2 review rounds
-- All 6 themes each round
-- Issues fixed before next round
-- Exit: 2 consecutive clean rounds
-
-### Structure
-- Overview: ~100-150 lines max
-- Sub-plans: ~50-80 lines each
-- Diagrams: only when they add clarity
-
----
-
-## Anti-Patterns
-
-❌ **Source code in plans**
-```csharp
-// DON'T include this
-public bool KnownCursed { get; init; }
-```
-
-✅ **Pseudocode instead**
-```
-Add KnownCursed boolean property to Item record
-Default: false
-Behavior: Set true on curse discovery, cleared on uncurse
-```
-
-❌ **Monolithic plan file**
-- One 1000+ line file
-
-✅ **Hierarchical structure**
-- Overview + focused sub-plans
-
-❌ **Implementation details**
-- "Use LINQ OrderBy with lambda"
-
-✅ **Intent and pattern reference**
-- "Sort casters by preference, similar to existing targeting in MonsterAIService"
-
----
-
-## Exit Signals
-
-| Signal | Meaning |
-|--------|---------|
-| "plan approved" | Proceed to /beads |
-| "adjust plan" | Revise specific sub-plans |
-| "needs diagram" | Add visual documentation |
-| "back to design" | Return to /brainstorm |
-
-When approved: **"Plan approved. Run /beads to create implementation tasks."**
+*Skill Version: 2.0*
+*Added in v2: BRIEF mode (works without design doc), FR traceability, BDD scenario references*

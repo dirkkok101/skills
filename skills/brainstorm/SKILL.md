@@ -1,20 +1,25 @@
 ---
 name: brainstorm
-description: Ideation and problem exploration phase. Uses 5 Whys to find root problems, reviews documentation and research, generates 2-3 distinct approaches, and routes to the appropriate next skill (PRD, technical-design, or plan). Use when starting any new feature, refactoring, or when user says 'brainstorm', 'let's explore', 'how should we approach'.
+description: >
+  Problem framing and approach selection. Uses 5 Whys to find root problems,
+  quick-scans existing docs, generates 2-3 approaches with a "Do Less" option,
+  classifies feature scope, and routes to the appropriate next skill. Use when
+  starting any new feature, refactoring, or when user says 'brainstorm',
+  'let's explore', 'how should we approach'.
 argument-hint: "[feature description]"
 ---
 
-# Brainstorm: Problem → Validated Approach
+# Brainstorm: Problem → Approach → Route
 
-**Philosophy:** Understand the RIGHT problem before solving it. Build on existing documentation and learnings. The best approach might be smaller than expected. Output becomes permanent project documentation.
+**Philosophy:** Understand the RIGHT problem before solving it. Pick the right approach. Define boundaries. Then route to the right depth of pipeline. Brainstorm is lean — deep research moves to /discovery, detailed requirements move to /prd.
 
 ## Core Principles
 
-1. **Problem over solution** - 5 Whys to find root cause
-2. **Documentation-first** - Leverage existing docs, create lasting reference
-3. **Learnings-informed** - Every decision references relevant past lessons
-4. **Component-focused** - Responsibilities and patterns, not file paths
-5. **Scope discipline** - Define boundaries before generating approaches
+1. **Problem over solution** — 5 Whys to find root cause
+2. **Lean context scan** — check what exists, don't deep-dive
+3. **Scope discipline** — define boundaries before generating approaches
+4. **Always include "Do Less"** — the minimal option is always on the table
+5. **Classify and route** — match pipeline depth to feature complexity
 
 ---
 
@@ -24,61 +29,43 @@ Run this skill when:
 - Starting a new feature or significant refactoring
 - User describes a rough idea needing refinement
 - User says "brainstorm", "let's explore", "how should we approach"
-- You need to validate problem before moving to design or planning
+- You need to validate a problem before moving to design or planning
 
 ---
 
 ## Critical Sequence
 
-### Phase 0: Prerequisites Check
+### Phase 0: Prerequisites
 
-**Step 0.1 - Resolve Project Root:**
-
-**CRITICAL:** All documentation must be created in the project root `docs/` folder, not in subdirectories like `tools/*/docs/`.
+**Step 0.1 — Resolve Project Root:**
 
 ```bash
-# Resolve project root (works in worktrees too)
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 echo "Project root: ${PROJECT_ROOT}"
-
-# Verify docs folder exists at project root
 ls "${PROJECT_ROOT}/docs/"
 ```
 
-All subsequent paths in this skill use `${PROJECT_ROOT}/docs/` to ensure documentation lands in the correct location regardless of current working directory.
+All paths use `${PROJECT_ROOT}/docs/` to ensure correct location.
 
-**Step 0.2 - Check for Existing Work:**
+**Step 0.2 — Check for Existing Work:**
 
 ```bash
-# Check for existing beads related to this feature
-br search "{feature keywords}"
-br list --status open
-
-# Check for existing designs and plans (use absolute paths)
-ls "${PROJECT_ROOT}/docs/designs/"
-ls "${PROJECT_ROOT}/docs/plans/"
-
-# Check for related learnings
-ls "${PROJECT_ROOT}/docs/learnings/"
+br search "{feature keywords}" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/brainstorm/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/designs/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/plans/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/research/{feature}/" 2>/dev/null
 ```
 
-**Verify:**
-```
-[ ] PROJECT_ROOT resolved correctly (shows project root path)
-[ ] No existing beads for this feature (or they're closed/abandoned)
-[ ] No existing design document (or it's outdated)
-[ ] Checked learnings for related past work
-```
-
-**If existing work found:**
-- Review it first
-- Ask user: "Found existing {beads/design/plan}. Should we build on this or start fresh?"
+If existing work found, ask: "Found existing {artifact}. Build on this or start fresh?"
 
 ---
 
-### Phase 1: Understand the Problem (Not the Solution)
+### Phase 1: Understand the Problem
 
-**Step 1.1 - The 5 Whys:**
+**Step 1.1 — The 5 Whys:**
+
 Before accepting the problem statement, dig deeper:
 
 ```
@@ -90,9 +77,10 @@ Why are they confusing? → "No landmarks, all corridors look the same"
 Root Problem: Navigation feedback, not necessarily a minimap
 ```
 
-Ask: **"What's the pain point you're trying to solve?"** then follow up with "Why?" until you reach the root.
+Ask: **"What's the pain point you're trying to solve?"** then follow with "Why?" until you reach the root.
 
-**Step 1.2 - Validate It's Worth Solving:**
+**Step 1.2 — Validate Worth Solving:**
+
 ```
 [ ] What happens if we DON'T solve this?
 [ ] Is this solving a symptom or root cause?
@@ -100,107 +88,69 @@ Ask: **"What's the pain point you're trying to solve?"** then follow up with "Wh
 [ ] Who is asking for this and why?
 ```
 
-**Step 1.3 - Understand the User Journey:**
+**Step 1.3 — Understand the User Journey:**
+
+Ask: **"Walk me through how someone would use this."**
+
 - Who uses this feature?
 - What's their current workflow?
 - How will they discover this feature?
-- What triggers them to use it?
 - What does success look like for them?
-
-Ask: **"Walk me through how a player would use this"**
 
 ---
 
-### Phase 2: Documentation & Research Review
+### Phase 2: Quick Context Scan
 
-**Systematically review project documentation and research patterns.**
+**This is a QUICK scan, not a deep dive. Deep investigation is discovery's job.**
 
-#### Step 2.1 - Documentation Review
+**Step 2.1 — Doc Scan (5 minutes max):**
 
 **Reference & System Documentation:**
 ```bash
-# Check reference docs (use absolute path)
-ls "${PROJECT_ROOT}/docs/reference/"
-ls "${PROJECT_ROOT}/docs/systems/"
-ls "${PROJECT_ROOT}/docs/architecture/"
+# Key constraints from reference docs
+ls "${PROJECT_ROOT}/docs/reference/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/systems/" 2>/dev/null
 
-# Check for research brief
-ls "${PROJECT_ROOT}/docs/research/{feature}/" 2>/dev/null || echo "No research brief found"
+# Past learnings
+grep -rl "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
+
+# Research brief (if research skill was run)
+cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
 ```
 
-For each relevant doc:
-- What rules/constraints must we follow?
-- What patterns are already established?
-- What decisions constrain this feature?
+Note: key constraints, established patterns, relevant learnings. Do NOT deep-dive.
 
-**Related Prior Work:**
-```bash
-# Find related designs and plans (absolute paths)
-ls "${PROJECT_ROOT}/docs/designs/" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/plans/" 2>/dev/null
-```
+**Step 2.2 — Surface Pattern Check:**
 
-Document findings:
-```markdown
-### Documentation Foundation
-| Document | Key Constraint or Pattern |
-|----------|---------------------------|
-| `docs/reference/{file}` | {rule we must follow} |
-| `docs/systems/{file}` | {existing pattern} |
-| `docs/research/{feature}/research-brief.md` | {if exists, key findings} |
-```
-
-#### Step 2.2 - Learnings & Codebase Patterns
-
-**Learnings Integration:**
-```bash
-# Search for relevant learnings (absolute path)
-grep -r "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
-
-**Codebase Research (Parallel Agents):**
-
-Launch research tracks:
-```
-[ ] "How does {similar feature} work in this codebase?"
-[ ] "What services would be affected by {feature}?"
-[ ] "How are similar features tested?"
-```
-
-Also check: Original Wizardry approach, similar dungeon crawlers, Godot framework patterns.
-
-Document what you learn:
-```markdown
-### Research Foundation
-**Codebase patterns:** {similar features and services to follow}
-**Learnings applied:** {past lessons that inform this}
-**External insights:** {original Wizardry or game design patterns}
-**Research brief findings:** {if exists at docs/research/{feature}/research-brief.md}
-```
+- What similar features exist in this codebase? (names and relevance only)
+- Any obvious technical constraints from the stack?
+- Any blockers already known?
 
 ---
 
-### Phase 3: Synthesize & Define Boundaries
+### Phase 3: Define Boundaries
 
-**Step 3.1 - Minimum Viable Version:**
+**Step 3.1 — Minimum Viable Version:**
+
 Ask: **"What's the smallest version that would be useful?"**
 
-Strip away non-essential:
 - What can we defer to v2?
 - Nice-to-have vs. must-have?
 - What would a 1-day version look like?
 
-**Step 3.2 - Complexity Budget:**
+**Step 3.2 — Complexity Budget:**
+
 Ask: **"How much complexity is this problem worth?"**
 
 ```markdown
 ## Complexity Budget
 - Maximum new services: {0-2 typically}
-- Maximum components: {estimate}
+- Maximum new screens: {estimate}
+- Estimated effort: {Low/Medium/High}
 - Maintenance cost we accept: {Low/Medium/High}
 ```
 
-**Step 3.3 - Anti-Requirements & Kill Criteria:**
+**Step 3.3 — Anti-Requirements & Kill Criteria:**
 
 ```markdown
 ## Boundaries
@@ -215,27 +165,25 @@ Ask: **"How much complexity is this problem worth?"**
 
 ### Kill Criteria
 Abandon if:
-- {technical blocker discovered}
-- {user feedback that changes direction}
-- Complexity exceeds budget by 50%+
+- {technical blocker}
+- {complexity exceeds budget by 50%+}
 ```
 
 ---
 
 ### Phase 4: Generate & Compare Approaches
 
-**Step 4.1 - Create 2-3 Distinct Options:**
+**Step 4.1 — Create 2-3 Distinct Options:**
 
 Each approach should be genuinely different, not variations:
 
+Present summary to user:
 ```markdown
 ### Approach A: {Name}
 **Core idea:** {1 sentence}
 **How it works:** {2-3 sentences, conceptual}
-**Pros:**
-- {benefit}
-**Cons:**
-- {drawback}
+**Pros:** {benefits}
+**Cons:** {drawbacks}
 **Complexity:** Low/Medium/High
 **Within budget:** Yes/No
 
@@ -249,108 +197,103 @@ Each approach should be genuinely different, not variations:
 
 **Always include "Do Less" option.**
 
-**Step 4.2 - Comparison Matrix:**
+**Step 4.2 — Comparison Matrix:**
 
-| Approach | Complexity | Risk | Builds On | Recommendation |
-|----------|-----------|------|-----------|----------------|
-| A | Medium | Low | Existing patterns | ✅ Preferred |
-| B | High | Medium | New design | Fallback |
-| C | Low | Low | Minimal change | Simpler path |
+| Approach | Complexity | Risk | Builds On Existing | Recommendation |
+|----------|-----------|------|-------------------|----------------|
+| A | Medium | Low | Yes — existing patterns | ✅ Preferred |
+| B | High | Medium | No — new design | Fallback |
+| C: Do Less | Low | Low | N/A | If budget is tight |
 
-**Step 4.3 - Present to User:**
+**Step 4.3 — Present and Iterate:**
+
 Ask: **"Which approach resonates?"**
 
-After feedback, synthesize if needed. Iterate until user aligns on direction.
+Iterate until user aligns on direction.
 
 ---
 
-### Phase 5: Self-Review & Route
+### Phase 5: Scope Classification
 
-**Two review rounds minimum. Exit criteria: zero issues in a round after fixing all issues in the prior round.**
+**After approach is selected, classify the feature to determine pipeline depth.**
 
-#### Review Themes (5 themes, apply all each round)
-
-**Theme 1: Problem Clarity**
-- Root problem identified (not symptom)
-- 5 Whys completed
-- User journey is clear and realistic
-
-**Theme 2: Research Grounding**
-- Reference docs consulted and applied
-- Related work reviewed
-- Learnings inform decisions
-- Research brief integrated (if exists)
-
-**Theme 3: Boundary Discipline**
-- Must-haves truly essential
-- Deferred items explicit
-- Anti-requirements prevent scope creep
-- Complexity budget is explicit
-
-**Theme 4: Approach Differentiation**
-- 2-3 genuinely different options
-- "Do less" option included
-- Each builds on existing patterns
-- At least one within budget
-
-**Theme 5: Feasibility**
-- No technical blockers identified
-- Timeline reasonable
-- Team has required skills/knowledge
-- Clear next steps to detailed design
-
----
-
-#### Self-Review Log Format
+Scan for complexity signals:
 
 ```markdown
-## Self-Review Log
+## Scope Classification
 
-### Round 1 (fresh read)
-**Issues Found:** 2
-- [Boundaries] Anti-requirements unclear
-  → Fix: Clarified what we're NOT building
-- [Approaches] Missing "do less" option
-  → Fix: Added minimal approach C
+Signals detected (weighted):
+- [ ] (×2) Auth/identity/security involvement
+- [ ] (×2) Regulatory or compliance requirements (POPIA, SOC 2)
+- [ ] (×1) Multiple user roles or personas
+- [ ] (×1) External system integrations
+- [ ] (×1) New data model with 5+ entities
+- [ ] (×1) UI-heavy with multiple screens (3+)
+- [ ] (×1) Cross-system data flows
+- [ ] (×1) Background processing / async workflows
 
-### Round 2 (fresh read)
-**Issues Found:** 0
-- All 5 themes pass ✅
+Weighted score:
+- 0-2 points: BRIEF
+- 3-4 points: STANDARD
+- 5+ points: COMPREHENSIVE
 ```
+
+| Scope | Pipeline Depth | What Gets Generated |
+|-------|---------------|---------------------|
+| BRIEF | brainstorm → plan → beads | Lightweight — skip PRD, discovery, and full design |
+| STANDARD | brainstorm → prd (standard) → technical-design → plan → beads | Normal — skip discovery |
+| COMPREHENSIVE | brainstorm → discovery → prd (full) → technical-design → plan → beads | Full depth — all phases |
 
 ---
 
-### Phase 6: Output & Route
+### Phase 6: Self-Review
+
+**1 round, 3 themes. Brainstorm is lean — don't over-review.**
+
+**Theme 1: Problem Clarity**
+- [ ] Root problem identified (not symptom)?
+- [ ] 5 Whys completed?
+- [ ] User journey clear and realistic?
+
+**Theme 2: Boundary Discipline**
+- [ ] Must-haves truly essential?
+- [ ] Anti-requirements prevent scope creep?
+- [ ] Complexity budget explicit?
+
+**Theme 3: Approach Differentiation**
+- [ ] 2-3 genuinely different options (not variations)?
+- [ ] "Do Less" included?
+- [ ] At least one within complexity budget?
+
+---
+
+### Phase 7: Output & Route
 
 **Create brainstorm document:**
+
+Save to: `${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md`
 
 ```markdown
 # Brainstorm: {Feature Name}
 
-> Exploration and approach comparison for {feature}.
+> Problem framing and approach selection for {feature}.
 
 ## Problem Statement
 ### Surface Request
 {What user asked for}
 
 ### Root Problem (5 Whys)
-{The underlying issue discovered}
+{The underlying issue discovered through 5 Whys}
 
 ### User Journey
-{How users will discover/use this}
+{How users will discover and use this}
 
-## Research Foundation
-### Documentation Consulted
-{Reference docs, systems, architecture reviewed}
+## Context
+### Key Constraints
+{From docs/reference/ and docs/learnings/}
 
-### Learnings Applied
-{Past lessons that inform this}
-
-### Research Brief Findings
-{If exists at docs/research/{feature}/research-brief.md}
-
-### Codebase Patterns
-{Existing patterns to follow}
+### Similar Features
+{Names and brief relevance — surface level only}
 
 ## Boundaries
 ### Must Have (v1)
@@ -362,134 +305,90 @@ After feedback, synthesize if needed. Iterate until user aligns on direction.
 ### Anti-Requirements
 - Must NOT: {explicit exclusion}
 
-### Kill Criteria
-- Abandon if: {invalidating condition}
-
 ### Complexity Budget
-- Services: {number}
-- Estimated effort: {Low/Medium/High}
+- Effort: {Low/Medium/High}
+- Max new services: {N}
 
 ## Approaches Compared
 ### Approach A: {Name}
-{Core idea, how it works, pros/cons, complexity, recommendation}
+{Core idea, how it works, pros/cons, complexity}
 
 ### Approach B: {Name}
-{Core idea, how it works, pros/cons, complexity, recommendation}
+{Core idea, how it works, pros/cons, complexity}
 
 ### Approach C: Do Less
 {Minimal change option}
 
-### Comparison Matrix
-{Risk, complexity, alignment with patterns}
+### Comparison
+| Approach | Complexity | Risk | Recommendation |
+|----------|-----------|------|----------------|
 
-### Recommendation
-{Suggested direction with reasoning}
+### Selected: {Approach Name}
+{Why this approach was chosen}
 
-## Self-Review Log
-{Review rounds with issues and fixes}
+## Scope Classification
+**Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
+**Signals:** {list of detected signals}
 
-## Open Questions
-- {unresolved items for user}
+## Self-Review
+{Theme results — pass/fail}
+
+## Next Step
+**Recommended:** {/discovery | /prd | /technical-design | /plan}
 
 ---
 *Brainstorm completed: {date}*
-*Next step: /prd or /technical-design or /plan*
 ```
 
-Save to: `${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md`
+**Present routing to user:**
 
-**Exit Signals & Routing:**
-
-Present summary to user:
 ```markdown
-## Brainstorm Summary
+## Brainstorm Complete
 
 **Feature:** {name}
 **Root Problem:** {1 sentence}
-**Recommended Approach:** {name}
-**Complexity:** {Low/Medium/High}
+**Selected Approach:** {name}
+**Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
 
 What's next?
-1. "start prd" → Proceed to /prd (business feature, needs PRD first)
-2. "start technical-design" → Proceed to /technical-design (technical improvement)
-3. "start plan" → Proceed to /plan (simple change, skip PRD/design)
-4. "refine" → Continue iterating here
-5. "park" → Save for later
-6. "abandon" → Don't build this
+1. "start discovery" → /discovery (COMPREHENSIVE features — deep requirements elicitation)
+2. "start prd" → /prd (STANDARD features or known requirements)
+3. "start technical-design" → /technical-design (technical improvement, skip PRD)
+4. "start plan" → /plan (BRIEF features, simple changes)
+5. "refine" → continue iterating
+6. "park" / "abandon"
 ```
 
 ---
 
-## Quality Standards
+## Exit Signals
 
-### Problem Understanding
-- 5 Whys to find root cause (not symptom)
-- User journey mapped and realistic
-- Worth solving validated
-
-### Research Grounding
-- Reference docs consulted and applied
-- Related work reviewed
-- Learnings explicitly inform choices
-- Research brief integrated (if exists)
-
-### Boundaries
-- Minimum viable clearly defined
-- Complexity budget explicit
-- Anti-requirements prevent scope creep
-- Kill criteria clear
-
-### Approaches
-- 2-3 genuinely different options
-- "Do less" option included
-- Each builds on existing patterns
-- At least one within complexity budget
-
-### Brainstorm Output
-- Component-level thinking (not file-level)
-- Permanent project documentation
-- Rationale captured for future developers
-- Trade-offs explicit
-
-### Self-Review
-- Minimum 2 rounds
-- All 5 themes applied each round
-- Issues fixed before next round
-- Exit: zero issues in consecutive round
+| Signal | Next Skill | When to Recommend |
+|--------|-----------|-------------------|
+| "start discovery" | /discovery | COMPREHENSIVE scope, complex domain |
+| "start prd" | /prd | STANDARD scope, or requirements already clear |
+| "start technical-design" | /technical-design | Technical improvement, no business requirements needed |
+| "start plan" | /plan | BRIEF scope — plan works from brainstorm directly, no design doc needed |
+| "refine" | Continue brainstorm | User wants to iterate |
+| "park" | Save for later | |
+| "abandon" | Don't proceed | |
 
 ---
 
 ## Anti-Patterns
 
-❌ **File-level thinking**
-"Update CombatService.cs and Monster.cs"
+❌ **Deep-diving into codebase patterns** — that's discovery's job
+✅ **Quick scan for constraints and similar features**
 
-✅ **Component-level thinking**
-"Combat resolution component determines outcomes. Builds on AttackService pattern."
+❌ **Writing detailed requirements** — that's PRD's job
+✅ **Defining boundaries and approaches**
 
-❌ **Implementation details**
-"Add public bool CanFlee(Party, Encounter)"
+❌ **File-level thinking** — "Update CombatService.cs"
+✅ **Component-level thinking** — "Combat resolution determines outcomes"
 
-✅ **Conceptual design**
-"Combat system determines escape viability based on encounter type and dungeon level."
-
-❌ **Ignoring documentation**
-"I think the formula should be..."
-
-✅ **Building on documented constraints**
-"Per docs/reference/combat-formulas.md, hit chance uses [formula]. This approach honors that."
+❌ **Skipping "Do Less"** — always include minimal option
+✅ **Genuine alternatives** — different approaches, not variations
 
 ---
 
-## Exit Signals & Next Skills
-
-| Signal | Next Skill |
-|--------|----------|
-| "start prd" | /prd (user-facing feature needing business context) |
-| "start technical-design" | /technical-design (technical improvement needing detailed design) |
-| "start plan" | /plan (simple change, skip PRD & design) |
-| "refine" | Continue iterating brainstorm |
-| "park" | Save brainstorm for later |
-| "abandon" | Don't proceed with this idea |
-
-**Exit message:** Provide clear routing based on feature type and next skill invocation.
+*Skill Version: 2.0*

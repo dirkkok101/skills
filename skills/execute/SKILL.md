@@ -15,6 +15,7 @@ argument-hint: "[epic-id] or [feature-name]"
 3. **Autonomous execution** - Complete each bead independently
 4. **Ask when uncertain** - Don't guess, request clarification
 5. **Continuous verification** - Tests confirm correctness
+6. **Upstream fidelity** - Implementation matches what was designed and specified
 
 ---
 
@@ -247,9 +248,27 @@ For each failure criterion in the bead:
 
 **If any item fails:** Fix the issue, re-run tests, then re-review.
 
-**If all items pass:** Proceed to commit.
+**If all items pass:** Proceed to upstream verification.
 
-**Step 2.8 - Complete:**
+**Step 2.8 - Upstream Verification:**
+
+After self-review passes, verify against upstream artifacts:
+
+```
+Upstream Verification Checklist:
+- [ ] Read bead's "Implements" FR references (if present)
+- [ ] Verify each FR's acceptance criteria are satisfied
+- [ ] Check: do endpoints match docs/designs/{feature}/api-spec.md? (if API bead)
+- [ ] Check: do entities match docs/designs/{feature}/data-model.md? (if data bead)
+- [ ] Check: are security criteria from FRs implemented? (if security-sensitive)
+- [ ] If BDD scenarios exist for referenced UCs, run them
+- [ ] If BDD scenarios don't exist yet, flag: "Tests needed for @UC-{feature}-{NNN}"
+```
+
+If upstream verification fails, fix before marking bead complete.
+Skip this step if the bead has no FR references (e.g., infrastructure-only beads).
+
+**Step 2.9 - Complete:**
 
 ```bash
 # Commit with message from bead
@@ -261,7 +280,7 @@ Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
 br close bd-{bead-id}
 ```
 
-**Step 2.9 - Context Reset & Continue:**
+**Step 2.10 - Context Reset & Continue:**
 
 Before starting next bead:
 - Clear mental model of previous bead's implementation details
@@ -574,3 +593,8 @@ br show bd-{bead-id}
 | User says "stop" | Push current work, report progress |
 
 When all beads complete: **"Feature complete. Run /review to start code review."**
+
+---
+
+*Skill Version: 2.0*
+*Added in v2: Upstream verification step (Step 2.8), FR traceability checking*

@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-08
+
+### Added
+- **workflow:discovery**: New skill for domain-aware requirements elicitation between brainstorm and PRD. Walks domain checklists, maps actors/workflows, captures UI flows, analyses integrations and security. Triggered for COMPREHENSIVE scope features.
+- **Scope classifier** in brainstorm: Weighted signal scoring (auth/security ×2, others ×1) routes features to BRIEF/STANDARD/COMPREHENSIVE pipeline depths
+- **Domain references**: Shared reference files for identity-auth, general-saas, capstone-data, guardian-mobile loaded by discovery and technical-design
+- **ASCII conventions**: Shared notation reference for all diagram types (C4, sequence, ER, DFD, workflow, UI mockups)
+- **FR traceability** in beads: Each bead tags the FRs it implements and BDD scenarios that verify it, with FR coverage table in output
+- **Upstream verification** in execute: New Step 2.8 verifies implementation against PRD acceptance criteria, API spec, and data model after each bead
+- **PRD-compliance agent** in review: 9th conditional agent checks Must-Have FR coverage, acceptance criteria satisfaction, security/compliance criteria enforcement, and scope compliance
+- **BRIEF mode** in plan: Decomposes directly from brainstorm output without requiring a design document
+- **Stable ID convention** in PRD: Descriptive IDs (FR-APP-REGISTER) instead of sequential (FR-APP-001) to prevent cascade updates
+- **Tiered PRD modes**: BRIEF (~50-100 lines), STANDARD (~200-300 lines), COMPREHENSIVE (~400-500 lines with Cockburn use cases)
+- **C4-based architecture** in technical-design: Progressive zoom with diagram selection logic
+- **Domain classification** in research: Output includes domain classification for downstream skills
+- **Batch mode** in discovery: Present domain checklists as batches with shortcuts instead of one-at-a-time
+- **Self-review limitation acknowledgement** in discovery and PRD: Explicit note that self-review by the same agent has blind spot limitations
+- **Version numbers** on all skills
+- **Updated CLAUDE.md template** with scope-based entry points, discovery phase, domain references section
+
+### Changed
+- **workflow:brainstorm**: Simplified from 495→392 lines. Scope classifier replaces fixed routing. BRIEF path now goes directly to plan (skipping PRD and design)
+- **workflow:prd**: Enhanced from original to v2 with tiered modes, security/compliance criteria on FRs, domain validation phase
+- **workflow:technical-design**: Enhanced with C4-based architecture, ASCII-native diagrams, diagram selection logic, alternatives emphasis
+- **workflow:plan**: Enhanced with BRIEF mode, FR traceability per sub-plan, BDD scenario references
+- **workflow:beads**: Restored full operational guidance (sizing heuristics, lifecycle, self-assessment) from v1 while adding v2 traceability features
+- **workflow:execute**: Restored full operational guidance (parallel beads, auto-recovery, blocker handling, context compaction recovery) from v1 while adding v2 upstream verification
+- **workflow:review**: Restored full three-layer context isolation detail from v1 while adding v2 PRD-compliance agent. Expanded from up to 8 to up to 9 agents
+- **workflow:research**: Restored full operational guidance from v1 while adding v2 domain classification
+- **workflow:compound**: Fixed review file reference (was /tmp, now docs/reviews/), added structured categories by phase/domain
+
+### Fixed
+- BRIEF scope path no longer requires a design document (was a contradiction — brainstorm routed to plan but plan required design)
+- Compound no longer references /tmp/review-consolidation.md (transient file); now reads from docs/reviews/
+
 ## [1.9.0] - 2026-01-29
 
 ### Changed

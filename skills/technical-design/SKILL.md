@@ -1,20 +1,28 @@
 ---
 name: technical-design
-description: Bridge from PRD or brainstorm to implementation plan. Produces architecture diagrams, sequence diagrams, data models, API specifications with .NET/C# patterns (MediatR CQRS, EF Core, AutoMapper, FluentValidation), UI wireframes, and integration patterns. Use when user says "design the system", "create technical spec", "API design", "architecture", or after PRD approval. Always use this before /plan for anything beyond simple changes.
+description: >
+  Bridge from PRD or brainstorm to implementation plan. Produces C4-based
+  architecture diagrams, ASCII sequence diagrams, data models, API specs
+  with .NET/C# patterns, UI mockups with multiple states, and workflow
+  diagrams. Uses diagram selection logic to include only what the feature
+  needs. Alternatives Considered is the most important section. Use when
+  user says "design the system", "create technical spec", "API design",
+  "architecture", or after PRD approval.
 argument-hint: "[feature name or PRD reference]"
 ---
 
 # Technical Design: Requirements → Architecture & Specifications
 
-**Philosophy:** A technical design bridges the "what" (PRD) to the "how" (implementation plan). Every diagram, endpoint, and entity definition here removes ambiguity that would otherwise slow down execution. Design once, implement confidently.
+**Philosophy:** A technical design bridges the "what" (PRD) to the "how" (implementation plan). The value is in the trade-offs and alternatives, not the solution description. If the solution is obvious enough that there are no trade-offs, you probably don't need a design doc. Design once, implement confidently.
 
 ## Core Principles
 
-1. **Diagram-driven** — Architecture, sequences, ERDs, and flows in Mermaid
-2. **Pattern-consistent** — Follow existing codebase patterns, don't invent new ones
-3. **CQRS-native** — Commands and queries separated throughout
-4. **Specification-complete** — Endpoints, DTOs, mappers, validation rules defined
-5. **Testability-first** — Every component designed for unit testing
+1. **Alternatives-first** — the Alternatives Considered section is the MOST IMPORTANT
+2. **C4-based architecture** — progressive zoom: Context → Container → Component
+3. **ASCII-native** — all diagrams use conventions from `_shared/references/ascii-conventions.md`
+4. **Diagram selection** — include only the diagram types this feature needs
+5. **Detail proportional to irreversibility** — deep for APIs and schemas, light for internals
+6. **Pattern-consistent** — follow existing codebase patterns, don't invent new ones
 
 ---
 
@@ -29,393 +37,399 @@ Run this skill when:
 
 ---
 
-## Persistent Context Files
-
-```
-${PROJECT_ROOT}/docs/designs/{feature}/
-├── design.md          # Overview + links to sub-documents
-├── architecture.md    # System design, component diagram
-├── sequences.md       # Sequence diagrams for key flows
-├── data-model.md      # ERD, entity definitions, migrations
-├── api-spec.md        # Endpoints, DTOs, commands, queries
-├── ui-wireframes.md   # UI mockups (optional)
-├── integrations.md    # External APIs, importers (optional)
-├── findings.md        # Working notes (persistent context)
-└── progress.md        # Phase completion tracking
-```
-
----
-
 ## Critical Sequence
 
-### Phase 0: Prerequisites
+### Phase 0: Prerequisites & Diagram Selection
+
+**Step 0.1 — Resolve and Import:**
 
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 mkdir -p "${PROJECT_ROOT}/docs/designs/{feature}"
+
+# Import upstream artifacts
+cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
+cat "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md" 2>/dev/null
+cat "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/architecture/" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 ```
 
-**Import upstream artifacts:**
-```bash
-# Check for PRD
-ls "${PROJECT_ROOT}/docs/prd/{feature}/"
+**Step 0.2 — Load References:**
 
-# Check for brainstorm
-ls "${PROJECT_ROOT}/docs/brainstorm/{feature}/"
+Read ASCII conventions: `_shared/references/ascii-conventions.md`
+Read .NET patterns: `references/dotnet-patterns.md`
+Read domain patterns: `_shared/references/{domain}.md` (from discovery domain classification)
 
-# Check for research
-ls "${PROJECT_ROOT}/docs/research/{feature}/"
+**Step 0.3 — Diagram Selection:**
 
-# Check existing architecture docs
-ls "${PROJECT_ROOT}/docs/architecture/"
+Evaluate feature characteristics and select which diagrams to generate:
 
-# Check learnings
-ls "${PROJECT_ROOT}/docs/learnings/"
+```
+ALWAYS GENERATE:
+  [x] C4 Level 1 — System Context
+  [x] C4 Level 2 — Container Diagram
+
+CONDITIONAL — check each:
+  [ ] C4 Level 3 (Component):
+      IF feature modifies internal structure of an existing container
+  [ ] Sequence Diagrams:
+      IF multi-component interaction (2+ services involved)
+      → Generate: one per command, one per critical query, one per error recovery
+  [ ] Data Model / ER Diagram:
+      IF feature adds or changes database entities
+  [ ] Class Diagram:
+      IF feature introduces new domain model with 5+ classes
+  [ ] Data Flow Diagram:
+      IF feature moves data across system boundaries
+      IF security threat model is needed (STRIDE input)
+  [ ] Workflow / Process Map:
+      IF feature has business process with decisions or approvals
+      IF cross-department or cross-system handoffs
+  [ ] Activity Diagram:
+      IF feature has parallel processing paths
+      IF complex conditional logic with concurrency
+  [ ] UI Mockups:
+      IF feature has a user interface
+      → Generate: populated, empty, error, loading states per screen
+  [ ] Deployment Diagram:
+      ONLY IF infrastructure changes are required
+
+NEVER GENERATE:
+  [ ] C4 Level 4 (Code) — use IDE for this
 ```
 
-Import: functional requirements, use cases, personas, boundaries, and chosen approach from upstream documents. These constrain the design.
+Present checklist to user: "Based on this feature, I plan to generate: {list}. Any additions or removals?"
 
-Initialize `progress.md`:
-```markdown
-# Technical Design Progress: {Feature}
-- [ ] Phase 1: Architecture Overview
-- [ ] Phase 2: Process Flows
-- [ ] Phase 3: Sequence Diagrams
-- [ ] Phase 4: Data Model & ERD
-- [ ] Phase 5: API Specification
-- [ ] Phase 6: UI Wireframes
-- [ ] Phase 7: Integration Patterns
-- [ ] Phase 8: Work Decomposition
-- [ ] Phase 9: Self-Review & Approval
-```
+Initialise `progress.md` with selected diagram types as phases.
 
 ---
 
-### Phase 1: Architecture Overview
+### Phase 1: System Architecture
 
-**Step 1.1 — System Component Diagram:**
+**Step 1.1 — C4 Level 1: System Context (ALWAYS)**
 
-Create a Mermaid component diagram showing how the feature fits into the existing system:
+ASCII diagram showing the system under design (double border) with external actors and systems.
 
-```mermaid
-graph TD
-    Client[Client/UI] --> API[ASP.NET Core API]
-    API --> MediatR[MediatR Pipeline]
-    MediatR --> Handlers[Command/Query Handlers]
-    Handlers --> Domain[Domain Layer]
-    Handlers --> Repo[Repository Layer]
-    Repo --> EF[EF Core DbContext]
-    EF --> DB[(Database)]
-```
+Use conventions from `ascii-conventions.md`:
+- `[Actor Name]` for external actors
+- `+====== Name ======+` for system under design (double border)
+- `+------ Name ------+` for external systems
+- Label every connection with protocol and data description
 
-**Step 1.2 — Layer Structure:**
+Rules: 3-7 elements max. One diagram, one story.
 
-| Layer | Responsibility | .NET Pattern |
-|-------|---------------|-------------|
-| API | Controllers, request validation | ASP.NET Core Controllers |
-| Application | Commands, queries, handlers | MediatR IRequest/IRequestHandler |
-| Domain | Entities, value objects, rules | Plain C# classes |
-| Infrastructure | Data access, external services | EF Core, HttpClient |
+**Step 1.2 — C4 Level 2: Container Diagram (ALWAYS for new features)**
 
-**Step 1.3 — Technology Decisions:**
-- Framework version and key libraries
-- New NuGet packages needed (if any)
-- Cross-cutting concerns (logging, auth, error handling patterns)
-- Deployment considerations
+ASCII diagram showing major technology pieces within the system.
 
-Write to `architecture.md`.
+Each container includes: name, technology choice, port/protocol.
+Every connection labelled with: protocol, data format, direction.
 
----
+**Step 1.3 — C4 Level 3: Component Diagram (IF selected)**
 
-### Phase 2: Process Flow Diagrams
+ASCII diagram showing internal components of ONE container.
+Only for the container being modified by this feature.
 
-For each key use case from the PRD, create a flowchart:
+**Step 1.4 — Technology Decisions:**
 
-```mermaid
-flowchart TD
-    Start([User Action]) --> Validate{Valid Input?}
-    Validate -->|Yes| Process[Process Request]
-    Validate -->|No| Error[Return Validation Error]
-    Process --> Save[Save to Database]
-    Save --> Notify[Send Notification]
-    Notify --> End([Return Success])
-```
+| Decision | Chosen | Alternatives Considered | Rationale |
+|----------|--------|------------------------|-----------|
 
-Map each flow to its use case ID (UC-001, UC-002...).
-
-Include:
-- Happy path (main flow)
-- Decision points and branches
-- Error/exception paths
-- External system interactions
+Output: `architecture.md`
 
 ---
 
-### Phase 3: Sequence Diagrams
+### Phase 2: Data Model (IF selected)
 
-For each critical interaction, create a Mermaid sequence diagram showing the full request lifecycle:
+**Step 2.1 — Entity-Relationship Diagram:**
 
-```mermaid
-sequenceDiagram
-    actor User
-    User->>Controller: POST /api/v1/{resource}
-    Controller->>MediatR: Send(CreateCommand)
-    MediatR->>Validator: Validate(CreateCommand)
-    Validator-->>MediatR: ValidationResult
-    alt Validation Failed
-        MediatR-->>Controller: ValidationException
-        Controller-->>User: 422 Unprocessable
-    end
-    MediatR->>Handler: Handle(CreateCommand)
-    Handler->>Repository: Add(entity)
-    Repository->>DbContext: SaveChangesAsync()
-    DbContext-->>Repository: Success
-    Repository-->>Handler: Entity
-    Handler-->>Controller: ResourceResponse
-    Controller-->>User: 201 Created
+ASCII ER diagram using class diagram conventions from `ascii-conventions.md`.
+Show ALL new/changed entities with properties, types, constraints, relationships.
+
+```
++------------------+        +------------------+
+|  Application     |        |  ApplicationScope|
++------------------+        +------------------+
+| + Id: Guid PK    |        | + AppId: Guid FK |
+| + TenantId: Guid |  1---* | + ScopeId: Guid FK|
+| + Name: string   |--------| + GrantedAt: DT  |
+| + ClientId: str  |        +------------------+
+| + Type: AppType  |
+| + IsActive: bool |
+| + CreatedAt: DT  |
++------------------+
+| + Suspend()      |
+| + Activate()     |
++------------------+
 ```
 
-Create sequences for:
-- Each command (create, update, delete) showing CQRS flow
-- Each query showing read path
-- Authentication flows (if applicable)
-- Background job triggers (if applicable)
+**Step 2.2 — Entity Definitions:**
 
-Write to `sequences.md`.
+For each entity:
+- All properties with types and constraints
+- Relationships (navigation properties, foreign keys)
+- EF Core notes (indexes, unique constraints, query filters)
+- Soft delete strategy if applicable
 
----
+**Step 2.3 — Migration Strategy:**
 
-### Phase 4: Data Model & ERD
-
-**Step 4.1 — Entity-Relationship Diagram:**
-
-```mermaid
-erDiagram
-    ENTITY_A ||--o{ ENTITY_B : "has many"
-    ENTITY_A {
-        Guid Id PK
-        string Name
-        DateTime CreatedAt
-        DateTime UpdatedAt
-    }
-    ENTITY_B {
-        Guid Id PK
-        Guid EntityAId FK
-        string Description
-        int SortOrder
-    }
-```
-
-**Step 4.2 — Entity Definitions:**
-
-For each entity, document:
-- Properties with types and constraints
-- Relationships (navigation properties)
-- EF Core configuration notes (indexes, unique constraints)
-- Soft delete strategy (if applicable)
-
-**Step 4.3 — Migration Strategy:**
 - New tables needed
 - Columns added to existing tables
 - Data migration requirements
 - Seed data needs
-- Rollback approach
+- **Rollback approach** — how to undo the migration safely
 
-Write to `data-model.md`.
+Output: `data-model.md`
 
 ---
 
-### Phase 5: API Specification
+### Phase 3: API Specification (IF feature has API surface)
 
-This is the most detailed phase. For detailed templates and patterns, read `references/dotnet-patterns.md`.
+Load: `references/dotnet-patterns.md` AND `_shared/references/{domain}.md`
 
-**For each endpoint, specify:**
+**For each endpoint:**
 
-```markdown
+```
 ### POST /api/v1/{resource}
-**Maps to:** FR-001, UC-001
-**Auth:** [Authorize(Policy = "RequiredPolicy")]
+Maps to: FR-{MODULE}-001, UC-{MODULE}-001
+Auth: [Authorize(Policy = "{PolicyName}")]
 
-**Command:** Create{Resource}Command
-**Handler:** Create{Resource}CommandHandler
+Command: Create{Resource}Command
+Handler: Create{Resource}CommandHandler
 
-**Request DTO:**
-```csharp
-public record Create{Resource}Request(
-    string Name,
-    string Description,
-    Guid? ParentId
-);
+Request:
+  { name: string, description: string?, parentId: Guid? }
+
+Validation:
+  name: required, max 200 chars, unique within tenant
+  description: max 2000 chars
+
+Response (201):
+  { id: Guid, name: string, createdAt: DateTime }
+
+Errors:
+  400 — validation failure (field-level errors in problem details)
+  401 — not authenticated
+  403 — missing required policy/permission
+  409 — name already exists within tenant
+  422 — business rule violation
 ```
 
-**Validation (FluentValidation):**
-```csharp
-RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-RuleFor(x => x.Description).MaximumLength(2000);
-```
+Organise by: Commands (POST, PUT, DELETE) → Queries (GET) → Shared DTOs.
 
-**Response DTO:**
-```csharp
-public record {Resource}Response(
-    Guid Id,
-    string Name,
-    string Description,
-    DateTime CreatedAt
-);
-```
-
-**Mapper (AutoMapper):**
-```csharp
-CreateMap<{Resource}Entity, {Resource}Response>();
-```
-
-**Entity Mapper (in handler):**
-```csharp
-var entity = new {Resource}Entity
-{
-    Name = command.Name,
-    Description = command.Description
-};
-```
-
-**Error Responses:** 400, 401, 403, 404, 409, 422
-```
-
-**Organize by:**
-1. Commands (POST, PUT, PATCH, DELETE) with MediatR handlers
-2. Queries (GET) with MediatR handlers
-3. Shared DTOs and mappers
-
-Write to `api-spec.md`.
+Output: `api-spec.md`
 
 ---
 
-### Phase 6: UI Wireframes (Optional)
+### Phase 4: Sequence Diagrams (IF selected)
 
-Create ASCII mockups for key screens:
+Generate one ASCII sequence diagram per critical flow. Use conventions from `ascii-conventions.md`.
 
-```
-┌─────────────────────────────────┐
-│ Feature Name            [Save]  │
-├─────────────────────────────────┤
-│ Name: [________________]        │
-│ Description:                    │
-│ [______________________________]│
-│ [______________________________]│
-│                                 │
-│ Category: [Dropdown ▼]          │
-│                                 │
-│ [Cancel]              [Submit]  │
-└─────────────────────────────────┘
-```
+**Generate for:**
+- Each command flow (create, update, delete)
+- Primary query flow (list with filtering)
+- Primary error recovery flow
+- Authentication flow (if auth feature)
 
-For each screen:
-- Component hierarchy
-- Form fields mapped to API endpoint/DTO
-- Validation rules (client + server)
-- User actions mapped to API calls
+Rules:
+- 3-5 participants maximum per diagram
+- Label messages with actual endpoint/method names
+- Show request AND response
+- Use ALT blocks for error paths
+- Width under 100 characters
 
-Write to `ui-wireframes.md`.
+Output: `sequences.md`
 
 ---
 
-### Phase 7: Integration Patterns (If Applicable)
+### Phase 5: Workflow / Process Diagrams (IF selected)
 
-**Excel Import Pattern:**
+ASCII workflow diagrams for business processes with decision points.
+Use conventions from `ascii-conventions.md`.
+
+Generate for:
+- Business approval workflows
+- Cross-system processes (e.g., user provisioning across products)
+- Complex multi-step operations
+
+Include swimlanes when multiple actors/systems are involved.
+
+Output: `workflows.md`
+
+---
+
+### Phase 6: Data Flow Diagrams (IF selected)
+
+ASCII DFDs using conventions from `ascii-conventions.md`.
+
+Generate:
+- Context diagram (system boundary with external entities)
+- Level 0 DFD (major processes within system)
+
+Useful for: security threat modelling (STRIDE input), data lineage, integration documentation.
+
+Output: `data-flows.md`
+
+---
+
+### Phase 7: UI Mockups (IF feature has UI)
+
+ASCII mockups using conventions from `ascii-conventions.md`.
+
+**For each screen** (import screen inventory from discovery `ux-flows.md`):
+
+Generate SEPARATE mockups for:
+1. **Populated** — normal operation with realistic data
+2. **Empty** — no data yet, include call-to-action
+3. **Error** — validation errors, server errors
+4. **Loading** — if async operations (optional)
+
+Per mockup:
+- Component hierarchy (which components contain which)
+- Form fields mapped to API endpoint and DTO
+- Validation rules (which are client-side vs. server-side)
+- Action buttons mapped to API calls
+
+Output: `ui-mockups.md`
+
+---
+
+### Phase 8: Alternatives Considered
+
+**THIS IS THE MOST IMPORTANT SECTION IN THE DESIGN DOC.**
+
+For every significant design decision (API structure, data model shape, auth approach, caching strategy, framework choice):
+
 ```markdown
-### Excel Import: {Feature}
-**File format:** .xlsx with columns [A, B, C, ...]
-**Validation:** Row-level (type, required) + batch-level (duplicates, references)
-**Import flow:**
-1. Upload → Parse with EPPlus/ClosedXML
-2. Validate → Collect row errors, don't fail batch
-3. Preview → Show valid/invalid counts
-4. Confirm → User approves
-5. Process → MediatR command per batch (not per row)
+## Alternatives Considered
 
-**Error handling:** Row errors accumulated, valid rows processed, error report returned
-**Pattern:** ImportCommand → ImportHandler → ValidationService → BulkRepository
+### Decision 1: {What's being decided}
+
+**Context:** {Why this decision matters}
+
+| Approach | Description | Pros | Cons |
+|----------|-------------|------|------|
+| A: {Name} ← CHOSEN | {How it works} | {Benefits} | {Drawbacks} |
+| B: {Name} | {How it works} | {Benefits} | {Drawbacks} |
+| C: {Name} | {How it works} | {Benefits} | {Drawbacks} |
+
+**Decision:** Approach A because {specific technical reasoning}.
+**Trade-off accepted:** {What we're giving up and why it's acceptable}.
+
+### Decision 2: {Next decision}
+...
 ```
 
-**External API Integration:**
-- Auth mechanism (API key, OAuth, JWT)
-- Rate limiting strategy
-- Retry/fallback logic (Polly)
-- Circuit breaker pattern
+**Minimum:** 2-3 alternatives per major decision. If you can't think of alternatives, the decision may not need a design doc.
 
-**Background Jobs:**
-- Job trigger (schedule, event, manual)
-- Pattern (IHostedService, Hangfire)
-- Idempotency approach
-
-Write to `integrations.md`.
+**Quality check:** This section should be one of the LONGEST sections. If it's shorter than the architecture section, you're not documenting enough trade-offs.
 
 ---
 
-### Phase 8: Work Decomposition Preview
+### Phase 9: Security & Privacy (IF applicable)
 
-This connects the design to the /plan skill:
+From discovery security analysis, specify technical mitigations:
+
+- Authentication/authorization changes (policies, claims, guards)
+- Data classification (which fields are PII, which are sensitive)
+- Encryption (at rest: which fields/tables; in transit: TLS configuration)
+- Audit logging (which events, retention, tamper protection)
+- Rate limiting (which endpoints, per-tenant or global)
+- Input validation (injection prevention, parameterised queries)
+- CORS and CSP configuration
+
+---
+
+### Phase 10: Testing Strategy
+
+```markdown
+## Testing Strategy
+
+### Unit Tests
+- {Key business logic to unit test}
+- {Complex validation rules}
+- {Domain service methods}
+
+### Integration Tests
+- API contract tests for each endpoint (request/response shapes, status codes)
+- Database integration tests for complex queries
+- Auth policy tests (verify correct roles/permissions enforced)
+
+### E2E Tests
+- Critical user paths: {list from use cases}
+- Cross-system flows: {list from workflows}
+
+### Performance Tests
+- Load target: {from NFRs}
+- Tool: {k6 / NBomber / etc.}
+- Key scenarios: {which endpoints under load}
+```
+
+---
+
+### Phase 11: Rollout Plan
+
+```markdown
+## Rollout
+- Feature flags: {which flags, default state, rollout %]
+- Migration: {data migration approach, zero-downtime strategy}
+- Rollback: {how to undo — feature flag off, migration down, etc.}
+- Monitoring: {key metrics, alerts, dashboards}
+```
+
+---
+
+### Phase 12: Work Decomposition Preview
+
+**This section feeds directly into /plan.**
 
 ```markdown
 ## Work Decomposition
 
 ### Component Breakdown
-| Component | Scope | Complexity | Risk |
-|-----------|-------|------------|------|
-| Data Model | Entities, migrations, EF config | M | Low |
-| Commands | Create/Update/Delete handlers | L | Medium |
-| Queries | List/Get handlers | S | Low |
-| API Controllers | Endpoints, auth policies | M | Low |
-| Validation | FluentValidation rules | S | Low |
-| UI Components | Forms, lists, detail views | L | Medium |
-| Integrations | Excel import, external APIs | XL | High |
+| Component | Scope | Complexity | Risk | Implements |
+|-----------|-------|------------|------|-----------|
+| Data Model | Entities, migrations, EF config | M | Low | FR-001, FR-002 |
+| Commands | Create/Update/Delete handlers | L | Medium | FR-001-FR-005 |
+| Queries | List/Get handlers | S | Low | FR-006, FR-007 |
+| API | Endpoints, auth policies | M | Low | All FRs |
+| Validation | FluentValidation rules | S | Low | FR-001-FR-005 |
+| UI | Forms, lists, detail views | L | Medium | All FRs |
+| Integration | Downstream provisioning | M | High | FR-010 |
 
 ### Dependency Graph
-```mermaid
-graph LR
-    DM[Data Model] --> CMD[Commands]
-    DM --> QRY[Queries]
-    CMD --> API[Controllers]
-    QRY --> API
-    CMD --> VAL[Validation]
-    API --> UI[UI Components]
-    DM --> INT[Integrations]
-```
+  Data Model ──> Commands ──> API ──> UI
+      |              |
+      +──> Queries ──+
+      |
+      +──> Integration
 
 ### Suggested Execution Order
-1. Data Model — foundation, everything depends on this
+1. Data Model — everything depends on this
 2. Commands + Validation — write path
 3. Queries — read path
-4. API Controllers — expose to clients
-5. UI Components — consume the API
-6. Integrations — Excel import, external APIs
+4. API — expose to clients
+5. UI — consume the API
+6. Integration — external systems
 ```
 
 ---
 
-### Phase 9: Self-Review & Approval
+### Phase 13: Self-Review & Approval
 
-**2 rounds minimum, exit on 2 consecutive clean rounds.**
+**2 rounds minimum. Exit on 2 consecutive clean rounds.**
 
-**7 Review Themes:**
+**8 Review Themes:**
 
 1. **Architecture Soundness** — Follows layer structure? Consistent with existing patterns?
-2. **API Completeness** — Every FR has an endpoint? Request/response DTOs defined?
-3. **Data Model Integrity** — ERD matches API needs? Relationships correct? Migrations safe?
+2. **API Completeness** — Every FR has an endpoint? DTOs defined? Error codes specific?
+3. **Data Model Integrity** — ER matches API needs? Relationships correct? Migrations safe?
 4. **Diagram Accuracy** — Sequences match endpoints? Flows match use cases?
-5. **Pattern Consistency** — CQRS respected? AutoMapper used correctly? Validation in right layer?
+5. **Pattern Consistency** — CQRS respected? Validation in right layer? Naming conventions?
 6. **Testability** — Every handler unit-testable? Dependencies injectable?
-7. **Traceability** — Every endpoint maps to FR? Every FR maps to use case?
-
-**Review Log:**
-```markdown
-### Round 1
-**Issues:** {count}
-- [{theme}] {issue} → Fix: {fix}
-
-### Round 2
-**Issues:** 0 ✅
-```
+7. **Traceability** — Every endpoint maps to FR? Every FR maps to UC?
+8. **ASCII Quality** — Diagrams under 100 chars? Conventions followed? Aligned properly?
 
 ---
 
@@ -425,17 +439,34 @@ graph LR
 ## Technical Design Complete
 
 **Feature:** {name}
-**Architecture docs:** {count} files
+**Architecture docs:** {count} files in docs/designs/{feature}/
+**Diagrams generated:** {list of diagram types}
 **Endpoints defined:** {count}
 **Entities defined:** {count}
-**Diagrams created:** {count}
-
-Saved to: `docs/designs/{feature}/`
+**Alternatives documented:** {count} decisions with {count} alternatives
 
 Ready for review:
 1. "design approved" → Proceed to /plan
 2. "refine" → Continue iterating
 3. "park" / "abandon"
+```
+
+---
+
+## Output Structure
+
+```
+${PROJECT_ROOT}/docs/designs/{feature}/
+├── design.md            # Overview + alternatives + security + rollout
+├── architecture.md      # C4 diagrams
+├── data-model.md        # ER diagram + entity definitions + migration
+├── api-spec.md          # Endpoints, DTOs, validation, errors
+├── sequences.md         # Sequence diagrams (if selected)
+├── workflows.md         # Workflow diagrams (if selected)
+├── data-flows.md        # DFDs (if selected)
+├── ui-mockups.md        # Mockups with multiple states (if selected)
+├── findings.md          # Working notes
+└── progress.md          # Phase tracking
 ```
 
 ---
@@ -449,10 +480,17 @@ Ready for review:
 | "park" | Save for later |
 | "abandon" | Don't build this |
 
-When approved: **"Design approved. Run /plan to create implementation plan."**
+**On approval:** "Design approved. Run /plan to create implementation plan."
 
 ---
 
 ## Reference Files
 
-For detailed .NET/C# patterns and templates, read `references/dotnet-patterns.md`.
+For detailed .NET/C# patterns: `references/dotnet-patterns.md`
+For domain-specific patterns: `_shared/references/{domain}.md`
+For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
+
+---
+
+*Skill Version: 2.0*
+*Added in v2: C4-based architecture, ASCII-native diagrams, diagram selection logic, alternatives emphasis*

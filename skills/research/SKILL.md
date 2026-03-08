@@ -15,6 +15,7 @@ argument-hint: "[research topic or feature idea]"
 3. **Source tracking** — All findings traceable to sources
 4. **Structured output** — Research brief feeds directly into brainstorm or PRD
 5. **Time-boxed** — Research supports decisions, it doesn't replace them
+6. **Domain-classified** — Output includes domain classification for downstream skills
 
 ---
 
@@ -232,7 +233,31 @@ Go back to Phase 1 questions and answer each with evidence.
 
 ---
 
-### Phase 6: Research Brief Output
+### Phase 6: Domain Classification
+
+**Based on research findings, classify the feature's domain(s).**
+
+```markdown
+## Domain Classification
+
+Based on research findings, this feature primarily touches:
+- [ ] Identity/Auth — authentication, authorization, user management, OIDC
+- [ ] Data Platform — data curation, modeling, computed values, MCP
+- [ ] Mobile/EHS — offline-first, inspections, sync, field operations
+- [ ] General SaaS — multi-tenancy, billing, onboarding, administration
+
+Primary domain: {domain}
+Secondary domain(s): {if applicable}
+
+Recommended references for downstream skills:
+- _shared/references/{domain}.md
+```
+
+This classification feeds into brainstorm's scope classifier and discovery's domain detection.
+
+---
+
+### Phase 7: Research Brief Output
 
 Write `research-brief.md`:
 
@@ -271,6 +296,9 @@ Write `research-brief.md`:
 
 ## Risks & Open Questions
 {Unresolved items for brainstorm/PRD to address}
+
+## Domain Classification
+{Primary domain, secondary domains, recommended references}
 
 ## Recommendation
 {Suggested direction based on evidence}
@@ -315,3 +343,8 @@ Ready for next step:
 | "start prd" | Proceed to /prd |
 | "more research" | Continue investigating |
 | "park" | Save for later |
+
+---
+
+*Skill Version: 2.0*
+*Added in v2: Domain classification phase*

@@ -1,12 +1,15 @@
 ---
 name: beads
-description: Convert approved plans into intent-based beads with self-assessment gate. Each bead is a work package for a sub-agent that loads surgical context to implement. No source code in beads.
+description: >
+  Convert approved plans into intent-based beads with self-assessment gate
+  and requirement traceability. Each bead references the FRs it implements
+  and the BDD scenarios that verify it. No source code in beads.
 argument-hint: "[feature-name] or path to plan"
 ---
 
 # Beads: Plan → Intent-Based Work Packages
 
-**Philosophy:** Each bead is a self-contained work package for a sub-agent. Beads contain INTENT, not implementation. The sub-agent loads surgical context, designs on-the-fly, implements, and verifies. Beads are sized by context management, not time estimates.
+**Philosophy:** Each bead is a self-contained work package for a sub-agent. Beads contain INTENT, not implementation. The sub-agent loads surgical context, designs on-the-fly, implements, and verifies. Beads are sized by context management, not time estimates. Every bead traces back to the requirements it implements and the tests that verify it.
 
 ## Core Principles
 
@@ -15,6 +18,7 @@ argument-hint: "[feature-name] or path to plan"
 3. **Sub-agent execution model** - Each bead is independently executable
 4. **Self-assessment gate** - "Ready" vs "Needs: [specific thing]"
 5. **Context-scoped sizing** - Can a sub-agent load this context and complete effectively?
+6. **Traceable** - Every bead tags the FR(s) it implements and the test(s) that verify it
 
 ---
 
@@ -31,6 +35,15 @@ Before starting, verify:
 - [ ] Plan exists at `docs/plans/{feature}/overview.md`
 - [ ] Plan has been approved by user
 - [ ] If no plan, run `/plan` first
+
+Import upstream for traceability:
+```bash
+# Import PRD for FR references
+cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
+
+# Import plan overview for FR coverage
+cat "${PROJECT_ROOT}/docs/plans/{feature}/overview.md"
+```
 
 ---
 
@@ -135,7 +148,9 @@ Record epic ID for linking.
 **For each task, create a bead:**
 
 ```bash
-br create "{Task title}" --type task -p 2
+br create "{Task title}" --type task -p 2 \
+  --tag "FR-{feature}-{NNN}" \
+  --tag "UC-{feature}-{NNN}"
 ```
 
 **Bead Description Format:**
@@ -143,6 +158,14 @@ br create "{Task title}" --type task -p 2
 ```markdown
 ## Objective
 {What to achieve - 1-2 sentences from plan}
+
+## Implements
+- FR-{feature}-{NNN}: {FR title}
+- UC-{feature}-{NNN}: {related use case}
+
+## Validates Against
+- BDD: @UC-{feature}-{NNN} — Scenario: "{scenario name}" (if exists)
+- Unit: {key unit test description}
 
 ## Success Criteria
 - {Observable outcome}
@@ -159,6 +182,11 @@ br create "{Task title}" --type task -p 2
 
 ## Approach
 {Brief description or pseudocode from plan - NOT implementation code}
+
+## Acceptance Criteria (from PRD)
+  Given {precondition}
+  When {action}
+  Then {expected result}
 
 ## Verification
 - **Test:** {What behavior to test}
@@ -390,6 +418,15 @@ br ready
 | ⚠ Resolved | {N} (details below) |
 | ✗ Split | {N} into {M} sub-beads |
 
+### FR Coverage
+| FR | Bead(s) | Status |
+|----|---------|--------|
+| FR-{feature}-001 (Must) | bd-{id} | ✅ Covered |
+| FR-{feature}-002 (Must) | bd-{id}, bd-{id} | ✅ Covered |
+| FR-{feature}-003 (Should) | — | ℹ Should-Have, deferred |
+
+**All Must-Have FRs must be covered. Flag any gaps as blocking.**
+
 **Resolutions Applied:**
 - bd-003: Added ShopService.IdentifyItem pattern reference
 - bd-005: Split into 3 focused integration test beads
@@ -525,3 +562,8 @@ When a sub-agent starts a bead and becomes uncertain:
 | "back to plan" | Return to /plan |
 
 When approved: **"Beads approved. Run /execute to start implementation."**
+
+---
+
+*Skill Version: 2.0*
+*Added in v2: FR/UC traceability tags, acceptance criteria from PRD, FR coverage verification*

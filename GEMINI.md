@@ -4,25 +4,24 @@ This repository provides a collection of specialized Agent Skills for the Gemini
 
 ## Core Mandates
 
+- **Scope-Routed SDLC**: Weighted complexity signals route features to BRIEF, STANDARD, or COMPREHENSIVE pipeline depths.
+- **Domain-Aware Requirements**: Discovery skill walks domain-specific checklists for identity, data, mobile, and SaaS features.
 - **Evidence-Driven Diagnosis**: Investigate with reproduction and evidence, not guesses.
 - **Adaptive Triage**: Right-size the response—simple bugs get quick fixes, complex issues get proper design.
 - **Documentation-First**: All phases produce permanent documentation in `docs/`.
 - **Intent Over Implementation**: Beads contain objectives, not source code.
-- **Surgical Context**: Each bead specifies exactly which files to read.
-- **Continuous Learning**: Use the `/compound` skill to capture learnings.
-- **Explicit Approval**: Each phase (Design, Plan, Beads) requires user approval before proceeding.
+- **Requirement Traceability**: FRs trace from PRD through beads to review, with upstream verification.
+- **Explicit Approval**: Each phase requires user approval before proceeding.
 
 ## Workflow Sequence
 
-1. **Brainstorm**: `brainstorm [idea]` → `design approved`
-2. **Plan**: `plan [feature]` → `plan approved`
-3. **Beads**: `beads [feature]` → `beads approved`
-4. **Execute**: `execute [epic-id]`
-5. **Review**: `review`
-6. **Compound**: `compound [topic]`
+**BRIEF path:** brainstorm → plan → beads → execute → review → compound
 
-For bugs:
-1. **Diagnose**: `diagnose [symptom]` → Simple Fix OR Handoff to Brainstorm/Beads.
+**STANDARD path:** brainstorm → prd → technical-design → plan → beads → execute → review → compound
+
+**COMPREHENSIVE path:** brainstorm → discovery → prd → technical-design → plan → beads → execute → review → compound
+
+For bugs: diagnose → Fix-in-Place OR Handoff to Brainstorm/Beads.
 
 ## Standards
 

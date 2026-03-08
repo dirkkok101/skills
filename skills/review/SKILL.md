@@ -10,7 +10,7 @@ argument-hint: "[feature-name] or [file paths]"
 
 ## Core Principles
 
-1. **Parallel specialization** - Up to 8 agents with distinct focus areas catch more than one generalist pass
+1. **Parallel specialization** - Up to 9 agents with distinct focus areas catch more than one generalist pass
 2. **Three-layer context isolation** - Review agents write to files, consolidation agent writes a structured summary to disk, main agent reads only the executive summary (~50 lines) — full findings never enter the conversation context
 3. **Severity-driven action** - Deduplicate, sort by criticality, present only actionable findings
 4. **Self-review before presenting** - Verify completeness and filter false positives before showing user
@@ -93,12 +93,19 @@ ls "${PROJECT_ROOT}/docs/designs/{feature}/design.md"
 # Check for plan document and sub-plans
 ls "${PROJECT_ROOT}/docs/plans/{feature}/overview.md"
 ls "${PROJECT_ROOT}/docs/plans/{feature}/"
+
+# Check for PRD (v2: enables prd-compliance agent)
+ls "${PROJECT_ROOT}/docs/prd/{feature}/prd.md"
+
+# Check for discovery brief (v2: enriches prd-compliance checks)
+ls "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md"
 ```
 
 Record which documents exist. Each enables a conditional review agent in Phase 2:
 - **Design found:** Include the design-intent agent.
 - **Plan found:** Include the plan-intent agent.
-- **Neither found:** Phase 2 proceeds with the 6 core agents only.
+- **PRD found:** Include the prd-compliance agent.
+- **None found:** Phase 2 proceeds with the 6 core agents only.
 
 ---
 
@@ -106,7 +113,7 @@ Record which documents exist. Each enables a conditional review agent in Phase 2
 
 **Launch all agents in a single message using Task tool with `run_in_background: true`.** Launch 6 core agents always, plus up to 2 conditional agents (design-intent and/or plan-intent) based on Step 1.4.
 
-This writes each agent's output to a file on disk instead of into the conversation context. This prevents context bloat from up to 8 large reports and ensures no findings are lost to summarization.
+This writes each agent's output to a file on disk instead of into the conversation context. This prevents context bloat from up to 9 large reports and ensures no findings are lost to summarization.
 
 | Agent | Focus | Condition |
 |-------|-------|-----------|
@@ -118,6 +125,7 @@ This writes each agent's output to a file on disk instead of into the conversati
 | `pr-review-toolkit:comment-analyzer` | Comment accuracy, stale documentation, comment rot, maintainability | Always |
 | `general-purpose` (design-intent) | Anti-requirements honoured, trade-offs respected, deferred items not implemented, architecture followed, complexity budget not exceeded | Design doc found |
 | `general-purpose` (plan-intent) | All planned components implemented, pseudocode intent followed, failure criteria respected, pattern references honoured, dependencies correct | Plan doc found |
+| `general-purpose` (prd-compliance) | All Must-Have FRs implemented, acceptance criteria satisfied, security criteria on FRs enforced, no scope creep beyond PRD, discovery domain requirements addressed | PRD found |
 
 **Agent Prompt Template:**
 ```
@@ -210,19 +218,53 @@ Return findings in this format:
 **Suggestion:** {how to align with plan}
 ```
 
-**Each agent call returns an `output_file` path. Record all paths (6, 7, or 8) for Phase 3.**
+**Each agent call returns an `output_file` path. Record all paths (6, 7, 8, or 9) for Phase 3.**
+
+**PRD-Compliance Agent Prompt Template (only if PRD exists):**
+```
+Review the following code changes against the Product Requirements Document.
+
+PRD: ${PROJECT_ROOT}/docs/prd/{feature}/prd.md
+Discovery brief (if exists): ${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md
+
+Files changed:
+{list of files with line numbers}
+
+Read the PRD and verify the implementation against these aspects:
+
+1. **FR Coverage** — For each Must-Have FR, verify implementation code exists that satisfies it. Flag missing Must-Haves as critical.
+2. **Acceptance Criteria** — For each FR's Given/When/Then criteria, verify the implementation produces the expected outcome.
+3. **Security Criteria** — For FRs with security criteria, verify they are implemented (not just documented). E.g., "secrets hashed" means actual BCrypt usage, not a comment.
+4. **Compliance Criteria** — For FRs with compliance criteria (POPIA, SOC 2), verify the implementation addresses them (audit logging present, data purpose recorded, etc.).
+5. **Scope Compliance** — Flag any implemented features NOT in the PRD (scope creep). Flag any Won't-Have items that were implemented.
+6. **Discovery Domain Requirements** — If a discovery brief exists, verify all IN SCOPE domain requirements are addressed.
+
+Rate each finding with criticality (1-10):
+- 8-10: Must fix (Must-Have FR not implemented, security criteria not enforced, scope creep)
+- 5-7: Should consider (Should-Have FR partially implemented, compliance gaps)
+- 1-4: Observation (Could-Have FR not done, minor acceptance criteria gaps)
+
+Return findings in this format:
+### Finding {N}
+**File:** `path/to/file.cs:line`
+**Requirement:** {FR/NFR/DR ID}
+**Criticality:** {1-10}
+**Issue:** {description}
+**PRD Says:** {relevant requirement text}
+**Suggestion:** {how to align with PRD}
+```
 
 ---
 
 ### Phase 3: Wait for Agents and Consolidate via Agent
 
 **Step 3.1 - Wait for All Agents:**
-Use `Read` or `Bash` with `tail` to check each output file. Wait until all agents (6-8) have completed. You will receive notifications as each background agent finishes.
+Use `Read` or `Bash` with `tail` to check each output file. Wait until all agents (6-9) have completed. You will receive notifications as each background agent finishes.
 
 **Step 3.2 - Launch Consolidation Agent:**
 Generate a timestamp for this review session (e.g., `date +%Y%m%d-%H%M%S` → `20250129-143052`).
 
-Launch a single Task agent (subagent_type: `general-purpose`, **`run_in_background: true`**) that reads all output files (6-8) and writes a structured summary to `docs/reviews/review-{timestamp}.md` (e.g., `docs/reviews/review-20250129-143052.md`). Create the `docs/reviews/` directory if it doesn't exist.
+Launch a single Task agent (subagent_type: `general-purpose`, **`run_in_background: true`**) that reads all output files (6-9) and writes a structured summary to `docs/reviews/review-{timestamp}.md` (e.g., `docs/reviews/review-20250129-143052.md`). Create the `docs/reviews/` directory if it doesn't exist.
 
 The consolidation agent runs in the background so its full output stays on disk. The main agent then selectively reads only the executive summary section, keeping the main conversation context compact.
 
@@ -241,7 +283,7 @@ Output files:
 - {output_file_7} (design-intent) ← OPTIONAL: only present if a design document was found.
 - {output_file_8} (plan-intent) ← OPTIONAL: only present if a plan document was found.
 
-NOTE: The design-intent and plan-intent agents are conditional. Proceed with whichever output files exist (6, 7, or 8).
+NOTE: The design-intent and plan-intent agents are conditional. Proceed with whichever output files exist (6, 7, 8, or 9).
 
 Consolidation rules:
 1. DEDUPLICATE: Same issue flagged by multiple agents counts once. Note which agents flagged it (higher confidence).
@@ -304,11 +346,11 @@ This gives you the stats, must-fix table, and agent status without pulling the f
 **Why this three-layer isolation works:**
 | Layer | What | Where |
 |-------|------|-------|
-| Review agents | Raw findings | 6-8 output files (background) |
+| Review agents | Raw findings | 6-9 output files (background) |
 | Consolidation agent | Deduplicated structured report | `docs/reviews/review-{timestamp}.md` (background) |
 | Main agent | Executive summary only | Conversation context (selective read) |
 
-The consolidation agent gets its own fresh context to hold all 6-8 reports. The main agent never reads the full report — only the compact executive summary enters the conversation context. This prevents compaction from losing findings.
+The consolidation agent gets its own fresh context to hold all 6-9 reports. The main agent never reads the full report — only the compact executive summary enters the conversation context. This prevents compaction from losing findings.
 
 ---
 
@@ -447,7 +489,7 @@ Options:
 
 ❌ **Running agents in foreground (dumps all output into conversation context)**
 ```
-Launch 6-8 agents → all reports land in context → context bloats → findings lost to summarization
+Launch 6-9 agents → all reports land in context → context bloats → findings lost to summarization
 ```
 
 ❌ **Running consolidation agent in foreground**
@@ -457,13 +499,13 @@ Consolidation agent (foreground) → full deduplicated report enters context →
 
 ✅ **Three-layer context isolation**
 ```
-6-8 agents (background) → output files → consolidation agent (background) → docs/reviews/review-{timestamp}.md → main agent reads ONLY executive summary (~50 lines)
+6-9 agents (background) → output files → consolidation agent (background) → docs/reviews/review-{timestamp}.md → main agent reads ONLY executive summary (~50 lines)
 ```
 
 ❌ **Reading raw agent output files directly into the main conversation**
 ```
 # Don't do this — defeats the purpose of background execution
-Read output_file_1... Read output_file_2... (all 6-8 reports enter main context)
+Read output_file_1... Read output_file_2... (all 6-9 reports enter main context)
 ```
 
 ❌ **Reading the full summary file into the main conversation**
@@ -500,3 +542,8 @@ Each agent catches issues others miss. The consolidation step deduplicates overl
 | specific concerns | Address and re-review |
 
 When approved: **"Review complete. Run /compound to capture learnings."**
+
+---
+
+*Skill Version: 2.0*
+*Added in v2: PRD-compliance agent, discovery domain requirement verification*

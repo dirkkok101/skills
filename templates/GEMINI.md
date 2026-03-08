@@ -48,52 +48,63 @@ When asked to build a feature:
 2. **Ask** - "Should we start with brainstorming, or is there an existing plan?"
 3. **Use the workflow skills** - Each requires explicit user approval to proceed
 
-## Workflow Overview
+## Pipeline Overview
 
 ```
-brainstorm → plan → beads → execute → review → compound
-      ↓              ↓            ↓           ↓            ↓            ↓
- "design approved" "plan approved" "beads approved" "done" "changes approved" "done"
+research ─> brainstorm ─> discovery ─> prd ─> technical-design ─> plan ─> beads ─> execute ─> review ─> compound
+(optional)                 (COMP only)                (STANDARD+)
 ```
+
+### Scope-Based Entry Points
+
+Brainstorm classifies features as BRIEF, STANDARD, or COMPREHENSIVE using weighted signals:
+
+| Scope | Path |
+|-------|------|
+| **BRIEF** | brainstorm → plan → beads → execute → review → compound |
+| **STANDARD** | brainstorm → prd → technical-design → plan → beads → execute → review → compound |
+| **COMPREHENSIVE** | brainstorm → discovery → prd → technical-design → plan → beads → execute → review → compound |
+| **Bug fix** | diagnose → fix / beads / brainstorm |
 
 ## Quick Reference
 
 | Phase | Skill | Output | Exit Signal |
 |-------|-------|--------|-------------|
-| 1 | `brainstorm` | Design doc | "design approved" |
-| 2 | `plan` | Plan doc | "plan approved" |
-| 3 | `beads` | Beads | "beads approved" |
-| 4 | `execute` | Working code | "done" |
-| 5 | `review` | Findings | "changes approved" |
-| 6 | `compound` | Learnings | "done" |
+| 1 | `brainstorm` | Design doc + scope | "start discovery" / "start prd" / "start plan" |
+| 2 | `discovery` | Discovery brief | "start prd" |
+| 3 | `prd` | Requirements doc | "prd approved" |
+| 4 | `technical-design` | Architecture docs | "design approved" |
+| 5 | `plan` | Implementation plan | "plan approved" |
+| 6 | `beads` | Work packages | "beads approved" |
+| 7 | `execute` | Working code | "done" |
+| 8 | `review` | Findings | "changes approved" |
+| 9 | `compound` | Learnings | "done" |
 
 ## Key Rules
 
 - **Explicit approval** - Never proceed without user saying the magic words
 - **Push before stopping** - Work is not complete until `git push` succeeds
+- **Traceability** - FRs trace to UCs, beads tag FRs, tests tag UCs
 
 ---
 
 # Documentation Structure
 
-The workflow skills create and use this structure:
-
 ```
 your-project/
 ├── docs/
-│   ├── designs/      # Created by brainstorm
-│   │   └── {feature}/
-│   │       └── design.md
-│   ├── plans/        # Created by plan
-│   │   └── {feature}/
-│   │       ├── overview.md
-│   │       └── 01-{component}.md
-│   ├── learnings/    # Created by compound
-│   │   └── {category}.md
-│   ├── reference/    # Your project's reference docs (optional)
-│   └── systems/      # Your project's system docs (optional)
+│   ├── research/       # Created by research
+│   ├── brainstorm/     # Created by brainstorm
+│   ├── discovery/      # Created by discovery (COMPREHENSIVE)
+│   ├── prd/            # Created by prd
+│   ├── designs/        # Created by technical-design
+│   ├── plans/          # Created by plan
+│   ├── reviews/        # Created by review
+│   ├── learnings/      # Created by compound
+│   ├── reference/      # Project-specific reference docs (manual)
+│   └── systems/        # Project-specific system docs (manual)
 └── .beads/
-    └── beads.db      # Created by br init
+    └── beads.db        # Created by br init
 ```
 
 ---

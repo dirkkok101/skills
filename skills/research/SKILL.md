@@ -36,15 +36,20 @@ Run this skill when:
 - User says "research this first", "what options exist for..."
 - Before brainstorm when the problem space is unfamiliar
 
+Do NOT run when:
+- The answer is likely in the existing codebase or project docs — check there first
+- The question is a simple fact check answerable from official docs in one search
+- The user just needs a quick opinion, not evidence-backed analysis
+
 ---
 
 ## Mode Selection
 
 | Mode | When | Effort | Output |
 |------|------|--------|--------|
-| **BRIEF** | Quick fact check, single library comparison, focused question | 5-15 min, 3-10 searches | Findings appended to conversation, no file output |
-| **STANDARD** | Typical feature research, technology evaluation, competitive scan | 15-30 min, 15-30 searches | `research-brief.md` in `docs/research/{feature}/` |
-| **COMPREHENSIVE** | Major initiative, architecture decision, unfamiliar domain | 30-60 min, 30-50+ searches | Full research directory with brief, findings, and sources |
+| **BRIEF** | Quick fact check, single library comparison, focused question | 3-10 searches | Findings appended to conversation, no file output |
+| **STANDARD** | Typical feature research, technology evaluation, competitive scan | 15-30 searches | `research-brief.md` in `docs/research/{feature}/` |
+| **COMPREHENSIVE** | Major initiative, architecture decision, unfamiliar domain | 30-50+ searches | Full research directory with brief, findings, and sources |
 
 BRIEF mode skips file creation — findings are presented directly in conversation. Use when the user needs a quick answer, not a persistent document.
 
@@ -54,8 +59,9 @@ BRIEF mode skips file creation — findings are presented directly in conversati
 
 ```
 Phase 1: Scope Definition
-  ── PAUSE 1: "Here are the research questions. Right scope?" ──
+  ── PAUSE 1 (STANDARD+ only): "Here are the research questions. Right scope?" ──
 Phase 2: Investigation (parallel where possible)
+  ── Budget checkpoint at 70%: enough to synthesize? ──
 Phase 3: Reflection & Gap Analysis
 Phase 4: Synthesis & Brief
   ── PAUSE 2: "Research complete. Review findings?" ──
@@ -68,12 +74,14 @@ Phase 4: Synthesis & Brief
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-# Check for existing research
+# Check internal sources FIRST — web search only if these are insufficient
+# Existing codebase for similar patterns
+# Project docs and learnings
 ls "${PROJECT_ROOT}/docs/research/" 2>/dev/null
-
-# Check for existing learnings
 ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 ```
+
+If the answer is found in internal sources, present it directly — no web research needed. The cheapest research is the research you don't have to do.
 
 ---
 
@@ -116,14 +124,16 @@ Structure as 3-5 key questions:
 | Community discussions (SO, forums) | Gotchas and real-world experience | Medium |
 | Tutorial sites, aggregator blogs | Background understanding | Lower |
 
-**PAUSE 1:** Present research questions and scope to user.
+**PAUSE 1 (STANDARD+ only):** Present research questions and scope to user.
 "Here are the research questions I'll investigate. Right scope? Any questions to add or remove?"
+
+BRIEF mode: skip this pause — the user asked a question, go answer it.
 
 ---
 
 ### Phase 2: Investigation
 
-**Step 2.1 — Calibrate Effort:**
+**Step 2.1 — Calibrate Effort & Set Budget:**
 
 | Research Type | Search Budget | Depth |
 |---------------|--------------|-------|
@@ -132,7 +142,19 @@ Structure as 3-5 key questions:
 | Architecture decision | 20-40 searches | 2-3 viable patterns with trade-off analysis |
 | Competitive landscape | 30-50 searches | Structured comparison matrix, 5+ entries |
 
-**Step 2.2 — Competitive & Prior Art Analysis:**
+Allocate your budget: **~70% on initial investigation, ~30% reserved for gap-filling in Phase 3.** Check progress at the 70% mark — if you have enough to synthesize, move to Phase 3 rather than exhausting the budget.
+
+**Step 2.2 — Search Query Construction:**
+
+AI agents default to vague queries that return generic results. Construct specific queries:
+
+- **Add specificity:** "graphql relay cursor pagination vs offset tradeoffs" not "best pagination library"
+- **Add date constraints:** append "2025" or "2026" for technology decisions
+- **Search the counter-case:** for every "X benefits", also search "X problems", "X limitations", "X alternatives"
+- **Use domain terms:** the exact terminology the technology uses, not paraphrases
+- **Search error patterns:** "{library} common issues", "{pattern} gotchas", "{tool} migration pain"
+
+**Step 2.3 — Competitive & Prior Art Analysis:**
 
 For each competitor or existing solution:
 ```markdown
@@ -146,12 +168,15 @@ For each competitor or existing solution:
 - **Confidence:** Strong / Moderate / Weak
 ```
 
-Apply the build/buy/adopt framework:
+Apply the build/buy/adopt/accept framework:
+- **Accept** the current state if research reveals the problem isn't worth solving
 - **Adopt** if an existing solution meets 80%+ of requirements
 - **Adapt** if a solution meets 60-80% and can be extended
 - **Build** only if nothing meets core requirements
 
-**Step 2.3 — Technical Landscape:**
+"Accept" is the research equivalent of brainstorm's "Do Less" — sometimes the right answer is to not build anything.
+
+**Step 2.4 — Technical Landscape:**
 
 For each framework, library, or pattern:
 ```markdown
@@ -165,18 +190,9 @@ For each framework, library, or pattern:
 - **Confidence:** Strong / Moderate / Weak
 ```
 
-**Step 2.4 — Codebase & Documentation Research:**
+**Step 2.5 — Import User Context:**
 
-```bash
-# Search existing codebase for similar patterns
-# Use Explore agents for broad codebase questions
-# Search project learnings
-grep -r "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
-
-**Step 2.5 — User & Stakeholder Context:**
-
-Ask the user: **"Who will use this and what's their current workflow?"**
+Pull user and stakeholder context from upstream artifacts or the current conversation — do not re-interview the user for information they've already provided.
 
 ```markdown
 ### User Context
@@ -184,6 +200,8 @@ Ask the user: **"Who will use this and what's their current workflow?"**
 |---------|------|-------------------|------------|
 | {role} | {need} | {how they cope} | High/Med/Low |
 ```
+
+If no upstream context exists and user context is unclear, ask ONE focused question: **"Who will use this and what's their biggest pain today?"**
 
 Note constraints: regulatory, performance, integration, timeline.
 
@@ -197,7 +215,7 @@ After initial investigation, evaluate coverage:
 
 For each research question from Phase 1:
 - Answered with evidence? → Move on
-- Partially answered? → Target follow-up searches
+- Partially answered? → Target follow-up searches from the 30% reserve budget
 - Unanswered? → Flag as gap or explicitly unanswerable
 
 **Step 3.2 — Verify Key Claims:**
@@ -221,7 +239,7 @@ When sources disagree, present both sides:
 
 **Step 3.4 — Iterate if Needed:**
 
-If gaps remain, run targeted follow-up searches. Maximum 2-3 reflection rounds — research should inform decisions, not replace them.
+Use remaining search budget for targeted gap-filling. Do not start new investigation threads — only fill gaps in existing questions. If the budget is exhausted, flag remaining gaps as [UNKNOWN] and move to synthesis.
 
 ---
 
@@ -247,6 +265,8 @@ Tag each finding by how downstream skills should use it:
 - **[PRIOR-ART]** — existing solutions to adopt or adapt
 - **[UNKNOWN]** — gaps requiring spike or prototype to resolve
 
+**Tag validation:** Every finding must have at least one tag. The complete set should include at least one [OPTION] (otherwise research found nothing actionable) and at least one [RISK] (otherwise research wasn't critical enough).
+
 **Step 4.3 — Write Research Brief (STANDARD+):**
 
 Create `${PROJECT_ROOT}/docs/research/{feature}/research-brief.md`:
@@ -258,6 +278,16 @@ Create `${PROJECT_ROOT}/docs/research/{feature}/research-brief.md`:
 
 ## Executive Summary
 {3-5 sentences: what we researched, key findings, recommendation}
+
+## Recommendation
+{Suggested direction based on evidence. Max 3 recommendations, prioritised.
+This is the most important section for downstream consumers — put it early.}
+
+## Risks & Open Questions
+| Risk/Unknown | Likelihood | Impact | Tag |
+|-------------|-----------|--------|-----|
+| {risk} | High/Med/Low | High/Med/Low | [RISK] |
+| {unknown} | — | — | [UNKNOWN] |
 
 ## Research Questions & Answers
 | Question | Answer | Confidence | Tag |
@@ -275,27 +305,15 @@ Create `${PROJECT_ROOT}/docs/research/{feature}/research-brief.md`:
 ## Competitive Landscape
 | Solution | Approach | Strengths | Gaps | Verdict |
 |----------|----------|-----------|------|---------|
-| {name} | {how} | {good} | {missing} | Adopt/Adapt/Build |
+| {name} | {how} | {good} | {missing} | Accept/Adopt/Adapt/Build |
 
 ## Technical Options
 | Option | Fit | Maturity | Trade-offs |
 |--------|-----|----------|------------|
 | {tech} | {fit} | {level} | {trade-offs} |
 
-## User Insights
-{Key user needs and pain points from Step 2.5}
-
-## Risks & Open Questions
-| Risk/Unknown | Likelihood | Impact | Tag |
-|-------------|-----------|--------|-----|
-| {risk} | High/Med/Low | High/Med/Low | [RISK] |
-| {unknown} | — | — | [UNKNOWN] |
-
 ## Conflicting Information
 {From Phase 3.3, if any}
-
-## Recommendation
-{Suggested direction based on evidence. Max 3 recommendations, prioritised.}
 
 ## Sources
 | # | Source | Type | Date | Reliability |
@@ -314,12 +332,10 @@ Create `${PROJECT_ROOT}/docs/research/{feature}/research-brief.md`:
 
 ## Source Credibility Assessment
 
-When rating confidence levels:
-
 | Confidence | Criteria |
 |------------|----------|
-| **Strong** | Multiple reliable sources agree. Official docs or primary sources. Verified through counter-case search. |
-| **Moderate** | 1-2 good sources. Expert blog or well-regarded community source. No contradicting evidence found. |
+| **Strong** | 3+ independent primary sources agree. Official docs or original research. Counter-case searched with no contradictions found. |
+| **Moderate** | 2 independent sources agree. Expert blog or well-regarded community source. No contradicting evidence found. |
 | **Weak** | Single source, or community-only sources. No independent verification. May be outdated or context-specific. |
 
 Always note publication dates on sources. For technology decisions, sources older than 18 months should be treated with caution — frameworks and libraries evolve rapidly.
@@ -330,10 +346,11 @@ Always note publication dates on sources. For technology decisions, sources olde
 
 For BRIEF research (quick question, single comparison):
 
-1. Clarify the question
-2. Run 3-10 targeted searches
-3. Present findings directly in conversation with source attribution
-4. No file output unless user requests it
+1. Clarify the question (no PAUSE — just confirm understanding inline)
+2. Check internal sources first (codebase, project docs, learnings)
+3. Run 3-10 targeted web searches if internal sources are insufficient
+4. Present findings directly in conversation with source attribution
+5. No file output unless user requests it
 
 Example: "What pagination libraries exist for GraphQL?" → quick survey, present top 3 with trade-offs, done.
 
@@ -343,15 +360,17 @@ Example: "What pagination libraries exist for GraphQL?" → quick survey, presen
 
 **The First-Result Trap** — Accepting the first search result as the answer without verification. Always triangulate major claims across 2+ independent sources, and search for the counter-case.
 
-**Analysis Paralysis** — Research that never concludes because there's always more to investigate. Set a search budget upfront and check against the research brief after each round. Research informs decisions — it doesn't make them.
+**Analysis Paralysis** — Research that never concludes because there's always more to investigate. Set a search budget upfront and check progress at the 70% mark. Research informs decisions — it doesn't make them.
 
 **Confirmation Bias** — Only searching for evidence that supports a preferred approach. Actively search for limitations, failures, and alternatives to the leading option.
 
-**Source Laundering** — Multiple sources that all cite the same original source don't count as independent verification. Trace claims back to primary sources.
+**Source Laundering** — Multiple sources that all cite the same original source don't count as independent verification. Trace claims back to primary sources. Two blog posts summarizing the same conference talk are one source, not two.
 
-**The Comprehensive BRIEF** — Running a full 7-phase investigation for a quick library comparison. Match effort to decision impact — not every question needs a research brief.
+**The Comprehensive BRIEF** — Running a full investigation for a quick library comparison. Match effort to decision impact — not every question needs a research brief.
 
 **Stale Sources** — Citing a 2022 blog post about a framework that has had 3 major versions since. Always check publication dates and verify against current documentation.
+
+**Vague Queries** — Searching "best database" instead of "postgresql vs cockroachdb multi-tenant isolation 2025". Specific queries with domain terms and date constraints return actionable results; vague queries return listicles.
 
 ---
 
@@ -367,5 +386,5 @@ Example: "What pagination libraries exist for GraphQL?" → quick survey, presen
 
 ---
 
-*Skill Version: 3.0*
-*v3: Mode selection, PAUSE points, source credibility framework, downstream tagging ([CONSTRAINT]/[OPTION]/[RISK]/[PRIOR-ART]/[UNKNOWN]), reflection and gap analysis phase, effort calibration, anti-patterns, removed project-specific domain classification*
+*Skill Version: 3.1*
+*v3.1: Search query construction guidance, PAUSE 1 conditional on STANDARD+, budget checkpoints (70/30 split), "Accept" option in build/buy/adopt, import user context instead of re-interviewing, recommendation and risks promoted in brief template, tightened confidence calibration (3+/2/1 sources), tag validation, "do not run" guidance, vague queries anti-pattern*

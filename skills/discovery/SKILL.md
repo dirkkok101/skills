@@ -14,6 +14,8 @@ argument-hint: "[feature name or brainstorm reference]"
 
 **Philosophy:** The gap between "we picked an approach" (brainstorm) and "we have formal requirements" (PRD) is where complex features fail. Discovery fills that gap with domain-specific depth — mapping every actor, walking every workflow, surfacing every integration point and security concern. Discovery is a working process — the PRD is the authoritative document. Discovery produces a brief that feeds into PRD; the PRD absorbs and formalises discovery's findings.
 
+**Target duration: 2-4 hours** for a typical COMPREHENSIVE discovery. If it's taking longer, you're likely designing instead of discovering — stay at the requirements level.
+
 ## Why This Matters
 
 Complex features fail when requirements are discovered during implementation instead of before it. A missing actor, an overlooked integration, or an unidentified compliance requirement can force expensive rework weeks into development. Discovery prevents this by systematically walking through the problem domain before a single line of code is written. The cost of discovery is hours; the cost of missed requirements is weeks.
@@ -39,10 +41,12 @@ Do NOT run when:
 
 ```
 Phase 1: Actor & Workflow Mapping
-  ── PAUSE 1: "Here are the actors and workflows. Complete?" ──
+  ── Pre-mortem: "Imagine this failed. Why?" ──
+  ── PAUSE 1: "Here are the actors, workflows, and early risks. Complete?" ──
 Phase 2: Domain Requirements Elicitation
   ── PAUSE 2: "Here are the domain requirements. Scope right?" ──
-Phase 3: Integration, Security & Risk Analysis
+Phase 3: Integration & UI Analysis
+Phase 3b: Security, Compliance, Feasibility & Risk
 Phase 4: Synthesis & Brief
   ── PAUSE 3: "Discovery complete. Ready for PRD?" ──
 ```
@@ -69,7 +73,7 @@ cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
 ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 ```
 
-Extract from brainstorm: problem statement, chosen approach, boundaries, scope classification.
+Extract from brainstorm: problem statement, chosen approach, boundaries, scope classification, **kill criteria**.
 
 Import research findings by tag:
 - **[CONSTRAINT]** → note for boundaries
@@ -78,6 +82,15 @@ Import research findings by tag:
 - **[UNKNOWN]** → flag for investigation during discovery
 
 If no brainstorm exists, ask user for: feature name, problem statement, chosen approach, key constraints.
+
+**Start the glossary** — create a running glossary of domain terms from the brainstorm. Update it throughout all phases as new terms emerge.
+
+```markdown
+## Glossary (living document — update throughout discovery)
+| Term | Definition |
+|------|-----------|
+| {term from brainstorm} | {what it means in this feature's context} |
+```
 
 ---
 
@@ -114,7 +127,10 @@ For each human actor, capture a Jobs-to-be-Done statement:
 
 Ask: **"How does this work TODAY? Walk me through the current process step by step."**
 
-Create ASCII workflow diagram using conventions from `_shared/references/ascii-conventions.md`:
+Three starting points:
+- **Existing process**: Full workflow exists — map it with ⚠ pain point annotations
+- **Partial process**: Workaround, manual process, or related feature exists — map what exists, note where it breaks down
+- **Greenfield**: No current process — note this and skip to desired state
 
 ```
 ( Current Trigger )
@@ -131,9 +147,7 @@ Create ASCII workflow diagram using conventions from `_shared/references/ascii-c
   ...         ...
 ```
 
-Annotate pain points inline with ⚠ markers.
-
-If greenfield (no current process), note this and skip to desired state.
+A current-state workflow that shows no pain points is either wrong or the feature doesn't need building.
 
 **Step 1.3 — Map Desired-State Workflow:**
 
@@ -156,16 +170,22 @@ Create ASCII workflow diagram showing how the feature SHOULD work:
 | {what changes} | {how it works now} | {how it should work} | {benefit} |
 ```
 
-**PAUSE 1:** Present actors, workflows, and gaps.
-"Here are the actors and workflows I've mapped. Are all actors accounted for? Do the workflows match reality?"
+**Step 1.5 — Pre-Mortem:**
+
+Ask the user NOW, before domain requirements: **"Imagine this feature shipped and was considered a failure 6 months later. What are the top 3 reasons it failed?"**
+
+Capture responses as early risks. These shape which domain areas to investigate deeply in Phase 2 — a pre-mortem answer about "users couldn't figure out the UI" means UI/UX needs deep investigation, while "the integration was unreliable" means integrations need depth.
+
+**PAUSE 1:** Present actors, workflows, gaps, and pre-mortem risks.
+"Here are the actors and workflows I've mapped, plus 3 failure risks from the pre-mortem. Are all actors accounted for? Do the workflows match reality? Do the risks resonate?"
 
 ---
 
 ### Phase 2: Domain Requirements Elicitation
 
-**Step 2.1 — Identify Domain Areas:**
+**Step 2.1 — Identify and Prioritize Domain Areas:**
 
-Based on the feature description and brainstorm, identify which domain areas need investigation. Common areas include:
+Based on the feature description, brainstorm, and pre-mortem risks, identify which domain areas need investigation. Common areas include:
 
 - Authentication and authorisation
 - Data model and persistence
@@ -177,11 +197,15 @@ Based on the feature description and brainstorm, identify which domain areas nee
 - Configuration and administration
 - Multi-tenancy and isolation
 
-Present to user: "This feature touches {areas}. Any others?"
+**Prioritize depth based on the chosen approach:** Which domain areas does the selected approach most affect? Go deep on those. Go shallow (existence check only) on tangential areas.
+
+Present to user: "This feature primarily affects {deep areas}. I'll also check {shallow areas} for completeness. Any others?"
 
 **Step 2.2 — Walk Domain Checklist:**
 
-If the project has domain reference files, load the relevant checklist. If not, generate questions based on the identified domain areas.
+If the project has domain reference files, load the relevant checklist.
+
+If no reference files exist, generate questions **grounded in the brainstorm boundaries and chosen approach** — not from general knowledge. Every question should trace back to a specific aspect of the chosen approach, a boundary from the brainstorm, or a risk from the pre-mortem. Do not generate generic domain questions that aren't connected to this specific feature.
 
 **Batch mode (preferred):** Present an entire category at once:
 
@@ -253,7 +277,7 @@ DR-{MODULE}-{DESCRIPTIVE-NAME}: ...
 
 ---
 
-### Phase 3: Integration, Security & Risk Analysis
+### Phase 3: Integration & UI Analysis
 
 **Step 3.1 — UI/UX Flow Mapping (skip if no UI):**
 
@@ -280,24 +304,25 @@ Screen states for each: Loading, Populated, Empty, Error, Saving.
 
 ASCII data flow diagram (context level) showing data movement across system boundaries.
 
-**Step 3.3 — Security Analysis:**
+---
 
-For features touching auth, PII, or sensitive operations, do STRIDE-lite:
+### Phase 3b: Security, Compliance, Feasibility & Risk
+
+**Step 3b.1 — Security Analysis:**
+
+Apply STRIDE only to threat categories relevant to this feature's actual attack surface. Do not mechanically fill in all 6 categories — identify which threats are plausible given the feature's architecture and data flows, and focus on those.
+
+For features touching auth, PII, or sensitive operations:
 
 ```markdown
-| Threat | Applies? | Specific Risk | Mitigation |
-|--------|----------|---------------|------------|
-| Spoofing | Yes/No | {threat} | {mitigation} |
-| Tampering | Yes/No | ... | ... |
-| Repudiation | Yes/No | ... | ... |
-| Info Disclosure | Yes/No | ... | ... |
-| Denial of Service | Yes/No | ... | ... |
-| Elevation of Privilege | Yes/No | ... | ... |
+| Threat | Specific Risk | Mitigation |
+|--------|---------------|------------|
+| {applicable STRIDE category} | {concrete threat for THIS feature} | {mitigation} |
 ```
 
-For non-security features, note "No significant security implications — {reasoning}" and move on.
+For non-security features, note "No significant security implications — {reasoning}" and move on. A single sentence explaining why is more valuable than a table of "No" entries.
 
-**Step 3.4 — Compliance Checkpoints:**
+**Step 3b.2 — Compliance Checkpoints:**
 
 If regulatory requirements apply:
 
@@ -309,9 +334,9 @@ If regulatory requirements apply:
 
 Skip if no regulatory requirements apply.
 
-**Step 3.5 — Feasibility Assessment:**
+**Step 3b.3 — Feasibility Assessment:**
 
-For each requirement, assess technical feasibility:
+For each Must Have requirement, assess technical feasibility:
 
 ```markdown
 | Requirement | Feasibility | Confidence | Action Needed |
@@ -323,9 +348,9 @@ For each requirement, assess technical feasibility:
 
 Low confidence items should generate explicit spike or research recommendations.
 
-**Step 3.6 — Risk Register:**
+**Step 3b.4 — Risk Register:**
 
-Consolidate risks identified throughout discovery:
+Consolidate risks from pre-mortem (Phase 1), domain requirements (Phase 2), and analysis (Phase 3):
 
 ```markdown
 | Risk | Category | Likelihood | Impact | Mitigation |
@@ -333,18 +358,20 @@ Consolidate risks identified throughout discovery:
 | {risk} | Value/Usability/Feasibility/Viability | High/Med/Low | High/Med/Low | {approach} |
 ```
 
-**Pre-mortem prompt:** Ask the user: "Imagine this feature shipped and was considered a failure 6 months later. What are the top 3 reasons it failed?" Add responses to the risk register.
-
 ---
 
 ### Phase 4: Synthesis & Brief
 
-**Step 4.1 — Cross-Reference with Brainstorm Boundaries:**
+**Step 4.1 — Cross-Reference with Brainstorm:**
 
 For each discovered requirement:
 - Within brainstorm scope? → Keep
 - Exceeds scope? → Flag: "This requirement wasn't in the original scope. Expand scope or defer?"
 - Conflicts with anti-requirements? → Resolve with user
+
+**Check kill criteria:** Review the brainstorm's kill criteria against discovery findings. Has discovery revealed that complexity exceeds the budget by 50%+? Has a technical blocker surfaced? If any kill criterion is triggered, flag it explicitly:
+
+"Discovery finding {X} triggers kill criterion {Y} from the brainstorm. Options: (1) Adjust the approach, (2) Adjust the kill criteria, (3) Abandon the feature."
 
 **Step 4.2 — Requirements Summary:**
 
@@ -355,15 +382,9 @@ For each discovered requirement:
 | Total | {total} | {total} | {total} | {total} |
 ```
 
-**Step 4.3 — Glossary:**
+**Step 4.3 — Finalize Glossary:**
 
-Define domain terms that emerged during discovery. This becomes the ubiquitous language for PRD and technical design.
-
-```markdown
-| Term | Definition |
-|------|-----------|
-| {term} | {what it means in this feature's context} |
-```
+Review and finalize the glossary that's been building throughout discovery. This becomes the ubiquitous language for PRD and technical design.
 
 **Step 4.4 — Discovery Readiness Checklist:**
 
@@ -374,20 +395,23 @@ Discovery is ready for PRD when:
 - [ ] All domain areas fully dispositioned (in/deferred/out)
 - [ ] No "Low confidence" feasibility items without a spike/research plan
 - [ ] Open questions are non-blocking for initial PRD draft
-- [ ] User has confirmed scope boundaries
+- [ ] User has confirmed scope boundaries ← requires explicit user confirmation, not agent self-assessment
+- [ ] No brainstorm kill criteria triggered (or triggered and resolved)
 ```
+
+Items marked with ← are things the agent cannot self-verify — they require explicit user confirmation during PAUSE 3.
 
 **Step 4.5 — Self-Review:**
 
 **2 rounds minimum. Exit on 2 consecutive clean rounds.**
 
 **Theme 1: Domain Completeness**
-- [ ] All domain areas addressed?
+- [ ] All prioritized domain areas addressed at appropriate depth?
 - [ ] Business rules documented for Must Have items?
 - [ ] Edge cases identified?
 
 **Theme 2: Workflow Accuracy**
-- [ ] Current-state workflow matches reality?
+- [ ] Current-state workflow matches reality (or partial/greenfield documented)?
 - [ ] Desired-state workflow achievable within boundaries?
 - [ ] All actors appear in at least one workflow?
 
@@ -395,6 +419,7 @@ Discovery is ready for PRD when:
 - [ ] Nothing exceeds brainstorm boundaries without user approval?
 - [ ] Deferred items have clear rationale?
 - [ ] Excluded items have clear reasoning?
+- [ ] Kill criteria checked and not triggered (or resolved)?
 
 **Theme 4: Traceability**
 - [ ] Every requirement traceable to an actor and workflow step?
@@ -419,7 +444,7 @@ Save to: `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
 
 ## Workflows
 ### Current State
-{ASCII workflow diagram — or "Greenfield, no current process"}
+{ASCII workflow diagram — or "Greenfield" / "Partial — workaround exists"}
 
 ### Desired State
 {ASCII workflow diagram}
@@ -454,7 +479,7 @@ DR-{MODULE}-{NAME}: ...
 {ASCII DFD — context level}
 
 ## Security Analysis
-{STRIDE table or "No significant security implications — {reasoning}"}
+{Focused STRIDE table or "No significant security implications — {reasoning}"}
 
 ## Compliance
 {Regulation table or "No regulatory requirements"}
@@ -489,6 +514,7 @@ Total discovered: {count}
 **Requirements:** {N} Must Have, {N} Should Have, {N} Deferred
 **Risks:** {N} identified
 **Feasibility flags:** {N} need spikes, {N} need research
+**Kill criteria:** {all clear / {N} triggered — see above}
 **Open questions:** {N} for PRD to resolve
 
 Ready for next step:
@@ -509,9 +535,9 @@ Ready for next step:
 
 **Assumption-as-Fact** — Stating user needs without evidence. When the user says "users want X", ask "how do you know?" If the answer is "I think so", mark it as an assumption that needs validation, not a confirmed requirement.
 
-**Skipping Security for "Simple" Features** — Features that seem simple can have security implications (information disclosure, privilege escalation) that only surface during STRIDE analysis. At minimum, document "No significant security implications — {reasoning}" so the decision is explicit.
+**Skipping Security for "Simple" Features** — Features that seem simple can have security implications (information disclosure, privilege escalation) that only surface during threat analysis. At minimum, document "No significant security implications — {reasoning}" so the decision is explicit.
 
-**Workflow Without Pain Points** — A current-state workflow that shows no pain points is either wrong or the feature doesn't need building. Annotate where things break today — these pain points justify the feature's existence.
+**Generic Domain Questions** — Generating checklist questions from general knowledge rather than grounding them in the brainstorm's chosen approach and boundaries. Every discovery question should trace back to something specific about THIS feature, not generic best practices.
 
 ---
 
@@ -528,5 +554,5 @@ Ready for next step:
 
 ---
 
-*Skill Version: 3.0*
-*v3: PAUSE points, removed project-specific domains, research import, JTBD per actor, example mapping, evidence quality, feasibility assessment, risk register with pre-mortem, glossary, discovery readiness checklist, anti-patterns*
+*Skill Version: 3.1*
+*v3.1: Duration target, pre-mortem moved to Phase 1, glossary started early, domain depth prioritization, grounded checklist questions, focused STRIDE analysis, split Phase 3/3b, partial workflow option, kill criteria check in synthesis, readiness items requiring user confirmation flagged, generic questions anti-pattern added*

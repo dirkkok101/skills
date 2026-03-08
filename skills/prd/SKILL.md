@@ -1,26 +1,27 @@
 ---
 name: prd
 description: >
-  Generate a Product Requirements Document with tiered depth: Brief (1-page),
-  Standard (3-8 pages), or Comprehensive (full spec with Cockburn use cases,
-  security criteria, and compliance checkpoints). Imports brainstorm boundaries
-  and discovery brief when available. Use when starting a business feature that
-  needs requirements, when user says "write requirements", "create PRD",
+  Generate a Product Requirements Document through structured dialogue with
+  the user. Produces tiered output: Brief (1-page), Standard (full PRD), or
+  Comprehensive (PRD + Cockburn use cases + security/compliance criteria).
+  The agent co-authors with the user, pausing at key decision points rather
+  than generating everything at once. Use when starting a business feature
+  that needs requirements, when user says "write requirements", "create PRD",
   "define user stories", or after brainstorm/discovery approval.
 argument-hint: "[feature name or brainstorm reference]"
 ---
 
 # PRD: Problem → Formal Requirements
 
-**Philosophy:** A PRD is problem-first, evidence-driven, and boundary-defining. It separates product decisions (fixed) from implementation decisions (open for engineering). The best PRDs are read like blog posts — engaging narrative with precise acceptance criteria. Every requirement traces back to a user and a business goal.
+**Philosophy:** The best PRDs emerge from dialogue, not monologue. The agent drafts, the user validates, and together they surface edge cases, priorities, and assumptions that neither would find alone. A PRD separates product decisions (fixed) from implementation decisions (open for engineering). Every requirement traces back to a user pain and a business goal.
 
-## Core Principles
+## Why This Matters
 
-1. **Problem before solution** — establish "why" before "what"
-2. **Tiered depth** — match document weight to feature complexity
-3. **Domain-aware** — import discovery brief, add security/compliance criteria where needed
-4. **Testable requirements** — every acceptance criterion is verifiable by a test
-5. **Traceability** — FR-{MODULE}-{DESCRIPTIVE-NAME} IDs enable downstream tracing to design, tests, code
+A PRD that nobody reads is worse than no PRD — it creates false confidence. This skill produces PRDs that are:
+- **Co-authored** — the user validates problem, personas, and priorities at each stage
+- **Testable** — every acceptance criterion maps to a verifiable test
+- **Bounded** — explicit assumptions, constraints, and non-goals prevent scope creep
+- **Traceable** — stable FR IDs chain through design → plan → beads → tests → code
 
 ---
 
@@ -36,13 +37,13 @@ Run this skill when:
 
 ## Mode Selection
 
-**Determine mode from brainstorm scope classification or ask user:**
+Determine mode from brainstorm scope classification or ask user:
 
-| Mode | When | Sections | Output Size |
-|------|------|----------|-------------|
-| **BRIEF** | BRIEF scope, simple feature, 1-2 sprints | Problem, Goals, Non-Goals, 3-5 Stories, NFRs | ~50-100 lines |
-| **STANDARD** | STANDARD scope, typical feature, 1-2 months | All sections, user stories (not full use cases) | ~200-300 lines |
-| **COMPREHENSIVE** | COMPREHENSIVE scope, complex feature, quarter+ | All sections + Cockburn use cases + security/compliance criteria | ~400-500 lines |
+| Mode | When | What You Get |
+|------|------|-------------|
+| **BRIEF** | Simple feature, 1-2 sprints, BRIEF scope | One-page: Problem, Goals, 3-5 stories with acceptance criteria |
+| **STANDARD** | Typical feature, STANDARD scope | Full PRD: all sections, 8-15 stories, personas, NFRs, priorities |
+| **COMPREHENSIVE** | Complex feature, COMPREHENSIVE scope | Full PRD + Cockburn use cases + security/compliance criteria |
 
 If brainstorm exists, use its scope classification. Otherwise ask:
 "How complex is this feature? [brief / standard / comprehensive]"
@@ -113,7 +114,7 @@ Ask user:
  Import from brainstorm root problem.}
 
 Impact:
-- {Quantified effect 1 — e.g., "23% of support tickets"}
+- {Quantified effect 1 — e.g., "23% of support tickets relate to X"}
 - {Quantified effect 2}
 
 Why now: {urgency, opportunity, strategic alignment}
@@ -127,17 +128,15 @@ Quality check: Does this explain the pain WITHOUT describing the solution?
 ## Goals
 - {Outcome 1 — "Reduce time-to-access from 4.2 days to <1 day"}
 - {Outcome 2 — "Eliminate cross-system permission inconsistencies"}
-- {Outcome 3}
 ```
 
-3-5 goals maximum. Each must be measurable.
+3-5 goals maximum. Each must be measurable. If you can't measure it, it's an aspiration, not a goal.
 
 **Step 2.3 — Non-Goals:**
 
 ```markdown
 ## Non-Goals
 - {Explicit exclusion with rationale — "Mobile admin (admin tasks are desktop-only)"}
-- {Another exclusion}
 ```
 
 Import from brainstorm anti-requirements.
@@ -151,13 +150,66 @@ Import from brainstorm anti-requirements.
 | {KPI} | {baseline} | {target} | {date} | {method} |
 ```
 
+#### PAUSE: Validate with user
+
+Present the problem statement, goals, and non-goals. Ask:
+
+> "Does this accurately describe the problem? Are the goals measurable and realistic? Anything missing from non-goals?"
+
+Do not proceed until the user confirms the problem framing is right. Everything downstream depends on this.
+
 ---
 
-### Phase 3: User Personas
+### Phase 3: Assumptions, Constraints & Risks
 
-**STANDARD + COMPREHENSIVE only. BRIEF mode: 1-2 sentences per persona.**
+**All modes. This section prevents the most common PRD failures — undocumented assumptions that blow up later.**
 
-For each persona (2-4 max), document:
+**Step 3.1 — Assumptions:**
+
+Things we're taking for granted. If any prove false, requirements may need to change.
+
+```markdown
+## Assumptions
+- {Technical: "The existing API can handle the additional load"}
+- {Business: "Users have admin access to configure this feature"}
+- {Data: "Historical data exists for the past 12 months"}
+- {Timeline: "Third-party integration API will be stable by Q2"}
+```
+
+**Step 3.2 — Constraints:**
+
+Hard limits that shape what's possible.
+
+```markdown
+## Constraints
+- {Technical: "Must work within existing database schema"}
+- {Business: "Budget limited to current team capacity"}
+- {Regulatory: "Must comply with POPIA data residency requirements"}
+- {Timeline: "Must ship before contract renewal in Q3"}
+```
+
+**Step 3.3 — Risks & Open Questions:**
+
+Track unknowns throughout the PRD process. Update this section as questions surface in later phases.
+
+```markdown
+## Risks
+| Risk | Likelihood | Impact | Mitigation |
+|------|-----------|--------|------------|
+| {What could go wrong} | Low/Med/High | Low/Med/High | {How to reduce} |
+
+## Open Questions
+- [ ] {Unresolved question — "How do existing users migrate?"}
+- [ ] {Decision needed — "Should we support bulk operations in v1?"}
+```
+
+---
+
+### Phase 4: User Personas
+
+**STANDARD + COMPREHENSIVE only. BRIEF mode: 1-2 sentences per persona inline with stories.**
+
+For each persona (2-4 max):
 
 ```markdown
 ## User Personas
@@ -167,29 +219,33 @@ For each persona (2-4 max), document:
 - **Goals:** {What they're trying to accomplish — 2-3 items}
 - **Pain Points:** {What frustrates them today — 2-3 items}
 - **Current Workaround:** {How they cope without this feature}
-- **Success Criteria:** {How they know the feature is working}
+- **Success Criteria:** {How they know the feature is working for them}
 - **Tech Level:** {Comfortable with admin UIs / developer / non-technical}
 - **Frequency:** {How often they'd use this feature}
 ```
 
 Import actor list from discovery brief if available.
 
+#### PAUSE: Validate personas
+
+> "Do these personas match real users you've seen? Is there a persona I'm missing? Does the primary persona feel right?"
+
+Personas ground every requirement. Wrong personas produce wrong requirements.
+
 ---
 
-### Phase 4: Use Cases (COMPREHENSIVE mode only)
+### Phase 5: Use Cases (COMPREHENSIVE mode only)
 
-**BRIEF/STANDARD modes skip this phase — user stories in Phase 5 are sufficient.**
+**BRIEF/STANDARD modes skip this phase — user stories in Phase 6 are sufficient.**
 
-**COMPREHENSIVE mode: Cockburn fully-dressed format for primary use cases.**
+Cockburn fully-dressed format for primary use cases (5-8 per feature):
 
 ```markdown
-## Use Cases
-
 ### UC-{MODULE}-001: {Goal as Active Verb Phrase}
 
   Scope:           {System name}
   Level:           User Goal
-  Primary Actor:   {Persona from Phase 3}
+  Primary Actor:   {Persona from Phase 4}
   Trigger:         {Event that starts this use case}
 
   Preconditions:
@@ -205,7 +261,6 @@ Import actor list from discovery brief if available.
   Main Success Scenario:
     1. {Actor} {action at user-intention level}
     2. System {validates/processes/displays}
-    3. {Actor} {next action}
     ...
     N. System {confirms completion}
 
@@ -213,31 +268,19 @@ Import actor list from discovery brief if available.
     2a. {Condition — e.g., "Name already exists in tenant"}:
         2a1. System displays "{specific error message}"
         2a2. Actor corrects input, return to step 2
-    3a. {Condition}:
-        3a1. System {response}
-        3a2. Use case ends in failure
 
   Business Rules:
     BR-{MODULE}-001: {Specific rule with parameters}
-    BR-{MODULE}-002: {Another rule}
-
-  Related:
-    Priority: {Critical / High / Medium / Low}
-    Frequency: {Expected usage}
-    Performance: {Time target}
-    Related UCs: {UC-XXX}
 ```
 
 Guidelines:
-- 3-9 steps in main success scenario
-- Write at user-intention level, not UI-action level
+- 3-9 steps in main success scenario — write at user-intention level, not UI-action level
 - Every step that can fail gets an extension
 - Extensions branch from specific step numbers (2a, 3a, not "if fails")
-- 5-8 use cases for a typical feature
 
 ---
 
-### Phase 5: Functional Requirements
+### Phase 6: Functional Requirements
 
 **All modes. BRIEF: 3-5 stories. STANDARD: 8-15 stories. COMPREHENSIVE: 15-25 stories.**
 
@@ -251,7 +294,7 @@ Priority: Must / Should / Could / Won't
 Complexity: S / M / L / XL
 Related: UC-{MODULE}-001 (COMPREHENSIVE mode)
 
-As a {persona from Phase 3},
+As a {persona from Phase 4},
 I want to {action},
 So that {benefit}.
 
@@ -260,46 +303,73 @@ Acceptance Criteria:
   When {action}
   Then {expected result}
 
-  Given {alternate precondition}
-  When {alternate action}
-  Then {alternate result}
+  Given {error condition}
+  When {invalid action}
+  Then {error handling behavior}
 ```
+
+**Stable ID convention:** Use descriptive IDs based on feature area, not sequential numbers. `FR-APP-REGISTER` is more stable than `FR-APP-001` — it survives when requirements are added or removed. Downstream artifacts (design, plan, beads, tests) reference these IDs, so stability prevents cascade updates.
 
 **COMPREHENSIVE mode adds Security and Compliance Criteria on applicable stories:**
 
 ```markdown
 Security Criteria: (from discovery security analysis)
-  - {Requirement — "Client secrets hashed with BCrypt before storage"}
+  - {Requirement — "Secrets hashed before storage"}
   - {Requirement — "Redirect URIs validated against exact match"}
 
 Compliance Criteria: (from discovery compliance checkpoints)
-  - POPIA: {Requirement — "Application metadata includes processing purpose"}
+  - POPIA: {Requirement — "Metadata includes processing purpose"}
   - SOC 2: {Requirement — "All CRUD operations logged with actor and timestamp"}
 ```
 
-**Traceability rules:**
-- Every FR maps to at least one persona
-- COMPREHENSIVE: every FR maps to at least one UC
-- Every FR has testable acceptance criteria in Given/When/Then
-- Security criteria on stories touching auth, PII, or destructive operations
-- Compliance criteria on stories touching regulated data
+#### Systematic Edge Case Elicitation
 
-**Stable ID convention:** Use descriptive IDs based on feature area, not sequential numbers. `FR-APP-REGISTER` is more stable than `FR-APP-001` — it survives renumbering when requirements are added or removed. Downstream artifacts (design, plan, beads, tests) reference these IDs, so stability prevents cascade updates.
+After drafting the initial requirements, systematically probe for missing edge cases. For each FR, ask:
+
+- **Duplicates:** What if the user does this twice? What if the same data already exists?
+- **Boundaries:** What if the input is empty? Maximum length? Zero? Negative?
+- **Concurrency:** What if two users do this simultaneously?
+- **Permissions:** What if the user doesn't have access? What about partial access?
+- **State:** What if a dependency is unavailable? What about stale data?
+- **Lifecycle:** What about deletion? Archival? Migration of existing data?
+
+Each discovered edge case becomes either a new acceptance criterion on an existing FR, or a new FR if it's significant enough.
+
+#### Requirement Quality Check
+
+Before presenting requirements to the user, scan for these quality issues:
+
+**Ambiguity words** — flag any requirement containing: "appropriate", "reasonable", "quickly", "user-friendly", "intuitive", "properly", "sufficient", "as needed", "etc.", "and/or". These words mask undecided requirements. Replace each with a specific, testable statement.
+
+**Testability** — every acceptance criterion must be verifiable by a test. "The system should handle errors gracefully" is not testable. "Given a network timeout, when the user submits, then a retry dialog appears within 2 seconds" is testable.
+
+**Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
+
+#### PAUSE: Validate requirements in batches
+
+Present requirements in groups of 3-5, not all at once. For each batch:
+
+> "Here are the next requirements. For each one:
+> - Does the 'so that' reflect a real benefit?
+> - Are the acceptance criteria specific enough to test?
+> - What edge cases am I missing?"
+
+This iterative approach surfaces better requirements than reviewing 20 stories at once.
 
 ---
 
-### Phase 6: Non-Functional Requirements
+### Phase 7: Non-Functional Requirements
 
 **All modes. BRIEF: 2-3 NFRs. STANDARD: 4-6 NFRs. COMPREHENSIVE: 6-10 NFRs.**
 
 ```markdown
 ## Non-Functional Requirements
 
-### NFR-{MODULE}-001: {Title}
+### NFR-{MODULE}-{DESCRIPTIVE-NAME}: {Title}
 Category: Performance / Security / Scalability / Data / Accessibility
 Target: {Specific measurable target — "95th percentile < 200ms"}
 Load Condition: {Context — "100 concurrent users per tenant"}
-Measurement: {How to verify — "Application Insights P95 metric"}
+Measurement: {How to verify}
 Rationale: {Why this target matters}
 ```
 
@@ -310,11 +380,11 @@ Categories to consider:
 4. **Data** — Retention, backup, deletion, migration
 5. **Accessibility** — WCAG 2.1 AA, keyboard navigation, screen readers
 
-**Every NFR has a number, not an adjective.** "Fast" is not a requirement. "< 200ms P95" is.
+Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms P95" is.
 
 ---
 
-### Phase 7: Prioritisation & Dependencies
+### Phase 8: Prioritisation & Dependencies
 
 **STANDARD + COMPREHENSIVE only.**
 
@@ -323,8 +393,6 @@ Categories to consider:
 
 ### Must Have (MVP)
 - FR-{MODULE}-{NAME}: {title}
-- FR-{MODULE}-{NAME}: {title}
-- NFR-{MODULE}-001: {title}
 {5-10 items. Without these, the feature doesn't solve the problem.}
 
 ### Should Have (v1)
@@ -333,28 +401,30 @@ Categories to consider:
 
 ### Could Have (Future)
 - {Enhancement idea}
-{Nice-to-have. No impact on core functionality.}
 
 ### Won't Have (Yet)
 - {Excluded item} — Reason: {why}
 {Explicitly out of scope. Prevents scope creep.}
 
 ## Dependency Graph
-
 {ASCII diagram showing requirement dependencies}
 
   FR-REGISTER ──> FR-VALIDATE ──> FR-PROVISION
        |                              |
        +──> FR-CONFIGURE          FR-NOTIFY
-       |
-       +──> NFR-001
 ```
+
+#### PAUSE: Validate priorities
+
+> "Is the Must Have list truly minimal? Could any Must Haves be Should Haves? Are there Should Haves that are actually essential?"
+
+Priority decisions shape what gets built first. Getting them wrong means building the wrong thing.
 
 ---
 
-### Phase 8: Domain Validation (COMPREHENSIVE only)
+### Phase 9: Domain Validation (COMPREHENSIVE only)
 
-**Verify that discovery requirements are fully covered:**
+Verify discovery requirements are fully covered:
 
 ```markdown
 ## Domain Validation
@@ -367,35 +437,107 @@ Categories to consider:
 ### Coverage Matrix
 | Discovery Req | Mapped FR | Status |
 |--------------|-----------|--------|
-| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME} | ✅ Covered |
-| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME} | ✅ Covered |
-| DR-{MODULE}-{NAME} | — | ⚠ Gap (deferred to v2) |
+| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME} | Covered |
+| DR-{MODULE}-{NAME} | — | Gap (deferred to v2) |
 ```
 
 ---
 
-### Phase 9: Self-Review & Approval
+### Phase 10: Self-Review & Approval
 
 **2 rounds minimum. Exit on 2 consecutive clean rounds.**
 
-**Known limitation:** Self-review is performed by the same agent that wrote the PRD. Mitigate by following themes strictly as a checklist, and inviting the user to spot-check the sections where you're least confident (typically edge cases and error flows in acceptance criteria).
+**Known limitation:** Self-review is performed by the same agent that wrote the PRD. Mitigate by following themes strictly as a checklist, and by asking the user targeted questions where you're least confident.
 
-**Review Themes:**
+#### Review Themes
 
 1. **Completeness** — All personas covered? All stories have acceptance criteria? All must-haves prioritised?
-2. **Clarity** — Could a developer implement without asking questions? Criteria unambiguous?
-3. **Testability** — Every criterion verifiable? Metrics measurable? Performance targets have units?
+2. **Clarity** — Could a developer implement each FR without asking questions? Are criteria unambiguous?
+3. **Testability** — Every criterion verifiable by a test? Metrics measurable? Performance targets have units?
 4. **Scope Discipline** — Nothing exceeds brainstorm boundaries? Won't-Have items have reasoning?
-5. **Traceability** — FR → UC → Persona chain complete? (COMPREHENSIVE only)
-6. **Domain Validation** — Discovery requirements fully covered? (COMPREHENSIVE only)
+5. **Assumptions** — Are all assumptions documented? Would any false assumption invalidate requirements?
+6. **Edge Cases** — Have failure paths been considered for each FR? What about concurrent access, empty states, permission boundaries?
+7. **Traceability** — FR → UC → Persona chain complete? (COMPREHENSIVE only)
+8. **Domain Validation** — Discovery requirements fully covered? (COMPREHENSIVE only)
+
+#### Quality Scan
+
+After thematic review, do a final scan for:
+- Ambiguity words (see Phase 6 quality check list)
+- Untestable criteria
+- Open questions that are still unresolved (these should be flagged, not silently decided by the agent)
+- Missing error paths in acceptance criteria
+
+#### PAUSE: User validation questions
+
+After self-review, ask the user these targeted questions:
+
+> 1. "Which acceptance criteria are you LEAST confident about? Those are where edge cases usually hide."
+> 2. "Are there any assumptions I listed that might not hold?"
+> 3. "Is there anything in the Won't Have list that you're uncomfortable deferring?"
 
 ---
 
-## PRD Output Template
+## BRIEF Mode Template
+
+For BRIEF scope, produce this streamlined one-page format:
+
+```markdown
+# PRD: {Feature Name} (Brief)
+
+**Date:** {today} | **Scope:** BRIEF | **Status:** Draft
+
+## Problem
+{2-3 sentences — what's broken and for whom}
+
+## Goals
+- {Measurable outcome 1}
+- {Measurable outcome 2}
+
+## Non-Goals
+- {What we're explicitly NOT doing}
+
+## Assumptions
+- {Key assumptions that could change scope if wrong}
+
+## Requirements
+
+### FR-{MODULE}-{NAME}: {Title} [Must]
+As a {role}, I want {action}, so that {benefit}.
+- Given {X}, When {Y}, Then {Z}
+- Given {error}, When {invalid}, Then {handled}
+
+### FR-{MODULE}-{NAME}: {Title} [Must]
+...
+
+{3-5 stories total}
+
+## NFRs
+- NFR-001: {target with number — e.g., "P95 response < 500ms"}
+
+## Open Questions
+- {Anything unresolved}
+```
+
+---
+
+## PRD Output
 
 Save to: `${PROJECT_ROOT}/docs/prd/{feature}/prd.md`
 
-**See the detailed template structure in each phase above. The final document follows the phase order: Problem → Personas → Use Cases → FRs → NFRs → Prioritisation → Validation.**
+The final document follows the phase order:
+Problem → Assumptions & Constraints → Personas → Use Cases → FRs → NFRs → Prioritisation → Validation
+
+---
+
+## Traceability Rules
+
+- Every FR maps to at least one persona
+- COMPREHENSIVE: every FR maps to at least one UC
+- Every FR has testable acceptance criteria in Given/When/Then
+- Security criteria on stories touching auth, PII, or destructive operations
+- Compliance criteria on stories touching regulated data
+- Stable FR IDs survive requirement additions/removals
 
 ---
 
@@ -414,14 +556,21 @@ When exiting, update PRD metadata: Status, Next Step, Completion Date.
 
 ## Anti-Patterns
 
-❌ **The Novel** — 50+ pages nobody reads → Use BRIEF/STANDARD modes
-❌ **Solution-First** — Features before problem → Always write Phase 2 first
-❌ **Vague Criteria** — "System should be fast" → Numbers on everything
-❌ **Missing Error Cases** — Only happy path → Every extension becomes an AC
-❌ **Orphan Stories** — Stories not linked to personas or use cases → Traceability check
-❌ **Kitchen Sink** — v1 through v10 in one doc → Strict MoSCoW with Won't Have
+**The Monologue** — Agent generates entire PRD, dumps it for approval. Instead, pause and validate at each phase. The user knows things the agent doesn't.
+
+**Solution-First** — Writing features before establishing the problem. If Phase 2 doesn't hurt to read, you haven't described a real problem.
+
+**Vague Criteria** — "System should be fast" or "handle errors appropriately". Every requirement needs a number or a specific behavior. Flag ambiguity words.
+
+**Happy Path Only** — Acceptance criteria that only cover success. Every FR needs at least one error/edge case criterion. Use the edge case elicitation checklist.
+
+**The Kitchen Sink** — v1 through v10 in one doc. Strict MoSCoW with Won't Have. If the Must Have list has more than 10 items, some of them aren't Must Haves.
+
+**Silent Assumptions** — Taking things for granted without documenting them. If an assumption proves false and there's no record, nobody knows which requirements to revisit.
+
+**Orphan Stories** — Stories not linked to personas or use cases. If you can't name the persona, the requirement may not solve a real problem.
 
 ---
 
-*Skill Version: 2.0*
-*Added in v2: Tiered modes, Cockburn use cases, security/compliance criteria, stable ID convention*
+*Skill Version: 3.0*
+*v3: Collaborative dialogue model, assumptions/constraints/risks sections, edge case elicitation, requirement quality checks, BRIEF template, targeted user validation questions*

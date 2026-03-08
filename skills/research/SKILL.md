@@ -344,6 +344,10 @@ Ready for next step:
 | "more research" | Continue investigating |
 | "park" | Save for later |
 
+## Reference Files
+
+For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
+
 ---
 
 *Skill Version: 2.0*

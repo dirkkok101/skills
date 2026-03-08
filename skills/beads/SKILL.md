@@ -149,8 +149,8 @@ Record epic ID for linking.
 
 ```bash
 br create "{Task title}" --type task -p 2 \
-  --tag "FR-{feature}-{NNN}" \
-  --tag "UC-{feature}-{NNN}"
+  --tag "FR-{feature}-{NAME}" \
+  --tag "UC-{feature}-{NAME}"
 ```
 
 **Bead Description Format:**
@@ -159,8 +159,11 @@ br create "{Task title}" --type task -p 2 \
 ## Objective
 {What to achieve - 1-2 sentences from plan}
 
+## Depends On
+- bd-{id}: {title} (or "None" if first bead)
+
 ## Implements
-- FR-{feature}-{NNN}: {FR title}
+- FR-{feature}-{NAME}: {FR title}
 - UC-{feature}-{NNN}: {related use case}
 
 ## Validates Against
@@ -421,9 +424,9 @@ br ready
 ### FR Coverage
 | FR | Bead(s) | Status |
 |----|---------|--------|
-| FR-{feature}-001 (Must) | bd-{id} | ✅ Covered |
-| FR-{feature}-002 (Must) | bd-{id}, bd-{id} | ✅ Covered |
-| FR-{feature}-003 (Should) | — | ℹ Should-Have, deferred |
+| FR-{feature}-{NAME} (Must) | bd-{id} | ✅ Covered |
+| FR-{feature}-{NAME} (Must) | bd-{id}, bd-{id} | ✅ Covered |
+| FR-{feature}-{NAME} (Should) | — | ℹ Should-Have, deferred |
 
 **All Must-Have FRs must be covered. Flag any gaps as blocking.**
 
@@ -476,6 +479,17 @@ Options:
 ## Objective
 Add KnownCursed boolean property to Item record to track when player discovers an item is cursed.
 
+## Depends On
+- None (first bead in sequence)
+
+## Implements
+- FR-ITEM-CURSE-DISCOVERY: Track when player discovers an item is cursed
+- UC-ITEM-001: Equip item and discover curse
+
+## Validates Against
+- BDD: @UC-ITEM-001 — Scenario: "Player equips cursed item and discovers curse"
+- Unit: Item_KnownCursed property defaults and serialization
+
 ## Success Criteria
 - Property exists on Item record
 - Defaults to false
@@ -493,6 +507,11 @@ Add KnownCursed boolean property to Item record to track when player discovers a
 
 ## Approach
 Add boolean property following existing pattern. Use same default and serialization approach as CursedForOwner.
+
+## Acceptance Criteria (from PRD)
+  Given an item with a hidden curse
+  When the player equips the item
+  Then the KnownCursed flag is set to true
 
 ## Verification
 - **Test:** Property exists and defaults correctly

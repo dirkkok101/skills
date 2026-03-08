@@ -20,7 +20,7 @@ argument-hint: "[feature name or brainstorm reference]"
 2. **Tiered depth** — match document weight to feature complexity
 3. **Domain-aware** — import discovery brief, add security/compliance criteria where needed
 4. **Testable requirements** — every acceptance criterion is verifiable by a test
-5. **Traceability** — FR-{MODULE}-{NNN} IDs enable downstream tracing to design, tests, code
+5. **Traceability** — FR-{MODULE}-{DESCRIPTIVE-NAME} IDs enable downstream tracing to design, tests, code
 
 ---
 
@@ -40,7 +40,7 @@ Run this skill when:
 
 | Mode | When | Sections | Output Size |
 |------|------|----------|-------------|
-| **BRIEF** | BRIEF scope, simple feature, 1-2 sprints | Problem, Goals, Non-Goals, 3-5 Stories, NFRs, Metrics | ~50-100 lines |
+| **BRIEF** | BRIEF scope, simple feature, 1-2 sprints | Problem, Goals, Non-Goals, 3-5 Stories, NFRs | ~50-100 lines |
 | **STANDARD** | STANDARD scope, typical feature, 1-2 months | All sections, user stories (not full use cases) | ~200-300 lines |
 | **COMPREHENSIVE** | COMPREHENSIVE scope, complex feature, quarter+ | All sections + Cockburn use cases + security/compliance criteria | ~400-500 lines |
 
@@ -246,7 +246,7 @@ Guidelines:
 
 ### Epic: {Feature Area}
 
-#### FR-{MODULE}-001: {Title}
+#### FR-{MODULE}-{DESCRIPTIVE-NAME}: {Title}
 Priority: Must / Should / Could / Won't
 Complexity: S / M / L / XL
 Related: UC-{MODULE}-001 (COMPREHENSIVE mode)
@@ -322,13 +322,13 @@ Categories to consider:
 ## Prioritisation (MoSCoW)
 
 ### Must Have (MVP)
-- FR-{MODULE}-001: {title}
-- FR-{MODULE}-002: {title}
+- FR-{MODULE}-{NAME}: {title}
+- FR-{MODULE}-{NAME}: {title}
 - NFR-{MODULE}-001: {title}
 {5-10 items. Without these, the feature doesn't solve the problem.}
 
 ### Should Have (v1)
-- FR-{MODULE}-003: {title}
+- FR-{MODULE}-{NAME}: {title}
 {Significant value but not blocking MVP. Could slip to v1.1.}
 
 ### Could Have (Future)
@@ -343,11 +343,11 @@ Categories to consider:
 
 {ASCII diagram showing requirement dependencies}
 
-  FR-001 ──> FR-002 ──> FR-005
-    |                     |
-    +──> FR-003          FR-006
-    |
-    +──> NFR-001
+  FR-REGISTER ──> FR-VALIDATE ──> FR-PROVISION
+       |                              |
+       +──> FR-CONFIGURE          FR-NOTIFY
+       |
+       +──> NFR-001
 ```
 
 ---
@@ -367,9 +367,9 @@ Categories to consider:
 ### Coverage Matrix
 | Discovery Req | Mapped FR | Status |
 |--------------|-----------|--------|
-| DR-{MODULE}-001 | FR-{MODULE}-001 | ✅ Covered |
-| DR-{MODULE}-002 | FR-{MODULE}-003, FR-{MODULE}-004 | ✅ Covered |
-| DR-{MODULE}-003 | — | ⚠ Gap (deferred to v2) |
+| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME} | ✅ Covered |
+| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME} | ✅ Covered |
+| DR-{MODULE}-{NAME} | — | ⚠ Gap (deferred to v2) |
 ```
 
 ---

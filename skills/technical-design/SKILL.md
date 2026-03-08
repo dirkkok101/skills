@@ -192,7 +192,7 @@ Load: `references/dotnet-patterns.md` AND `_shared/references/{domain}.md`
 
 ```
 ### POST /api/v1/{resource}
-Maps to: FR-{MODULE}-001, UC-{MODULE}-001
+Maps to: FR-{MODULE}-{NAME}, UC-{MODULE}-001
 Auth: [Authorize(Policy = "{PolicyName}")]
 
 Command: Create{Resource}Command
@@ -368,19 +368,7 @@ From discovery security analysis, specify technical mitigations:
 
 ---
 
-### Phase 11: Rollout Plan
-
-```markdown
-## Rollout
-- Feature flags: {which flags, default state, rollout %]
-- Migration: {data migration approach, zero-downtime strategy}
-- Rollback: {how to undo — feature flag off, migration down, etc.}
-- Monitoring: {key metrics, alerts, dashboards}
-```
-
----
-
-### Phase 12: Work Decomposition Preview
+### Phase 11: Work Decomposition Preview
 
 **This section feeds directly into /plan.**
 
@@ -390,13 +378,13 @@ From discovery security analysis, specify technical mitigations:
 ### Component Breakdown
 | Component | Scope | Complexity | Risk | Implements |
 |-----------|-------|------------|------|-----------|
-| Data Model | Entities, migrations, EF config | M | Low | FR-001, FR-002 |
-| Commands | Create/Update/Delete handlers | L | Medium | FR-001-FR-005 |
-| Queries | List/Get handlers | S | Low | FR-006, FR-007 |
+| Data Model | Entities, migrations, EF config | M | Low | FR-REGISTER, FR-VALIDATE |
+| Commands | Create/Update/Delete handlers | L | Medium | FR-REGISTER through FR-DELETE |
+| Queries | List/Get handlers | S | Low | FR-LIST, FR-DETAIL |
 | API | Endpoints, auth policies | M | Low | All FRs |
-| Validation | FluentValidation rules | S | Low | FR-001-FR-005 |
+| Validation | FluentValidation rules | S | Low | FR-REGISTER through FR-DELETE |
 | UI | Forms, lists, detail views | L | Medium | All FRs |
-| Integration | Downstream provisioning | M | High | FR-010 |
+| Integration | Downstream provisioning | M | High | FR-PROVISION |
 
 ### Dependency Graph
   Data Model ──> Commands ──> API ──> UI
@@ -416,7 +404,7 @@ From discovery security analysis, specify technical mitigations:
 
 ---
 
-### Phase 13: Self-Review & Approval
+### Phase 12: Self-Review & Approval
 
 **2 rounds minimum. Exit on 2 consecutive clean rounds.**
 
@@ -457,7 +445,7 @@ Ready for review:
 
 ```
 ${PROJECT_ROOT}/docs/designs/{feature}/
-├── design.md            # Overview + alternatives + security + rollout
+├── design.md            # Overview + alternatives + security + rollout + testing strategy
 ├── architecture.md      # C4 diagrams
 ├── data-model.md        # ER diagram + entity definitions + migration
 ├── api-spec.md          # Endpoints, DTOs, validation, errors

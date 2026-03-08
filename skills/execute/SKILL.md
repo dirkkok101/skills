@@ -88,7 +88,13 @@ Each bead is executed with a "fresh context" mindset - as if by an independent s
 │     └─ Verify pattern was followed correctly                    │
 │     └─ If any concern → FIX before continuing                   │
 │                                                                 │
-│  7. COMPLETE                                                    │
+│  7. UPSTREAM VERIFICATION                                       │
+│     └─ Check FR acceptance criteria satisfied                   │
+│     └─ Verify endpoints match api-spec.md (if API bead)         │
+│     └─ Verify entities match data-model.md (if data bead)       │
+│     └─ Run BDD scenarios for referenced UCs (if they exist)     │
+│                                                                 │
+│  8. COMPLETE                                                    │
 │     └─ Commit with specified message                            │
 │     └─ Close bead                                               │
 │                                                                 │
@@ -274,7 +280,7 @@ Skip this step if the bead has no FR references (e.g., infrastructure-only beads
 # Commit with message from bead
 git add -A && git commit -m "{commit message from bead}
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>"
+Co-Authored-By: Claude <noreply@anthropic.com>"
 
 # Close the bead
 br close bd-{bead-id}
@@ -506,10 +512,9 @@ br close bd-{epic}
 **Testing Standards (MANDATORY):**
 ```
 [ ] Test uses pure functions only (no side effects)
-[ ] No Godot dependencies in test
-[ ] Random behavior uses QueueNextValues() - no `new Random()`
-[ ] Test is deterministic
-[ ] Uses project test patterns (TestFactories, CombatTestBase)
+[ ] Test is deterministic (no randomness, no timing, no external state)
+[ ] Uses project test patterns and conventions (see CLAUDE.md)
+[ ] No flaky dependencies (network, filesystem, clock)
 ```
 
 ---

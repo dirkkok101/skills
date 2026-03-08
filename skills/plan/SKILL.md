@@ -68,7 +68,7 @@ ls "${PROJECT_ROOT}/docs/designs/{feature}/"
 # PRD for requirement traceability
 cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
 
-# Work decomposition from design Phase 12
+# Work decomposition from design Phase 11
 grep -A 50 "Work Decomposition" "${PROJECT_ROOT}/docs/designs/{feature}/design.md" 2>/dev/null
 ```
 
@@ -80,7 +80,7 @@ grep -A 50 "Work Decomposition" "${PROJECT_ROOT}/docs/designs/{feature}/design.m
 
 **Step 1.1 — Import Work Decomposition:**
 
-**STANDARD mode:** If the technical design includes a Work Decomposition section (Phase 12), import it as the starting point. Don't redo this work.
+**STANDARD mode:** If the technical design includes a Work Decomposition section (Phase 11), import it as the starting point. Don't redo this work.
 
 **BRIEF mode:** No design doc exists. Decompose directly from brainstorm boundaries and PRD brief:
 - Each Must-Have requirement becomes a component
@@ -88,7 +88,7 @@ grep -A 50 "Work Decomposition" "${PROJECT_ROOT}/docs/designs/{feature}/design.m
 - Estimate complexity from the brainstorm's complexity budget
 - Create a simple dependency order (data → logic → API → UI)
 
-If no decomposition exists (STANDARD mode without Phase 12), create one from the design docs:
+If no decomposition exists (STANDARD mode without Phase 11), create one from the design docs:
 
 ```markdown
 | Component | Scope | Complexity | Risk | Implements FRs |
@@ -104,10 +104,10 @@ Every FR from the PRD must appear in at least one component. Verify:
 ### FR Coverage
 | FR | Component | Status |
 |----|-----------|--------|
-| FR-{MODULE}-001 | Data Model, Commands | ✅ Covered |
-| FR-{MODULE}-002 | Commands, API | ✅ Covered |
-| FR-{MODULE}-003 | UI | ✅ Covered |
-| FR-{MODULE}-004 | — | ⚠ Not covered (deferred?) |
+| FR-{MODULE}-{NAME} | Data Model, Commands | ✅ Covered |
+| FR-{MODULE}-{NAME} | Commands, API | ✅ Covered |
+| FR-{MODULE}-{NAME} | UI | ✅ Covered |
+| FR-{MODULE}-{NAME} | — | ⚠ Not covered (deferred?) |
 ```
 
 Flag any uncovered Must-Have FRs as blocking issues.
@@ -182,7 +182,7 @@ For each component, create `NN-{component}.md`:
 # Sub-Plan: {Component Name}
 
 ## Traceability
-- **Implements:** FR-{MODULE}-001, FR-{MODULE}-002, FR-{MODULE}-003
+- **Implements:** FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
 - **Use Cases:** UC-{MODULE}-001, UC-{MODULE}-002
 - **Design Reference:** docs/designs/{feature}/{relevant-file}.md
 - **Validates Against:** BDD scenarios tagged @UC-{MODULE}-001

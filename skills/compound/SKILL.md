@@ -62,7 +62,7 @@ Run this skill when:
 | Category | Captures | Reference File |
 |----------|----------|---------------|
 | `domain:identity` | OpenIddict gotchas, auth flow nuances | `_shared/references/identity-auth.md` |
-| `domain:capstone` | Data model patterns, MCP interactions | `_shared/references/capstone-data.md` |
+| `domain:capstone-data` | Data model patterns, MCP interactions | `_shared/references/capstone-data.md` |
 | `domain:guardian` | Mobile/offline patterns, sync edge cases | `_shared/references/guardian-mobile.md` |
 | `domain:saas` | Multi-tenancy patterns, admin patterns | `_shared/references/general-saas.md` |
 
@@ -92,7 +92,7 @@ Determine:
 ## {Learning Title}
 
 **Category:** {category from tables}
-**Phase:** {brainstorm | discovery | prd | design | plan | execution | review}
+**Phase:** {brainstorm | discovery | prd | design | plan | execution | review | testing}
 **Feature:** {feature name}
 **Date:** {today}
 

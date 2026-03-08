@@ -203,13 +203,14 @@ Group by domain checklist category:
 ### {Category Name}
 
 #### IN SCOPE
-DR-{MODULE}-001: {Requirement title}
+DR-{MODULE}-{DESCRIPTIVE-NAME}: {Requirement title}
   Description: {what it does}
   Business rules: {specific rules with parameters}
   Constraints: {limits, validation rules}
   Edge cases: {what happens when...}
+  Maps to FR: {FR-{MODULE}-{NAME} — filled in during PRD phase}
 
-DR-{MODULE}-002: ...
+DR-{MODULE}-{DESCRIPTIVE-NAME}: ...
 
 #### DEFERRED (v2+)
 - {Requirement} — Reason: {why deferred}
@@ -409,7 +410,7 @@ Save to: `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
 {Grouped by domain checklist category}
 ### {Category}
 #### In Scope
-DR-{MODULE}-001: {requirement with rules, constraints, edge cases}
+DR-{MODULE}-{DESCRIPTIVE-NAME}: {requirement with rules, constraints, edge cases}
 ...
 #### Deferred (v2+)
 - {requirement} — {reason}

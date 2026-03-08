@@ -213,9 +213,30 @@ Iterate until user aligns on direction.
 
 ---
 
-### Phase 5: Scope Classification
+### Phase 5: Self-Review
 
-**After approach is selected, classify the feature to determine pipeline depth.**
+**1 round, 3 themes. Brainstorm is lean — don't over-review.**
+
+**Theme 1: Problem Clarity**
+- [ ] Root problem identified (not symptom)?
+- [ ] 5 Whys completed?
+- [ ] User journey clear and realistic?
+
+**Theme 2: Boundary Discipline**
+- [ ] Must-haves truly essential?
+- [ ] Anti-requirements prevent scope creep?
+- [ ] Complexity budget explicit?
+
+**Theme 3: Approach Differentiation**
+- [ ] 2-3 genuinely different options (not variations)?
+- [ ] "Do Less" included?
+- [ ] At least one within complexity budget?
+
+---
+
+### Phase 6: Scope Classification
+
+**After self-review passes, classify the feature to determine pipeline depth.**
 
 Scan for complexity signals:
 
@@ -240,30 +261,9 @@ Weighted score:
 
 | Scope | Pipeline Depth | What Gets Generated |
 |-------|---------------|---------------------|
-| BRIEF | brainstorm → plan → beads | Lightweight — skip PRD, discovery, and full design |
-| STANDARD | brainstorm → prd (standard) → technical-design → plan → beads | Normal — skip discovery |
-| COMPREHENSIVE | brainstorm → discovery → prd (full) → technical-design → plan → beads | Full depth — all phases |
-
----
-
-### Phase 6: Self-Review
-
-**1 round, 3 themes. Brainstorm is lean — don't over-review.**
-
-**Theme 1: Problem Clarity**
-- [ ] Root problem identified (not symptom)?
-- [ ] 5 Whys completed?
-- [ ] User journey clear and realistic?
-
-**Theme 2: Boundary Discipline**
-- [ ] Must-haves truly essential?
-- [ ] Anti-requirements prevent scope creep?
-- [ ] Complexity budget explicit?
-
-**Theme 3: Approach Differentiation**
-- [ ] 2-3 genuinely different options (not variations)?
-- [ ] "Do Less" included?
-- [ ] At least one within complexity budget?
+| BRIEF | brainstorm → plan → beads → execute → review → compound | Lightweight — skip PRD, discovery, and full design |
+| STANDARD | brainstorm → prd → technical-design → plan → beads → execute → review → compound | Normal — skip discovery |
+| COMPREHENSIVE | brainstorm → discovery → prd → technical-design → plan → beads → execute → review → compound | Full depth — all phases |
 
 ---
 
@@ -351,10 +351,10 @@ Save to: `${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md`
 **Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
 
 What's next?
-1. "start discovery" → /discovery (COMPREHENSIVE features — deep requirements elicitation)
-2. "start prd" → /prd (STANDARD features or known requirements)
+1. "start discovery" → /discovery (DEFAULT for COMPREHENSIVE features — deep requirements elicitation)
+2. "start prd" → /prd (DEFAULT for STANDARD features, or known requirements)
 3. "start technical-design" → /technical-design (technical improvement, skip PRD)
-4. "start plan" → /plan (BRIEF features, simple changes)
+4. "start plan" → /plan (DEFAULT for BRIEF features, simple changes)
 5. "refine" → continue iterating
 6. "park" / "abandon"
 ```
@@ -365,10 +365,10 @@ What's next?
 
 | Signal | Next Skill | When to Recommend |
 |--------|-----------|-------------------|
-| "start discovery" | /discovery | COMPREHENSIVE scope, complex domain |
-| "start prd" | /prd | STANDARD scope, or requirements already clear |
+| "start discovery" | /discovery | COMPREHENSIVE scope (DEFAULT), complex domain |
+| "start prd" | /prd | STANDARD scope (DEFAULT), or requirements already clear |
 | "start technical-design" | /technical-design | Technical improvement, no business requirements needed |
-| "start plan" | /plan | BRIEF scope — plan works from brainstorm directly, no design doc needed |
+| "start plan" | /plan | BRIEF scope (DEFAULT) — plan works from brainstorm directly |
 | "refine" | Continue brainstorm | User wants to iterate |
 | "park" | Save for later | |
 | "abandon" | Don't proceed | |

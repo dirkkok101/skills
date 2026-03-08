@@ -50,9 +50,11 @@ When asked to build a feature:
 
 ## Pipeline Overview
 
+PRD, Design, and Plan are **separate skills with explicit stage gates**. Each requires user approval before proceeding to the next.
+
 ```
 research ─> brainstorm ─> discovery ─> prd ─> technical-design ─> plan ─> beads ─> execute ─> review ─> compound
-(optional)                 (COMP only)                (STANDARD+)
+(optional)                 (COMP only)         (STANDARD+)
 ```
 
 ### Scope-Based Entry Points

@@ -15,20 +15,11 @@ public record Create{Resource}Command(
     Guid? ParentId
 ) : IRequest<{Resource}Response>;
 
-// Handler
-public class Create{Resource}CommandHandler
-    : IRequestHandler<Create{Resource}Command, {Resource}Response>
+// Handler (primary constructor)
+public class Create{Resource}CommandHandler(
+    IApplicationDbContext context,
+    IMapper mapper) : IRequestHandler<Create{Resource}Command, {Resource}Response>
 {
-    private readonly IApplicationDbContext _context;
-    private readonly IMapper _mapper;
-
-    public Create{Resource}CommandHandler(
-        IApplicationDbContext context, IMapper mapper)
-    {
-        _context = context;
-        _mapper = mapper;
-    }
-
     public async Task<{Resource}Response> Handle(
         Create{Resource}Command request,
         CancellationToken cancellationToken)
@@ -41,10 +32,10 @@ public class Create{Resource}CommandHandler
             CreatedAt = DateTime.UtcNow
         };
 
-        _context.{Resources}.Add(entity);
-        await _context.SaveChangesAsync(cancellationToken);
+        context.{Resources}.Add(entity);
+        await context.SaveChangesAsync(cancellationToken);
 
-        return _mapper.Map<{Resource}Response>(entity);
+        return mapper.Map<{Resource}Response>(entity);
     }
 }
 ```
@@ -61,22 +52,20 @@ public record Get{Resources}Query(
     string? Search = null
 ) : IRequest<PaginatedList<{Resource}Response>>;
 
-// Handler
-public class Get{Resource}ByIdQueryHandler
-    : IRequestHandler<Get{Resource}ByIdQuery, {Resource}Response>
+// Handler (primary constructor)
+public class Get{Resource}ByIdQueryHandler(
+    IApplicationDbContext context,
+    IMapper mapper) : IRequestHandler<Get{Resource}ByIdQuery, {Resource}Response>
 {
-    private readonly IApplicationDbContext _context;
-    private readonly IMapper _mapper;
-
     public async Task<{Resource}Response> Handle(
         Get{Resource}ByIdQuery request,
         CancellationToken cancellationToken)
     {
-        var entity = await _context.{Resources}
+        var entity = await context.{Resources}
             .FirstOrDefaultAsync(x => x.Id == request.Id, cancellationToken)
             ?? throw new NotFoundException(nameof({Resource}), request.Id);
 
-        return _mapper.Map<{Resource}Response>(entity);
+        return mapper.Map<{Resource}Response>(entity);
     }
 }
 ```
@@ -159,10 +148,10 @@ public class {Resource}MappingProfile : Profile
 ## FluentValidation
 
 ```csharp
-public class Create{Resource}RequestValidator
-    : AbstractValidator<Create{Resource}Request>
+public class Create{Resource}RequestValidator(
+    IApplicationDbContext context) : AbstractValidator<Create{Resource}Request>
 {
-    public Create{Resource}RequestValidator(IApplicationDbContext context)
+    public Create{Resource}RequestValidator()
     {
         RuleFor(x => x.Name)
             .NotEmpty().WithMessage("Name is required")
@@ -184,72 +173,114 @@ public class Create{Resource}RequestValidator
 
 ---
 
-## Controller Pattern
+## FastEndpoints Pattern
 
 ```csharp
-[ApiController]
-[Route("api/v1/{resources}")]
-[Authorize]
-public class {Resources}Controller : ControllerBase
+// Create endpoint
+public class Create{Resource}Endpoint(
+    IApplicationDbContext context,
+    IMapper mapper) : Endpoint<Create{Resource}Request, {Resource}Response>
 {
-    private readonly IMediator _mediator;
-
-    public {Resources}Controller(IMediator mediator)
-        => _mediator = mediator;
-
-    [HttpGet]
-    [ProducesResponseType(typeof(PaginatedList<{Resource}Response>), 200)]
-    public async Task<IActionResult> GetAll(
-        [FromQuery] int page = 1,
-        [FromQuery] int pageSize = 20,
-        [FromQuery] string? search = null)
+    public override void Configure()
     {
-        var result = await _mediator.Send(
-            new Get{Resources}Query(page, pageSize, search));
-        return Ok(result);
+        Post("/api/v1/{resources}");
+        Policies("{PolicyName}");
     }
 
-    [HttpGet("{id:guid}")]
-    [ProducesResponseType(typeof({Resource}Response), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> GetById(Guid id)
+    public override async Task HandleAsync(
+        Create{Resource}Request req, CancellationToken ct)
     {
-        var result = await _mediator.Send(new Get{Resource}ByIdQuery(id));
-        return Ok(result);
+        var entity = new {Resource}Entity
+        {
+            Id = Guid.NewGuid(),
+            Name = req.Name,
+            Description = req.Description,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        context.{Resources}.Add(entity);
+        await context.SaveChangesAsync(ct);
+
+        await SendCreatedAtAsync<Get{Resource}Endpoint>(
+            new { id = entity.Id },
+            mapper.Map<{Resource}Response>(entity),
+            cancellation: ct);
+    }
+}
+
+// Get by ID endpoint
+public class Get{Resource}Endpoint(
+    IApplicationDbContext context,
+    IMapper mapper) : Endpoint<Get{Resource}Request, {Resource}Response>
+{
+    public override void Configure()
+    {
+        Get("/api/v1/{resources}/{id}");
+        Policies("{PolicyName}");
     }
 
-    [HttpPost]
-    [ProducesResponseType(typeof({Resource}Response), 201)]
-    [ProducesResponseType(422)]
-    public async Task<IActionResult> Create(
-        [FromBody] Create{Resource}Request request)
+    public override async Task HandleAsync(
+        Get{Resource}Request req, CancellationToken ct)
     {
-        var command = new Create{Resource}Command(
-            request.Name, request.Description, request.ParentId);
-        var result = await _mediator.Send(command);
-        return CreatedAtAction(nameof(GetById),
-            new { id = result.Id }, result);
+        var entity = await context.{Resources}
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct)
+            ?? throw new NotFoundException(nameof({Resource}), req.Id);
+
+        await SendOkAsync(mapper.Map<{Resource}Response>(entity), ct);
+    }
+}
+
+// List endpoint with pagination
+public class List{Resources}Endpoint(
+    IApplicationDbContext context,
+    IMapper mapper) : Endpoint<List{Resources}Request, PaginatedList<{Resource}Response>>
+{
+    public override void Configure()
+    {
+        Get("/api/v1/{resources}");
+        Policies("{PolicyName}");
     }
 
-    [HttpPut("{id:guid}")]
-    [ProducesResponseType(typeof({Resource}Response), 200)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Update(
-        Guid id, [FromBody] Update{Resource}Request request)
+    public override async Task HandleAsync(
+        List{Resources}Request req, CancellationToken ct)
     {
-        var command = new Update{Resource}Command(
-            id, request.Name, request.Description);
-        var result = await _mediator.Send(command);
-        return Ok(result);
+        var query = context.{Resources}.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(req.Search))
+            query = query.Where(x => x.Name.Contains(req.Search));
+
+        var total = await query.CountAsync(ct);
+        var items = await query
+            .Skip((req.Page - 1) * req.PageSize)
+            .Take(req.PageSize)
+            .ToListAsync(ct);
+
+        await SendOkAsync(new PaginatedList<{Resource}Response>(
+            mapper.Map<List<{Resource}Response>>(items),
+            total, req.Page, req.PageSize), ct);
+    }
+}
+
+// Delete endpoint
+public class Delete{Resource}Endpoint(
+    IApplicationDbContext context) : Endpoint<Delete{Resource}Request>
+{
+    public override void Configure()
+    {
+        Delete("/api/v1/{resources}/{id}");
+        Policies("{PolicyName}");
     }
 
-    [HttpDelete("{id:guid}")]
-    [ProducesResponseType(204)]
-    [ProducesResponseType(404)]
-    public async Task<IActionResult> Delete(Guid id)
+    public override async Task HandleAsync(
+        Delete{Resource}Request req, CancellationToken ct)
     {
-        await _mediator.Send(new Delete{Resource}Command(id));
-        return NoContent();
+        var entity = await context.{Resources}
+            .FirstOrDefaultAsync(x => x.Id == req.Id, ct)
+            ?? throw new NotFoundException(nameof({Resource}), req.Id);
+
+        context.{Resources}.Remove(entity);
+        await context.SaveChangesAsync(ct);
+        await SendNoContentAsync(ct);
     }
 }
 ```

@@ -111,7 +111,7 @@ Record which documents exist. Each enables a conditional review agent in Phase 2
 
 ### Phase 2: Launch Background Review Agents
 
-**Launch all agents in a single message using Task tool with `run_in_background: true`.** Launch 6 core agents always, plus up to 2 conditional agents (design-intent and/or plan-intent) based on Step 1.4.
+**Launch all agents in a single message using Task tool with `run_in_background: true`.** Launch 6 core agents always, plus up to 3 conditional agents (design-intent, plan-intent, and/or prd-compliance) based on Step 1.4.
 
 This writes each agent's output to a file on disk instead of into the conversation context. This prevents context bloat from up to 9 large reports and ensures no findings are lost to summarization.
 
@@ -282,8 +282,9 @@ Output files:
 - {output_file_6} (comment-analyzer)
 - {output_file_7} (design-intent) ← OPTIONAL: only present if a design document was found.
 - {output_file_8} (plan-intent) ← OPTIONAL: only present if a plan document was found.
+- {output_file_9} (prd-compliance) ← OPTIONAL: only present if a PRD was found.
 
-NOTE: The design-intent and plan-intent agents are conditional. Proceed with whichever output files exist (6, 7, 8, or 9).
+NOTE: The design-intent, plan-intent, and prd-compliance agents are conditional. Proceed with whichever output files exist (6, 7, 8, or 9).
 
 Consolidation rules:
 1. DEDUPLICATE: Same issue flagged by multiple agents counts once. Note which agents flagged it (higher confidence).
@@ -454,18 +455,20 @@ Options:
 ## Quality Standards
 
 ### Agent Usage
-- Always use all 6 core agents in parallel with `run_in_background: true`, plus design-intent and/or plan-intent agents when their respective documents exist
+- Always use all 6 core agents in parallel with `run_in_background: true`, plus design-intent, plan-intent, and/or prd-compliance agents when their respective documents exist
 - Never do manual review instead of agents
 - Provide full context to each agent
 - Always use a consolidation agent (`run_in_background: true`) to read output files and write to `docs/reviews/review-{timestamp}.md`
 - Never read raw agent output files or the full summary file into the main conversation
 - Read only the executive summary (~50 lines) from the summary file into context
 
-### Design & Plan Verification
+### Design, Plan & PRD Verification
 - When a design document exists (`${PROJECT_ROOT}/docs/designs/{feature}/design.md`), always include the design-intent agent
 - When a plan document exists (`${PROJECT_ROOT}/docs/plans/{feature}/overview.md`), always include the plan-intent agent
+- When a PRD exists (`${PROJECT_ROOT}/docs/prd/{feature}/prd.md`), always include the prd-compliance agent
 - Design-intent findings (anti-requirement violations, scope creep, kill criteria) should be treated as Must Fix severity
 - Plan-intent findings (missing components, logic contradicting pseudocode, failure criteria violated) should be treated as Must Fix severity
+- PRD-compliance findings (Must-Have FRs not implemented, security criteria not enforced, scope creep) should be treated as Must Fix severity
 
 ### Findings
 - Deduplicate across agents
@@ -526,7 +529,7 @@ Read docs/reviews/review-{timestamp}.md with limit: 50
 Let me read each file and review it myself...
 ```
 
-✅ **Always use all applicable agents (6 core + design-intent and/or plan-intent when docs exist)**
+✅ **Always use all applicable agents (6 core + design-intent, plan-intent, and/or prd-compliance when docs exist)**
 ```
 Each agent catches issues others miss. The consolidation step deduplicates overlap.
 ```

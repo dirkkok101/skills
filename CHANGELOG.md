@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-03-08
+
+### Changed
+- **All workflow skills** upgraded to v3.1 via first-principles adversarial review
+- **Duration targets** added to every skill per mode (BRIEF/STANDARD/COMPREHENSIVE)
+- **Kill criteria monitoring** at every pipeline stage (brainstorm through review)
+- **Structured PAUSE response options** (Accept/Modify/Escalate) at all decision points
+- **Self-review before presentation** — agents review their own work before showing to user
+- **Tool-agnostic issue tracker** — skills use conditional language, not hardcoded `br` commands
+- **Prose-based artifact import** — no hardcoded shell commands for loading upstream docs
+- **Anti-patterns explain WHY** — not just what to avoid, but why it matters
+- **Duplicate Quality Standards sections** merged into phase descriptions
+
+### Added
+- **Prerequisites doc** (`skills/_shared/prerequisites.md`) documenting required global tooling
+- **README prerequisites section** linking to the prerequisites doc
+- **RELEASING.md** with complete release process documentation
+- **Git Commits convention** in CLAUDE.md template (Conventional Commits v1.0.0)
+- **Project Learnings section** in CLAUDE.md template for `docs/learnings/` awareness
+- **Session lifecycle learnings check** in AGENTS.md template
+
+### Skill-specific changes
+- **technical-design**: Data model merged into Phase 3 (joint architecture validation), diagram selection moved after Phase 2 decisions, security before operations
+- **plan**: Self-review moved before user presentation, overview reconciliation after sub-plans, plan/beads boundary check
+- **beads**: Scope growth check (kill criteria), merged PAUSE 2+3, integrated self-review into assessment gate
+- **execute**: Execution health circuit breaker, review fix cycle as explicit re-entry section, per-bead completion summaries
+- **review**: BRIEF skips consolidation agent, agent failure/timeout recovery, kill criteria in all upstream agent prompts
+- **compound**: Surfacing promoted to dedicated phase with end-to-end chain verification, format validation before saving
+- **diagnose**: Three-path fork in collaborative model, proportionality theme in self-review, all resolution paths offer /compound
+
 ## [2.0.0] - 2026-03-08
 
 ### Added

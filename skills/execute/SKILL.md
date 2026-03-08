@@ -1,21 +1,27 @@
 ---
 name: execute
-description: Execute approved beads using sub-agent model. Each bead is a work package - agent loads surgical context, designs, implements, and verifies. Continues until feature complete.
+description: >
+  Execute approved beads autonomously. Each bead is a self-contained work
+  package — the agent loads surgical context, designs the implementation from
+  codebase patterns, implements, verifies, and commits. Context resets between
+  beads to prevent drift. The agent runs autonomously, only stopping for
+  blockers or when all beads are complete. Use when beads are approved, user
+  says "execute", "start implementation", or ready beads exist.
 argument-hint: "[epic-id] or [feature-name]"
 ---
 
 # Execute: Beads → Working Code
 
-**Philosophy:** Each bead is a self-contained work package. The executing agent loads surgical context, designs the implementation on-the-fly based on codebase patterns, implements, and verifies. No copy-paste - agents write code by understanding intent.
+**Philosophy:** Each bead is a self-contained work package. The agent loads surgical context, designs the implementation from codebase patterns, implements, verifies, and commits — then resets context and moves to the next bead. Beads carry intent, not implementation. The agent writes code by understanding the codebase, not by copying from the bead. Execution is autonomous — the agent runs until all beads are complete or a genuine blocker requires human input.
 
-## Core Principles
+## Why This Matters
 
-1. **Surgical context loading** - Read only what's needed for the current bead
-2. **Pattern-based implementation** - Learn from existing code, don't copy from plan
-3. **Autonomous execution** - Complete each bead independently
-4. **Ask when uncertain** - Don't guess, request clarification
-5. **Continuous verification** - Tests confirm correctness
-6. **Upstream fidelity** - Implementation matches what was designed and specified
+A well-written bead tells the agent what to build and how to verify it. But execution is where the value is delivered — turning intent into working, tested code. The execution loop must be:
+- **Autonomous** — the agent completes beads without unnecessary interruption
+- **Verifiable** — every change is tested before committing
+- **Recoverable** — failures are handled gracefully with rollback and retry
+- **Resumable** — interrupted execution can pick up where it left off
+- **Context-clean** — each bead starts fresh, preventing drift from accumulated context
 
 ---
 
@@ -25,6 +31,20 @@ Run this skill when:
 - Beads have been approved (`/beads` completed)
 - User says "beads approved", "start implementation", "execute"
 - Ready beads exist (`br ready` shows tasks)
+
+---
+
+## Mode Selection
+
+| Mode | When | Behaviour |
+|------|------|-----------|
+| **BRIEF** | 3-6 simple beads | Execute all, commit per bead, report at end |
+| **STANDARD** | Typical feature | Execute all, self-review per bead, upstream verification, report at end |
+| **COMPREHENSIVE** | Multi-service, high-risk | Execute with per-bead user check-in for high-risk beads, full upstream verification |
+
+In COMPREHENSIVE mode, beads tagged as high-risk in the plan get a user check-in after implementation and before committing. All other beads execute autonomously.
+
+---
 
 ## Prerequisites
 
@@ -38,67 +58,51 @@ Before starting, verify:
 
 ---
 
-## Sub-Agent Execution Model
-
-Each bead is executed with a "fresh context" mindset - as if by an independent sub-agent. This is a mental model, not literal sub-agent spawning. The same agent executes all beads, but treats each bead as an independent unit.
-
-**Why not literal sub-agents?**
-- Same agent can apply learnings across beads
-- No spawn overhead
-- Maintains continuity for debugging
-- Sub-agents would lose CLAUDE.md context
-
-**The trade-off:** Context can accumulate. Mitigate by loading ONLY bead context, not carrying forward previous bead's files.
+## Execution Loop
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    BEAD EXECUTION CYCLE                         │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  1. READ BEAD                                                   │
-│     └─ Parse: objective, criteria, context references           │
-│                                                                 │
-│  2. LOAD CONTEXT (surgical)                                     │
-│     └─ Read only files listed in "Context to Load"              │
-│     └─ Understand patterns from referenced code                 │
-│     └─ Check relevant docs/learnings                            │
-│     └─ DO NOT load entire plan or design docs                   │
-│     └─ DO NOT carry forward previous bead's context             │
-│                                                                 │
-│  3. DESIGN (on-the-fly)                                         │
-│     └─ Plan implementation based on loaded context              │
-│     └─ Validate design against bead objectives                  │
-│     └─ If uncertain → ASK user, don't guess                     │
-│                                                                 │
-│  4. IMPLEMENT                                                   │
-│     └─ Write code following codebase patterns                   │
-│     └─ Apply project standards (CLAUDE.md)                      │
-│     └─ Write tests that verify success criteria                 │
-│                                                                 │
-│  5. VERIFY                                                      │
-│     └─ Run specified tests                                      │
-│     └─ Run full test suite                                      │
-│     └─ All tests must pass                                      │
-│                                                                 │
-│  6. SELF-REVIEW (per-bead quality gate)                         │
-│     └─ Re-read bead objective                                   │
-│     └─ Verify implementation achieves objective                 │
-│     └─ Check success criteria are met                           │
-│     └─ Confirm failure criteria not violated                    │
-│     └─ Verify pattern was followed correctly                    │
-│     └─ If any concern → FIX before continuing                   │
-│                                                                 │
-│  7. UPSTREAM VERIFICATION                                       │
-│     └─ Check FR acceptance criteria satisfied                   │
-│     └─ Verify endpoints match api-spec.md (if API bead)         │
-│     └─ Verify entities match data-model.md (if data bead)       │
-│     └─ Run BDD scenarios for referenced UCs (if they exist)     │
-│                                                                 │
-│  8. COMPLETE                                                    │
-│     └─ Commit with specified message                            │
-│     └─ Close bead                                               │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                    BEAD EXECUTION CYCLE                      │
+├─────────────────────────────────────────────────────────────┤
+│                                                              │
+│  1. ORIENT                                                   │
+│     └─ Read bead: objective, criteria, context refs          │
+│     └─ Check progress file for prior state                   │
+│                                                              │
+│  2. LOAD CONTEXT (surgical)                                  │
+│     └─ Read ONLY files listed in "Context to Load"           │
+│     └─ Understand patterns from referenced code              │
+│     └─ DO NOT load entire plan or design docs                │
+│     └─ DO NOT carry forward previous bead's context          │
+│                                                              │
+│  3. DESIGN (on-the-fly)                                      │
+│     └─ Plan implementation based on loaded context           │
+│     └─ Choose the pattern to follow from referenced code     │
+│     └─ If uncertain → ASK user, don't guess                  │
+│                                                              │
+│  4. IMPLEMENT                                                │
+│     └─ Write tests that verify success criteria              │
+│     └─ Write code following codebase patterns                │
+│     └─ Apply project standards (CLAUDE.md)                   │
+│     └─ Run build after each file change (fail fast)          │
+│                                                              │
+│  5. VERIFY                                                   │
+│     └─ Run bead's verification commands                      │
+│     └─ Run full test suite (no regressions)                  │
+│     └─ Self-review against success/failure criteria          │
+│     └─ Upstream verification (FR acceptance criteria)        │
+│                                                              │
+│  6. COMMIT                                                   │
+│     └─ Stage specific files (not git add -A)                 │
+│     └─ Commit with message from bead                         │
+│     └─ Close bead in br                                      │
+│                                                              │
+│  7. RESET                                                    │
+│     └─ Update progress tracking                              │
+│     └─ Clear mental model of previous bead                   │
+│     └─ Start next bead fresh                                 │
+│                                                              │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -107,110 +111,98 @@ Each bead is executed with a "fresh context" mindset - as if by an independent s
 
 ### Phase 1: Verify Baseline
 
-**Step 1.1 - Identify Available Work:**
+**Step 1.1 — Identify Available Work:**
 ```bash
-br ready                    # Find available tasks
-br dep tree bd-{epic}       # See full feature structure (optional)
+br ready                    # Find available beads
+br dep tree bd-{epic}       # See full feature structure
 ```
 
-**Step 1.2 - Verify Baseline:**
+**Step 1.2 — Verify Baseline:**
 ```bash
 {project build command} && {project test command}
 ```
 
-If baseline fails, fix issues before proceeding.
+If baseline fails, fix issues before proceeding. Do not start executing beads on a broken codebase.
 
-**Step 1.3 - Initialize Progress Tracking:**
+**Step 1.3 — Initialise Progress Tracking:**
+
 Use TodoWrite to show overall progress:
 ```
-- [ ] Task 1: {description from br ready}
-- [ ] Task 2: {description}
-- [ ] Task 3: {description}
+- [ ] bd-{id}: {title}
+- [ ] bd-{id}: {title}
+- [ ] bd-{id}: {title}
 ```
 
 ---
 
-### Phase 2: Execute All Beads
+### Phase 2: Execute Beads
 
-**Loop until all beads complete:**
+**Loop until all beads are complete:**
 
 ```
 while (br ready shows tasks OR br list --status in_progress shows tasks):
     execute_next_bead()
 ```
 
----
-
 #### For Each Bead:
 
-**Step 2.1 - Claim Bead:**
+**Step 2.1 — Claim Bead:**
 ```bash
 br ready                              # Get next available bead(s)
 br update bd-{bead-id} --status in_progress
 ```
 
-**Step 2.2 - Read Bead:**
+**Step 2.2 — Orient (Read Bead):**
 ```bash
 br show bd-{bead-id}
 ```
 
 Parse the bead for:
-- **Objective** - What to achieve
-- **Success Criteria** - How to know it's done
-- **Failure Criteria** - What to avoid
-- **Context to Load** - Files to read
-- **Approach** - Guidance on implementation
-- **Verification** - How to test
+- **Objective** — what to achieve
+- **Success Criteria** — how to know it's done
+- **Failure Criteria** — what to avoid
+- **Context to Load** — files to read
+- **Approach** — guidance on implementation
+- **Verification** — how to test
+- **In/Out of Scope** — boundaries to respect
 
-**Step 2.3 - Load Surgical Context:**
+**Step 2.3 — Load Surgical Context:**
 
-Read ONLY the files specified in the bead's "Context to Load" section:
+Read ONLY the files specified in the bead's "Context to Load" section. Understand the patterns. Do NOT load:
+- Entire plan or design documents (unless specifically referenced)
+- Files from previous beads
+- Unrelated services or modules
 
-```bash
-# Example from bead:
-# - Read: src/models/entity.ext - understand existing property patterns
-# - Pattern: ExistingProperty - follow same structure
-```
-
-Load these files. Understand the patterns. Do NOT load:
-- Entire plan documents
-- Design documents (unless referenced)
-- Unrelated services
-
-**Step 2.4 - Design Implementation:**
+**Step 2.4 — Design Implementation:**
 
 Based on loaded context:
-1. Identify the specific change needed
+1. Identify the specific changes needed
 2. Choose the pattern to follow (from referenced code)
-3. Plan where to add/modify code
+3. Plan where to add or modify code
 4. Design the test that will verify success criteria
 
 **If uncertain about anything:**
 - ASK the user for clarification
-- Do NOT guess or improvise beyond the bead's objective
 - Explain what's unclear and what options you see
+- Do NOT guess or improvise beyond the bead's objective
 
-**Step 2.5 - Implement:**
+**Step 2.5 — Implement:**
 
-Write code following:
-- The pattern from referenced files
-- Project standards from CLAUDE.md
-- The approach guidance in the bead
-
-**Write test first:**
-- Test should verify the success criteria
-- Test should check failure criteria aren't violated
+**Write tests first:**
+- Tests should verify the success criteria
+- Tests should check failure criteria aren't violated
 - Use project test patterns and conventions (see project CLAUDE.md)
 
 **Then implement:**
-- Minimal code to make test pass
+- Minimal code to make tests pass
 - Follow existing patterns exactly
-- No additional features beyond objective
+- No additional features beyond the bead's objective
+- Run the build after each file change to catch errors early
 
-**Step 2.6 - Verify (Tests):**
+**Step 2.6 — Verify:**
 
 ```bash
-# Run the specific test
+# Run bead-specific tests
 {command from bead's Verification section}
 
 # Run full test suite
@@ -219,66 +211,45 @@ Write code following:
 
 All tests must pass before proceeding.
 
-**Step 2.7 - Self-Review (Per-Bead Quality Gate):**
+**Step 2.7 — Self-Review:**
 
 Before committing, verify implementation quality:
 
-```markdown
-## Per-Bead Self-Review
-
-### Objective Achievement
-Re-read the bead objective. Ask: "Does my implementation achieve this?"
-- [ ] Objective is fully achieved (not partially)
-- [ ] No scope creep (didn't add unrequested features)
-
-### Success Criteria Verification
-For each success criterion in the bead:
-- [ ] Criterion 1: {how it's met}
-- [ ] Criterion 2: {how it's met}
-
-### Failure Criteria Check
-For each failure criterion in the bead:
-- [ ] ❌ Criterion 1: NOT violated
-- [ ] ❌ Criterion 2: NOT violated
-
-### Pattern Adherence
+```
+Per-Bead Self-Review:
+- [ ] Re-read bead objective — does the implementation achieve it?
+- [ ] Each success criterion met (check specifically)
+- [ ] No failure criterion violated (check specifically)
+- [ ] No scope creep (nothing added beyond the objective)
 - [ ] Implementation follows the referenced pattern
 - [ ] Code style matches existing codebase
-- [ ] No foreign patterns introduced
-
-### Quick Quality Check
-- [ ] No obvious bugs or logic errors
-- [ ] Error handling is appropriate
-- [ ] No hardcoded values that should be configurable
+- [ ] No obvious bugs, hardcoded values, or missing error handling
 ```
 
-**If any item fails:** Fix the issue, re-run tests, then re-review.
+If any item fails, fix the issue, re-run tests, then re-review.
 
-**If all items pass:** Proceed to upstream verification.
-
-**Step 2.8 - Upstream Verification:**
+**Step 2.8 — Upstream Verification (STANDARD+):**
 
 After self-review passes, verify against upstream artifacts:
 
 ```
-Upstream Verification Checklist:
-- [ ] Read bead's "Implements" FR references (if present)
+- [ ] Read bead's FR references (if present)
 - [ ] Verify each FR's acceptance criteria are satisfied
-- [ ] Check: do endpoints match docs/designs/{feature}/api-spec.md? (if API bead)
-- [ ] Check: do entities match docs/designs/{feature}/data-model.md? (if data bead)
-- [ ] Check: are security criteria from FRs implemented? (if security-sensitive)
+- [ ] Check: do endpoints match API spec? (if API bead)
+- [ ] Check: do entities match data model spec? (if data bead)
 - [ ] If BDD scenarios exist for referenced UCs, run them
-- [ ] If BDD scenarios don't exist yet, flag: "Tests needed for @UC-{feature}-{NNN}"
 ```
 
-If upstream verification fails, fix before marking bead complete.
-Skip this step if the bead has no FR references (e.g., infrastructure-only beads).
+Skip this step for infrastructure-only beads with no FR references.
 
-**Step 2.9 - Complete:**
+**Step 2.9 — Commit:**
 
 ```bash
+# Stage specific files (never use git add -A or git add .)
+git add {specific files changed}
+
 # Commit with message from bead
-git add -A && git commit -m "{commit message from bead}
+git commit -m "{commit message from bead}
 
 Co-Authored-By: Claude <noreply@anthropic.com>"
 
@@ -286,44 +257,117 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 br close bd-{bead-id}
 ```
 
-**Step 2.10 - Context Reset & Continue:**
+**Step 2.10 — Context Reset:**
 
-Before starting next bead:
-- Clear mental model of previous bead's implementation details
-- Do NOT carry forward files loaded for previous bead
-- Fresh start with next bead's context only
-
-Update TodoWrite progress. Loop back to Step 2.1 for next ready bead.
+Before starting the next bead:
+- Update TodoWrite progress
+- Clear mental model of the previous bead's implementation details
+- Do NOT carry forward files loaded for the previous bead
+- Start the next bead fresh — re-read from Step 2.1
 
 ---
 
-### Phase 3: Handle Parallel Beads
+### Phase 3: Parallel Beads
 
 **When `br ready` shows multiple beads:**
 
 Parallel beads can be executed in any order. Choose based on:
-1. Beads labeled `model` before `service`
-2. Beads labeled `test` before `integration`
+1. Beads labelled `model` before `service` (data before logic)
+2. Beads labelled `test` before `integration`
 3. Independent beads in any order
 
-Execute each bead fully before moving to the next.
+Execute each bead fully (Steps 2.1–2.10) before starting the next.
 
 ---
 
-### Phase 4: Post-Review Learning Identification
+### Phase 4: Auto-Recovery
 
-**After fixing issues from review, proactively identify learnings:**
+Handle issues automatically before asking the user. Different errors need different strategies.
 
+**Build Failure:**
 ```
+1. Read the error message carefully
+2. Fix the specific error (missing import, type mismatch, etc.)
+3. Re-run build
+4. If same error persists after 2 fixes → re-read context files for correct pattern
+```
+
+**Test Failure:**
+```
+1. Read the failing test and the assertion message
+2. Compare expected vs actual — is the test wrong or the implementation?
+3. Fix whichever is incorrect
+4. Re-run tests
+```
+
+**Regression (Other Tests Break):**
+```
+1. Identify which test(s) broke and why
+2. If your change accidentally broke existing behaviour → fix to preserve it
+3. If the change intentionally alters behaviour → the bead should have mentioned this
+4. If the bead didn't mention it → ask the user before proceeding
+```
+
+**Implementation Doesn't Work:**
+```
+1. Re-read the bead objective and success criteria
+2. Re-read context files for the correct pattern
+3. Check if you deviated from the referenced pattern
+4. Try a different approach based on the codebase patterns
+```
+
+**Recovery Limits:**
+- Try auto-recovery up to **3 times** per issue
+- After 3 attempts, try a **different approach** (max 2 alternative approaches)
+- After exhausting alternatives → escalate to user (Phase 5)
+
+---
+
+### Phase 5: Blocker Handling
+
+**Stop execution only for these conditions:**
+
+| Blocker Type | Why It Needs User |
+|--------------|-------------------|
+| Bead objective is ambiguous | Need clarification on intent |
+| Pattern reference doesn't exist | Need alternative pattern |
+| Discovered architectural issue | Design decision needed |
+| Auto-recovery exhausted | Human debugging needed |
+| Success criteria conflict with codebase | Need to resolve contradiction |
+
+**When stopping:**
+
+```markdown
+## Blocker Encountered
+
+**Bead:** bd-{id} — {title}
+**Objective:** {from bead}
+**Issue:** {what's unclear or failing}
+**Context Loaded:** {what you read}
+**Recovery Attempts:** {what was tried and why it failed}
+
+**What I Need:** {specific clarification or decision}
+
+Options:
+- Provide clarification/decision → I'll resume this bead
+- "skip" → Skip this bead, continue with next
+- "stop" → Halt execution, push current work
+```
+
+After user provides resolution, apply the guidance and resume from the current bead.
+
+---
+
+### Phase 6: Post-Review Learning Identification
+
+**After fixing issues from review, identify learnings:**
+
 For each fix applied:
-  1. Was it non-obvious? (took investigation, not a typo)
-  2. Would it recur in similar features?
-  3. Does it reveal a process/skill/bead gap?
+1. Was it non-obvious? (took investigation, not a typo)
+2. Would it recur in similar features?
+3. Does it reveal a process, skill, or bead gap?
 
-  If YES to any → Add to learnings list
-```
-
-**Present learnings to user:**
+If YES to any → present to user:
 
 ```markdown
 ## Review Fixes Complete
@@ -332,227 +376,116 @@ Fixed {N} issues from review.
 
 ### Learnings Identified
 
-I identified {M} potential learnings worth documenting:
+{M} potential learnings worth documenting:
 
-1. **{Topic}** ({learning_type})
-   {1-sentence description}
-
-2. **{Topic}** ({learning_type})
+1. **{Topic}** ({type: Pattern_Discovery | Gotcha_Pitfall | Context_Gap | Process_Improvement})
    {1-sentence description}
 
 Options:
-- "compound all" → Document all learnings
+- "compound all" → Document all learnings via /compound
 - "compound 1" → Document specific learning
-- "skip" → Continue without compounding
-- "done" → Finish review cycle
+- "skip" → Continue without documenting
 ```
-
-**On approval:**
-- Run `/compound` for each approved learning
-- Agent provides the topic and context (user doesn't need to specify)
-
-**Learning types to look for:**
-| Type | Signal |
-|------|--------|
-| Pattern_Discovery | "I should use this approach elsewhere" |
-| Gotcha_Pitfall | "This was non-obvious, would bite someone again" |
-| Context_Gap | "The bead should have mentioned this" |
-| Process_Improvement | "Our skill/workflow should change" |
 
 ---
 
-### Phase 5: Auto-Recovery
-
-**Handle issues automatically before asking user:**
-
-#### Implementation Doesn't Work
-```
-1. Re-read bead objective and success criteria
-2. Re-read context files for correct pattern
-3. Check if you deviated from the pattern
-4. Check for typos, missing imports
-5. Debug: add logging, check intermediate values
-6. Fix implementation
-7. Re-run tests
-```
-
-#### Test Doesn't Pass
-```
-1. Verify test actually tests the success criteria
-2. Check test is using correct assertions
-3. Check test setup matches real usage
-4. Review failure criteria - did you violate one?
-5. Fix test or implementation as appropriate
-6. Re-run tests
-```
-
-#### Regression (Other Tests Break)
-```
-1. Identify which test(s) broke
-2. Analyze if your change was intentional or accidental
-3. If accidental: Fix to not break existing behavior
-4. If intentional: The bead should have mentioned this - ask user
-5. Re-run full suite
-```
-
-#### Auto-Recovery Limit
-- Try auto-recovery up to **3 times** per issue type
-- If still failing → Stop and ask user (see Phase 5)
-
----
-
-### Phase 5: Blocker Handling
-
-**Only stop execution for these conditions:**
-
-| Blocker Type | Why It Needs User |
-|--------------|-------------------|
-| Bead objective is ambiguous | Need clarification on intent |
-| Pattern reference doesn't exist | Need alternative pattern |
-| Discovered architectural issue | Design decision needed |
-| Auto-recovery failed 3 times | Human debugging needed |
-| Success criteria conflict with codebase | Need to resolve contradiction |
-
-**When stopping:**
-```markdown
-⚠️ Blocker Encountered
-
-**Bead:** bd-{id} - {title}
-**Objective:** {from bead}
-**Issue:** {what's unclear or failing}
-**Context Loaded:** {what you read}
-**Auto-Recovery Attempts:** {what was tried}
-
-**What I Need:** {specific clarification or decision}
-
-Reply with:
-- Clarification/decision, OR
-- "skip" to skip this bead and continue, OR
-- "stop" to halt execution entirely
-```
-
-**After user provides resolution:**
-- Apply the guidance
-- Resume execution from current bead
-- Continue until feature complete
-
----
-
-### Phase 6: Feature Completion
+### Phase 7: Feature Completion
 
 **When `br ready` shows no beads and no in_progress beads:**
 
-**Step 6.1 - Final Quality Gates:**
+**Step 7.1 — Final Quality Gates:**
 ```bash
 {project build command} && {project test command}
 ```
 
-**Step 6.2 - Verify All Beads Closed:**
+**Step 7.2 — Verify All Beads Closed:**
 ```bash
-br list --status open  # Should only show epic
-br dep tree bd-{epic}  # All beads should be closed
+br list --status open      # Should only show epic
+br dep tree bd-{epic}      # All beads should be closed
 ```
 
-**Step 6.3 - Push All Changes:**
-```bash
-git push
-```
-**MANDATORY** - Work is NOT complete until pushed.
-
-**Step 6.4 - Close Epic:**
+**Step 7.3 — Close Epic:**
 ```bash
 br close bd-{epic}
 ```
 
-**Step 6.5 - Report Completion:**
+**Step 7.4 — Report Completion:**
+
 ```markdown
-## Execution Complete ✅
+## Execution Complete
 
 **Feature:** {name}
 **Epic:** bd-{epic-id}
 **Beads Completed:** {N} of {N}
-**Commits:** {count}
-**Tests:** All passing ✅
-**Pushed:** ✅
+**Tests:** All passing
 
 ### Implementation Summary
 {Brief description of what was built}
 
 ### Commits Made
-```
 {git log --oneline for this feature's commits}
-```
 
 ### Files Changed
-```
 {git diff main --stat}
+
+---
+
+Ready for code review. Run /review to start.
+```
+
+**Step 7.5 — Push (with user confirmation):**
+
+Ask the user before pushing:
+"Feature complete. Ready to push to remote?"
+
+```bash
+git push
 ```
 
 ---
 
-**Ready for code review. Run `/review` to start.**
-```
+## Context Management
 
----
+### Between Beads: Reset
 
-## Self-Review During Execution
+Each bead starts with a clean context. After completing a bead:
+- Summarise what was done (in the TodoWrite update)
+- Do NOT carry forward file contents from the previous bead
+- Re-read files from scratch if the next bead references the same files (they may have changed)
 
-**After each bead:**
-```
-[ ] Loaded only files specified in bead context
-[ ] Implementation follows pattern from referenced code
-[ ] Test verifies bead's success criteria
-[ ] Failure criteria not violated
-[ ] No code beyond bead's objective
-[ ] Full test suite passes
-[ ] Committed with bead's commit message
-[ ] Bead closed
-```
+### Within a Bead: Stay Focused
 
-**Testing Standards (MANDATORY):**
-```
-[ ] Test uses pure functions only (no side effects)
-[ ] Test is deterministic (no randomness, no timing, no external state)
-[ ] Uses project test patterns and conventions (see CLAUDE.md)
-[ ] No flaky dependencies (network, filesystem, clock)
-```
+- Read only the files listed in the bead's context references
+- If you need additional context, check the bead's "Approach" section first
+- If still insufficient, check the bead's FR references in the PRD
+- Only after exhausting bead-provided references should you explore the codebase independently
 
----
+### Context Compaction Recovery
 
-## Context Compaction Recovery
+If context was compacted mid-execution:
 
-**If context was compacted during execution:**
-
-Beads are self-contained. To continue:
-
-1. **Find current bead:**
+1. Find current bead:
    ```bash
    br list --status in_progress
    ```
 
-2. **Load bead:**
+2. Load the bead:
    ```bash
    br show bd-{bead-id}
    ```
 
-3. **Load surgical context:**
-   Read files from bead's "Context to Load" section
+3. Load surgical context from the bead's "Context to Load" section
 
-4. **Continue execution:**
-   Design → Implement → Verify → Complete
+4. Continue: Design → Implement → Verify → Commit
 
-**No need to reload plan documents.** Each bead has everything needed.
+Each bead is self-contained — no need to reload plan documents.
 
----
-
-## Resume Capability
-
-**If execution was interrupted:**
+### Resume After Interruption
 
 ```bash
 # Find where we left off
-br list --status in_progress  # Bead that was being worked on
-br ready                       # Beads that can be started
+br list --status in_progress    # Bead being worked on
+br ready                         # Beads that can be started
 
 # Resume from in_progress bead
 br show bd-{bead-id}
@@ -561,31 +494,47 @@ br show bd-{bead-id}
 
 ---
 
+## Anti-Patterns
+
+**The One-Shot Attempt** — Trying to implement an entire bead in a single pass without running the build or tests until the end. Run the build after each file change. Catch errors early when the fix is obvious, not after 10 files have been modified.
+
+**Context Hoarding** — Carrying forward file contents, error messages, and implementation details from previous beads. This leads to context rot — accuracy drops as the window fills with stale information. Reset between beads.
+
+**Scope Creep During Execution** — "While I'm here, I'll also fix this adjacent issue." The bead has an "Out of Scope" section for a reason. If you discover adjacent work, note it for a future bead, don't act on it now.
+
+**Guessing at Design Decisions** — When the bead's approach guidance is insufficient, the agent should ask rather than guess. A wrong design decision is far more expensive to fix than a brief pause for clarification.
+
+**Retrying the Same Approach** — When auto-recovery fails, trying the exact same thing again with minor variations. After 3 attempts, fundamentally rethink the approach or escalate.
+
+**Skipping Verification** — Committing without running the full test suite because "my tests pass." Regressions in other tests are just as serious as failures in new tests.
+
+---
+
 ## Quality Standards
 
-### Surgical Context Loading
-- Read ONLY files listed in bead
-- Understand patterns from context
-- Don't load entire plans/designs
-- Keep context focused
+### Per-Bead Checklist
 
-### Pattern-Based Implementation
-- Learn from existing codebase
-- Follow referenced patterns exactly
-- Write code like the codebase would
-- No foreign patterns or styles
+```
+[ ] Loaded only files specified in bead context
+[ ] Implementation follows pattern from referenced code
+[ ] Tests verify bead's success criteria
+[ ] Failure criteria not violated
+[ ] No code beyond bead's objective
+[ ] Build passes
+[ ] Full test suite passes
+[ ] Committed with bead's commit message
+[ ] Bead closed in br
+[ ] Staged specific files (not git add -A)
+```
 
-### Verification
-- Test must verify success criteria
-- Check failure criteria not violated
-- Full suite must pass
-- No regressions allowed
+### Testing Standards
 
-### Asking When Uncertain
-- Ask BEFORE implementing if unclear
-- Explain what's unclear specifically
-- Provide options you're considering
-- Don't guess at design decisions
+```
+[ ] Tests use pure functions where possible (no unnecessary side effects)
+[ ] Tests are deterministic (no randomness, timing, or external state)
+[ ] Tests follow project patterns and conventions (see CLAUDE.md)
+[ ] No flaky dependencies (network, filesystem, clock) unless testing those specifically
+```
 
 ---
 
@@ -593,13 +542,13 @@ br show bd-{bead-id}
 
 | Condition | Action |
 |-----------|--------|
-| All beads complete | Report completion, suggest `/review` |
+| All beads complete | Report completion, suggest /review |
 | Blocker hit | Stop, ask user, resume after resolution |
-| User says "stop" | Push current work, report progress |
+| User says "stop" | Commit current work, report progress |
 
 When all beads complete: **"Feature complete. Run /review to start code review."**
 
 ---
 
-*Skill Version: 2.0*
-*Added in v2: Upstream verification step (Step 2.8), FR traceability checking*
+*Skill Version: 3.0*
+*v3: Context reset between beads, mode selection, structured auto-recovery with limits, explicit staging (no git add -A), user confirmation before push, anti-patterns, context management guidance, fixed duplicate phase numbering*

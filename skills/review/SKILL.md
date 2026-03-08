@@ -1,20 +1,23 @@
 ---
 name: review
-description: Multi-perspective code review using parallel agents. Consolidates findings by severity for user approval. Use when implementation is complete (/execute finished), user says "review", "code review", or "check the code", before creating a PR, or after significant changes.
+description: >
+  Multi-perspective code review using parallel agents with three-layer context
+  isolation. Launches specialised review agents in the background, consolidates
+  findings by severity, and presents only actionable results. Conditional
+  upstream agents verify implementation against design, plan, and PRD when those
+  documents exist. Use when implementation is complete (/execute finished), user
+  says "review", "code review", or "check the code", before creating a PR, or
+  after significant changes.
 argument-hint: "[feature-name] or [file paths]"
 ---
 
 # Review: Parallel Agent Code Review
 
-**Philosophy:** Multiple specialized perspectives catch more issues than single review. Consolidate findings. Self-review before presenting.
+**Philosophy:** Multiple specialised perspectives catch more issues than a single review pass. Each agent focuses on a narrow concern — bugs, security, test gaps, silent failures, type design, comment accuracy — and the consolidation step deduplicates and prioritises findings. Three-layer context isolation keeps raw findings on disk, not in the conversation, so nothing is lost to context compaction. When upstream documents exist (design, plan, PRD), conditional agents verify the implementation honours the decisions and requirements that shaped it.
 
-## Core Principles
+## Why This Matters
 
-1. **Parallel specialization** - Up to 9 agents with distinct focus areas catch more than one generalist pass
-2. **Three-layer context isolation** - Review agents write to files, consolidation agent writes a structured summary to disk, main agent reads only the executive summary (~50 lines) — full findings never enter the conversation context
-3. **Severity-driven action** - Deduplicate, sort by criticality, present only actionable findings
-4. **Self-review before presenting** - Verify completeness and filter false positives before showing user
-5. **Upstream verification** - When design and plan documents exist, verify implementation honours their constraints, intent, and boundaries
+AI-generated code produces 1.7x more issues per PR than human-written code (CodeRabbit 2025 report). A well-structured review catches 70-80% of issues that would otherwise reach human reviewers, letting them focus on architecture and business logic. The key is specialisation — a security-focused reviewer catches different issues than a test coverage analyser, and running them in parallel means the review takes minutes, not hours.
 
 ---
 
@@ -28,7 +31,21 @@ Run this skill when:
 
 Do NOT use for:
 - Quick spot checks on a single file (just read it directly)
-- Pre-implementation design review (use `/brainstorm`)
+- Pre-implementation design review (use `/brainstorm` or `/technical-design`)
+
+---
+
+## Mode Selection
+
+| Mode | When | Agents | Output |
+|------|------|--------|--------|
+| **BRIEF** | Small changes (1-5 files, single concern) | 3 core agents | Executive summary only |
+| **STANDARD** | Typical feature (5-20 files) | 6 core agents + conditional upstream agents | Full review with consolidated report |
+| **COMPREHENSIVE** | Large feature, multi-service, pre-release | 6 core agents + conditional upstream agents + second pass | Full review + re-review after fixes |
+
+**BRIEF agents:** code-reviewer, pr-test-analyzer, silent-failure-hunter
+**STANDARD agents:** All 6 core agents + design-intent, plan-intent, prd-compliance (when docs exist)
+**COMPREHENSIVE agents:** Same as STANDARD, with automatic second round after fixes
 
 ---
 
@@ -41,20 +58,30 @@ Before starting, verify:
 
 ---
 
+## Three-Layer Context Isolation
+
+This is the core architectural pattern of the review skill. It prevents context bloat from large review reports.
+
+| Layer | What | Where | Size |
+|-------|------|-------|------|
+| Review agents (6-9) | Raw findings | Background output files | Unlimited |
+| Consolidation agent | Deduplicated structured report | `docs/reviews/review-{timestamp}.md` | Full report |
+| Main agent | Executive summary only | Conversation context | ~50 lines |
+
+The consolidation agent gets its own fresh context to hold all reports. The main agent reads only the compact executive summary. Full findings stay on disk, accessed on-demand during fix implementation.
+
+---
+
 ## Critical Sequence
 
 ### Phase 1: Identify Scope
 
-**Step 1.0 - Resolve Project Root:**
-
+**Step 1.0 — Resolve Project Root:**
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
-echo "Project root: ${PROJECT_ROOT}"
 ```
 
-All subsequent document paths in this skill use `${PROJECT_ROOT}/docs/` to ensure correct resolution regardless of current working directory.
-
-**Step 1.1 - Find Changed Files:**
+**Step 1.1 — Find Changed Files:**
 ```bash
 # If comparing to main
 git diff main --name-only
@@ -64,70 +91,60 @@ git log --oneline -10
 git diff HEAD~{N} --name-only
 ```
 
-**Step 1.2 - Gather Context:**
+**Step 1.2 — Gather Context:**
 - List all modified files with line counts
 - Identify the feature/change being reviewed
-- Note any specific concerns
+- Note any specific concerns from the user
 
-**Step 1.3 - Prepare Agent Context:**
-```markdown
-## Review Context
+**Step 1.3 — Determine Mode:**
+Count changed files and assess scope. If the user hasn't specified a mode:
+- 1-5 files, single concern → BRIEF
+- 5-20 files, typical feature → STANDARD
+- 20+ files, multi-service, or pre-release → COMPREHENSIVE
 
-**Feature:** {description}
-**Files Changed:**
-- `path/to/file1` (lines {start}-{end})
-- `path/to/file2` (lines {start}-{end})
-- ...
-
-**Specific Concerns:**
-- {any known issues or areas of uncertainty}
-```
-
-**Step 1.4 - Locate Design and Plan Documents:**
-Use the feature name identified in Step 1.2 to look for upstream documents:
+**Step 1.4 — Locate Upstream Documents:**
 
 ```bash
-# Check for design document
-ls "${PROJECT_ROOT}/docs/designs/{feature}/design.md"
-
-# Check for plan document and sub-plans
-ls "${PROJECT_ROOT}/docs/plans/{feature}/overview.md"
-ls "${PROJECT_ROOT}/docs/plans/{feature}/"
-
-# Check for PRD (v2: enables prd-compliance agent)
-ls "${PROJECT_ROOT}/docs/prd/{feature}/prd.md"
-
-# Check for discovery brief (v2: enriches prd-compliance checks)
-ls "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md"
+ls "${PROJECT_ROOT}/docs/designs/{feature}/design.md" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/plans/{feature}/overview.md" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
+ls "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md" 2>/dev/null
 ```
 
-Record which documents exist. Each enables a conditional review agent in Phase 2:
-- **Design found:** Include the design-intent agent.
-- **Plan found:** Include the plan-intent agent.
-- **PRD found:** Include the prd-compliance agent.
-- **None found:** Phase 2 proceeds with the 6 core agents only.
+Record which documents exist. Each enables a conditional review agent:
+- **Design found:** Include design-intent agent
+- **Plan found:** Include plan-intent agent
+- **PRD found:** Include prd-compliance agent
+- **None found:** Proceed with core agents only
 
 ---
 
-### Phase 2: Launch Background Review Agents
+### Phase 2: Launch Review Agents
 
-**Launch all agents in a single message using Task tool with `run_in_background: true`.** Launch 6 core agents always, plus up to 3 conditional agents (design-intent, plan-intent, and/or prd-compliance) based on Step 1.4.
+**Launch all agents in a single message using Task tool with `run_in_background: true`.**
 
-This writes each agent's output to a file on disk instead of into the conversation context. This prevents context bloat from up to 9 large reports and ensures no findings are lost to summarization.
+#### Core Agents (always)
+
+| Agent | Focus |
+|-------|-------|
+| `pr-review-toolkit:code-reviewer` | Bugs, logic errors, security vulnerabilities, code quality |
+| `code-simplifier:code-simplifier` | Simplification, DRY violations, unnecessary complexity |
+| `pr-review-toolkit:pr-test-analyzer` | Test coverage quality, edge cases, missing tests |
+| `pr-review-toolkit:silent-failure-hunter` | Silent failures, swallowed errors, inappropriate fallbacks |
+| `pr-review-toolkit:type-design-analyzer` | Type design, encapsulation, invariant expression |
+| `pr-review-toolkit:comment-analyzer` | Comment accuracy, stale documentation, comment rot |
+
+In BRIEF mode, launch only: code-reviewer, pr-test-analyzer, silent-failure-hunter.
+
+#### Conditional Upstream Agents (STANDARD+, when docs exist)
 
 | Agent | Focus | Condition |
 |-------|-------|-----------|
-| `pr-review-toolkit:code-reviewer` | Bugs, logic errors, security vulnerabilities, code quality | Always |
-| `code-simplifier:code-simplifier` | Simplification opportunities, DRY violations, unnecessary complexity | Always |
-| `pr-review-toolkit:pr-test-analyzer` | Test coverage quality, edge cases, missing tests | Always |
-| `pr-review-toolkit:silent-failure-hunter` | Silent failures, swallowed errors, inappropriate fallbacks, missing error propagation | Always |
-| `pr-review-toolkit:type-design-analyzer` | Type design, encapsulation, invariant expression, constructor patterns | Always |
-| `pr-review-toolkit:comment-analyzer` | Comment accuracy, stale documentation, comment rot, maintainability | Always |
-| `general-purpose` (design-intent) | Anti-requirements honoured, trade-offs respected, deferred items not implemented, architecture followed, complexity budget not exceeded | Design doc found |
-| `general-purpose` (plan-intent) | All planned components implemented, pseudocode intent followed, failure criteria respected, pattern references honoured, dependencies correct | Plan doc found |
-| `general-purpose` (prd-compliance) | All Must-Have FRs implemented, acceptance criteria satisfied, security criteria on FRs enforced, no scope creep beyond PRD, discovery domain requirements addressed | PRD found |
+| `general-purpose` (design-intent) | Anti-requirements, trade-offs, deferred items, architecture, complexity budget | Design doc found |
+| `general-purpose` (plan-intent) | Component completeness, intent followed, failure criteria, pattern references, dependencies | Plan doc found |
+| `general-purpose` (prd-compliance) | Must-Have FR coverage, acceptance criteria, security criteria, scope compliance | PRD found |
 
-**Agent Prompt Template:**
+**Agent Prompt Template (core agents):**
 ```
 Review the following code changes for {feature description}.
 
@@ -137,20 +154,22 @@ Files changed:
 Focus on:
 - {agent-specific focus from table above}
 
-Rate each finding with criticality (1-10):
-- 8-10: Must fix (bugs, security, correctness)
-- 5-7: Should consider (code quality, maintainability)
-- 1-4: Observation (style, minor improvements)
+Rate each finding:
+- Criticality (1-10): 8-10 must fix, 5-7 should consider, 1-4 observation
+- Confidence (0-100): How confident are you this is a real issue?
+
+Only report findings with confidence >= 70.
 
 Return findings in this format:
 ### Finding {N}
 **File:** `path/to/file:line`
 **Criticality:** {1-10}
+**Confidence:** {0-100}
 **Issue:** {description}
 **Suggestion:** {how to fix}
 ```
 
-**Design-Intent Agent Prompt Template (only if design document exists):**
+**Design-Intent Agent Prompt Template:**
 ```
 Review the following code changes against the design document.
 
@@ -159,32 +178,35 @@ Design document: ${PROJECT_ROOT}/docs/designs/{feature}/design.md
 Files changed:
 {list of files with line numbers}
 
-Read the design document and verify the implementation against these specific sections:
+Read the design document and verify the implementation against:
 
-1. **Anti-Requirements** — Verify every "Must NOT" item is absent from the implementation. Flag any violations.
-2. **Trade-offs Accepted** — Verify the implementation reflects the trade-offs stated in the design, not different ones.
-3. **Deferred Items** — Verify deferred scope was NOT implemented. Flag any scope creep.
-4. **Kill Criteria** — Flag if any kill criteria defined in the design are now triggered.
-5. **Complexity Budget** — Check the implementation against stated complexity limits.
-6. **Chosen Approach** — Verify the implementation follows the chosen approach, not a rejected alternative.
+1. **Anti-Requirements** — Verify every "Must NOT" item is absent. Flag violations.
+2. **Trade-offs Accepted** — Verify the implementation reflects stated trade-offs.
+3. **Deferred Items** — Verify deferred scope was NOT implemented. Flag scope creep.
+4. **Kill Criteria** — Flag if any kill criteria are now triggered.
+5. **Complexity Budget** — Check implementation against stated complexity limits.
+6. **Chosen Approach** — Verify implementation follows the chosen approach, not a rejected alternative.
 7. **Architecture** — Verify component responsibilities and interfaces match the design.
 
-Rate each finding with criticality (1-10):
-- 8-10: Must fix (violates anti-requirements, implements deferred scope, triggers kill criteria)
-- 5-7: Should consider (trade-off drift, complexity budget stretch, minor architecture deviation)
-- 1-4: Observation (style differs from design intent but not harmful)
+Rate each finding:
+- Criticality (1-10): 8-10 violates anti-requirements/implements deferred scope/triggers kill criteria,
+  5-7 trade-off drift/complexity stretch, 1-4 minor style deviation
+- Confidence (0-100): How confident are you?
+
+Only report findings with confidence >= 70.
 
 Return findings in this format:
 ### Finding {N}
 **File:** `path/to/file:line`
 **Design Section:** {which section above}
 **Criticality:** {1-10}
+**Confidence:** {0-100}
 **Issue:** {description}
-**Design Says:** {relevant quote from design document}
-**Suggestion:** {how to align with design}
+**Design Says:** {relevant quote}
+**Suggestion:** {how to align}
 ```
 
-**Plan-Intent Agent Prompt Template (only if plan document exists):**
+**Plan-Intent Agent Prompt Template:**
 ```
 Review the following code changes against the implementation plan.
 
@@ -194,33 +216,34 @@ Sub-plans directory: ${PROJECT_ROOT}/docs/plans/{feature}/
 Files changed:
 {list of files with line numbers}
 
-Read the plan overview and all sub-plan files (NN-{component}.md). Verify the implementation against these aspects:
+Read the plan overview and all sub-plan files. Verify:
 
-1. **Component Completeness** — Verify every component in the task breakdown has a corresponding implementation. Flag missing components.
-2. **Pseudocode Intent** — For each sub-plan task, verify the implementation logic matches the pseudocode intent. Flag divergent logic.
-3. **Failure Criteria** — Each sub-plan lists anti-patterns to avoid. Verify none are present in the implementation.
-4. **Pattern References** — Sub-plans reference existing code patterns to follow. Verify the implementation follows them.
-5. **Dependencies** — Verify component dependencies and build order match the plan's dependency graph.
-6. **Success Criteria** — Check that observable outcomes listed in the plan are achievable by the implementation.
+1. **Component Completeness** — Every planned component has implementation. Flag missing.
+2. **Intent Followed** — Implementation logic matches the plan's intent. Flag divergent logic.
+3. **Failure Criteria** — Anti-patterns from sub-plans are absent. Flag violations.
+4. **Pattern References** — Implementation follows referenced patterns.
+5. **Dependencies** — Component dependencies match the plan's dependency graph.
+6. **Success Criteria** — Observable outcomes are achievable by the implementation.
 
-Rate each finding with criticality (1-10):
-- 8-10: Must fix (missing planned component, logic contradicts pseudocode, failure criteria violated)
-- 5-7: Should consider (partial pattern adherence, success criteria unclear, dependency order differs)
-- 1-4: Observation (minor deviation from plan that doesn't affect correctness)
+Rate each finding:
+- Criticality (1-10): 8-10 missing component/logic contradiction/failure criteria violated,
+  5-7 partial pattern adherence/unclear success criteria, 1-4 minor deviation
+- Confidence (0-100): How confident are you?
+
+Only report findings with confidence >= 70.
 
 Return findings in this format:
 ### Finding {N}
 **File:** `path/to/file:line`
-**Plan Section:** {which sub-plan and task}
+**Plan Section:** {sub-plan and task}
 **Criticality:** {1-10}
+**Confidence:** {0-100}
 **Issue:** {description}
-**Plan Says:** {relevant quote from plan document}
-**Suggestion:** {how to align with plan}
+**Plan Says:** {relevant quote}
+**Suggestion:** {how to align}
 ```
 
-**Each agent call returns an `output_file` path. Record all paths (6, 7, 8, or 9) for Phase 3.**
-
-**PRD-Compliance Agent Prompt Template (only if PRD exists):**
+**PRD-Compliance Agent Prompt Template:**
 ```
 Review the following code changes against the Product Requirements Document.
 
@@ -230,70 +253,69 @@ Discovery brief (if exists): ${PROJECT_ROOT}/docs/discovery/{feature}/discovery-
 Files changed:
 {list of files with line numbers}
 
-Read the PRD and verify the implementation against these aspects:
+Read the PRD and verify:
 
-1. **FR Coverage** — For each Must-Have FR, verify implementation code exists that satisfies it. Flag missing Must-Haves as critical.
-2. **Acceptance Criteria** — For each FR's Given/When/Then criteria, verify the implementation produces the expected outcome.
-3. **Security Criteria** — For FRs with security criteria, verify they are implemented (not just documented). E.g., "secrets hashed" means actual BCrypt usage, not a comment.
-4. **Compliance Criteria** — For FRs with compliance criteria (POPIA, SOC 2), verify the implementation addresses them (audit logging present, data purpose recorded, etc.).
-5. **Scope Compliance** — Flag any implemented features NOT in the PRD (scope creep). Flag any Won't-Have items that were implemented.
-6. **Discovery Domain Requirements** — If a discovery brief exists, verify all IN SCOPE domain requirements are addressed.
+1. **FR Coverage** — For each Must-Have FR, verify implementation exists. Flag missing.
+2. **Acceptance Criteria** — For each FR's Given/When/Then, verify expected outcomes.
+3. **Security Criteria** — For FRs with security criteria, verify actual implementation.
+4. **Compliance Criteria** — For FRs with compliance criteria, verify implementation.
+5. **Scope Compliance** — Flag implemented features NOT in the PRD. Flag Won't-Have items.
+6. **Discovery Requirements** — If discovery brief exists, verify IN SCOPE domain requirements.
 
-Rate each finding with criticality (1-10):
-- 8-10: Must fix (Must-Have FR not implemented, security criteria not enforced, scope creep)
-- 5-7: Should consider (Should-Have FR partially implemented, compliance gaps)
-- 1-4: Observation (Could-Have FR not done, minor acceptance criteria gaps)
+Rate each finding:
+- Criticality (1-10): 8-10 Must-Have FR missing/security not enforced/scope creep,
+  5-7 Should-Have partially done/compliance gaps, 1-4 Could-Have not done
+- Confidence (0-100): How confident are you?
+
+Only report findings with confidence >= 70.
 
 Return findings in this format:
 ### Finding {N}
 **File:** `path/to/file:line`
-**Requirement:** {FR/NFR/DR ID}
+**Requirement:** {FR/NFR ID}
 **Criticality:** {1-10}
+**Confidence:** {0-100}
 **Issue:** {description}
 **PRD Says:** {relevant requirement text}
-**Suggestion:** {how to align with PRD}
+**Suggestion:** {how to align}
 ```
+
+**Record all output_file paths for Phase 3.**
 
 ---
 
-### Phase 3: Wait for Agents and Consolidate via Agent
+### Phase 3: Consolidate Findings
 
-**Step 3.1 - Wait for All Agents:**
-Use `Read` or `Bash` with `tail` to check each output file. Wait until all agents (6-9) have completed. You will receive notifications as each background agent finishes.
+**Step 3.1 — Wait for All Agents:**
+You will receive notifications as each background agent finishes. Wait until all have completed.
 
-**Step 3.2 - Launch Consolidation Agent:**
-Generate a timestamp for this review session (e.g., `date +%Y%m%d-%H%M%S` → `20250129-143052`).
+**Step 3.2 — Launch Consolidation Agent:**
 
-Launch a single Task agent (subagent_type: `general-purpose`, **`run_in_background: true`**) that reads all output files (6-9) and writes a structured summary to `docs/reviews/review-{timestamp}.md` (e.g., `docs/reviews/review-20250129-143052.md`). Create the `docs/reviews/` directory if it doesn't exist.
+Generate a timestamp (`date +%Y%m%d-%H%M%S`). Launch a single Task agent (`subagent_type: general-purpose`, `run_in_background: true`) that reads all output files and writes to `docs/reviews/review-{timestamp}.md`.
 
-The consolidation agent runs in the background so its full output stays on disk. The main agent then selectively reads only the executive summary section, keeping the main conversation context compact.
-
-**Consolidation Agent Prompt Template:**
+**Consolidation Agent Prompt:**
 ```
-Read the following review agent output files and produce a consolidated review summary.
-Write the result to `docs/reviews/review-{timestamp}.md` using the Write tool. Create the directory if needed.
+Read the following review agent output files and produce a consolidated review.
+Write the result to docs/reviews/review-{timestamp}.md using the Write tool.
+Create the directory if needed.
 
 Output files:
 - {output_file_1} (code-reviewer)
-- {output_file_2} (code-simplifier)
-- {output_file_3} (pr-test-analyzer)
-- {output_file_4} (silent-failure-hunter)
-- {output_file_5} (type-design-analyzer)
-- {output_file_6} (comment-analyzer)
-- {output_file_7} (design-intent) ← OPTIONAL: only present if a design document was found.
-- {output_file_8} (plan-intent) ← OPTIONAL: only present if a plan document was found.
-- {output_file_9} (prd-compliance) ← OPTIONAL: only present if a PRD was found.
-
-NOTE: The design-intent, plan-intent, and prd-compliance agents are conditional. Proceed with whichever output files exist (6, 7, 8, or 9).
+- {output_file_2} (code-simplifier) ← STANDARD+ only
+...
+- {output_file_N} (prd-compliance) ← conditional
 
 Consolidation rules:
-1. DEDUPLICATE: Same issue flagged by multiple agents counts once. Note which agents flagged it (higher confidence).
-2. SORT by severity: Must Fix (8-10), Should Consider (5-7), Observations (1-4).
-3. PRESERVE exact file paths and line numbers from the original findings.
-4. Keep suggestions actionable and specific.
+1. DEDUPLICATE: Same issue from multiple agents counts once.
+   Note which agents flagged it (more agents = higher confidence).
+2. FILTER: Drop findings with confidence < 70.
+3. SORT by criticality: Must Fix (8-10), Should Consider (5-7), Observations (1-4).
+4. PRESERVE exact file paths and line numbers.
+5. Keep suggestions actionable and specific.
+6. Include a PRAISE section for well-written code worth highlighting.
 
-IMPORTANT: Write the file with this EXACT structure. The executive summary MUST come first
-and be self-contained within the first ~50 lines so the main agent can read only that section.
+Write the file with this EXACT structure. The executive summary MUST come
+first and be self-contained within the first ~50 lines.
 
 ---
 
@@ -301,135 +323,99 @@ and be self-contained within the first ~50 lines so the main agent can read only
 
 ## Executive Summary
 
-**Total Findings:** {count} ({deduplicated from {raw count} raw findings across {6-8} agents)
-- 🔴 Must Fix: {count}
-- 🟡 Should Consider: {count}
-- ⚪ Observations: {count}
+**Total Findings:** {count} (deduplicated from {raw count} across {N} agents)
+- Must Fix: {count}
+- Should Consider: {count}
+- Observations: {count}
 
 ### Must Fix (Criticality 8-10)
-Issues that MUST be addressed before approval.
 
-| # | File:Line | Issue | Agents |
-|---|-----------|-------|--------|
-| 1 | `file:123` | {description} | code-reviewer, simplifier |
+| # | File:Line | Issue | Confidence | Agents |
+|---|-----------|-------|------------|--------|
+| 1 | `file:123` | {description} | {0-100} | code-reviewer, simplifier |
 
-### Agent Completion Status
-| Agent | Findings Count | Completed |
-|-------|---------------|-----------|
-| {agent name} | {count} | Yes/No |
+### Praise
+- `file:45` — {what's well done and why it's worth highlighting}
+
+### Agent Status
+| Agent | Findings | Completed |
+|-------|----------|-----------|
+| {name} | {count} | Yes/No |
 
 ---
 
 ## Full Findings
 
 ### Should Consider (Criticality 5-7)
-Recommended improvements for code quality.
 
-| # | File:Line | Issue | Suggestion |
-|---|-----------|-------|------------|
-| 1 | `file:78` | {description} | {suggestion} |
+| # | File:Line | Issue | Suggestion | Confidence |
+|---|-----------|-------|------------|------------|
+| 1 | `file:78` | {description} | {suggestion} | {0-100} |
 
 ### Observations (Criticality 1-4)
-Minor notes, no action required.
 
-- `file:90` - {observation}
+- `file:90` — {observation}
 
 ---
 ```
 
-**Step 3.3 - Read Executive Summary Only:**
-Once the consolidation agent completes, read only the executive summary section:
+**Step 3.3 — Read Executive Summary Only:**
 ```
 Read docs/reviews/review-{timestamp}.md with limit: 50
 ```
-This gives you the stats, must-fix table, and agent status without pulling the full report into context. The full findings remain on disk at `docs/reviews/review-{timestamp}.md` for Phase 6.
 
-**Why this three-layer isolation works:**
-| Layer | What | Where |
-|-------|------|-------|
-| Review agents | Raw findings | 6-9 output files (background) |
-| Consolidation agent | Deduplicated structured report | `docs/reviews/review-{timestamp}.md` (background) |
-| Main agent | Executive summary only | Conversation context (selective read) |
-
-The consolidation agent gets its own fresh context to hold all 6-9 reports. The main agent never reads the full report — only the compact executive summary enters the conversation context. This prevents compaction from losing findings.
+This gives you the stats, must-fix table, praise, and agent status without pulling the full report into context.
 
 ---
 
-### Phase 4: Self-Review Findings
+### Phase 4: Present to User
 
-**Before presenting, verify:**
-
-```
-[ ] All agent results collected
-[ ] Findings deduplicated
-[ ] Severity ratings are consistent
-[ ] Suggestions are actionable
-[ ] No false positives included
-```
-
-**Cross-reference with docs/learnings/:**
-- Check if any findings relate to past learnings
-- Note if this reveals a pattern worth documenting
-
----
-
-### Phase 5: Present to User
-
-Present the executive summary read in Step 3.3. Do NOT read the full findings file into context here.
+Present the executive summary from Step 3.3. Do NOT read the full findings file into context.
 
 ```markdown
 ## Code Review Summary
 
 **Feature:** {name}
+**Mode:** {BRIEF | STANDARD | COMPREHENSIVE}
 **Files Reviewed:** {count}
-**Review Agents:** code-reviewer, code-simplifier, pr-test-analyzer, silent-failure-hunter, type-design-analyzer, comment-analyzer{, design-intent}{, plan-intent}
+**Agents Used:** {list}
 
-{Executive summary from Step 3.3 — stats + must-fix table + agent status}
+{Executive summary from Step 3.3}
 
-📄 **Full report:** `docs/reviews/review-{timestamp}.md` (includes Should Consider and Observations)
+Full report: `docs/reviews/review-{timestamp}.md`
 
 ---
 
-## Recommended Actions
-
-1. **Must Fix items are blocking** - These should be addressed
-2. **Should Consider items are in the full report** - Review at `docs/reviews/review-{timestamp}.md`
-
-Select which items to implement:
-- "all" - Implement all Must Fix + Should Consider
-- "must-fix" - Only implement Must Fix items
-- "{numbers}" - Implement specific items (e.g., "1, 3, 5")
-- "none" - Skip implementation, changes approved as-is
+Options:
+1. "all" — Implement all Must Fix + Should Consider
+2. "must-fix" — Only implement Must Fix items
+3. "{numbers}" — Implement specific items (e.g., "1, 3, 5")
+4. "none" — Approve changes as-is
+5. "another round" — Run review agents again
 ```
 
 ---
 
-### Phase 6: Implement Approved Fixes
+### Phase 5: Implement Approved Fixes
 
-**Only implement what user approves.**
+**Only implement what the user approves.**
 
-**If user selects "all" or "should-consider" items:** Read the full findings from `docs/reviews/review-{timestamp}.md` at this point (offset past the executive summary to the "Full Findings" section). Read only the relevant section — do not load the entire file if only specific items are needed.
+If the user selects items from the "Should Consider" section, read the relevant portion of `docs/reviews/review-{timestamp}.md` at this point (offset past the executive summary). Read only what's needed — do not load the entire file.
 
 **For each approved fix:**
 
-1. **Make the change:**
-   - Follow the suggestion exactly
-   - Keep changes minimal
-   - If detail is needed on a specific finding, read that section from `docs/reviews/review-{timestamp}.md` or the original agent output file
-
-2. **Run tests** (project test command)
-
-3. **Commit:**
+1. Make the change following the suggestion
+2. Keep changes minimal — fix the finding, don't refactor adjacent code
+3. Run tests after each fix
+4. Stage specific files and commit:
    ```bash
+   git add {specific files}
    git commit -m "fix: {description from finding}"
    ```
 
-**After all fixes:**
-Build, run tests, and push.
-
 ---
 
-### Phase 7: Review Cycle Decision
+### Phase 6: Review Cycle Decision
 
 ```markdown
 ## Fixes Implemented
@@ -437,116 +423,101 @@ Build, run tests, and push.
 **Changes Made:**
 - {list of implemented fixes}
 
-**Tests:** All passing ✅
-**Pushed:** ✅
+**Tests:** All passing
+**Build:** Succeeds
 
 ---
 
 Options:
-1. "another round" - Run review agents again on new changes
-2. "changes approved" - Complete review, ready for /compound
+1. "another round" — Run review agents again on new changes
+2. "approved" — Review complete
 3. Continue with specific concerns
 ```
 
-**Typical cycle:** 2-3 review rounds until "no significant findings"
+In COMPREHENSIVE mode, automatically run another round after fixes (up to 3 rounds total or until no Must Fix findings remain).
+
+---
+
+### Phase 7: Learning Identification
+
+After review is complete, identify learnings from the findings:
+
+For each significant finding:
+1. Was it non-obvious? (not a typo or formatting issue)
+2. Would it recur in similar features?
+3. Does it reveal a gap in the beads, plan, or skill?
+
+If learnings exist, present them:
+
+```markdown
+### Learnings Identified
+
+{N} potential learnings from this review:
+
+1. **{Topic}** ({type})
+   {1-sentence description}
+
+Options:
+- "compound all" → Document via /compound
+- "compound {N}" → Document specific learning
+- "skip" → Complete without documenting
+```
+
+When approved: **"Review complete. Run /compound to capture learnings."**
+
+---
+
+## Anti-Patterns
+
+**Foreground Agent Execution** — Running review agents in the foreground dumps all reports into the conversation context, causing bloat and lost findings during compaction. Always use `run_in_background: true`.
+
+**Reading Raw Output Files** — Reading agent output files directly into the main conversation defeats the purpose of background execution. Let the consolidation agent read them and produce a structured summary.
+
+**Reading the Full Summary** — Even the consolidated report can be large. Read only the executive summary (~50 lines) into context. Access full findings on-demand during Phase 5.
+
+**Manual Review Instead of Agents** — "Let me read each file and review it myself" misses the benefit of parallel specialised perspectives. Always use agents, even for small changes (use BRIEF mode).
+
+**No Confidence Filtering** — Presenting every finding regardless of confidence overwhelms the developer with false positives. Filter to confidence >= 70 and let agents self-assess.
+
+**Auto-Pushing After Fixes** — Pushing should always require user confirmation. The user may want to review the fixes before they're visible to others.
 
 ---
 
 ## Quality Standards
 
 ### Agent Usage
-- Always use all 6 core agents in parallel with `run_in_background: true`, plus design-intent, plan-intent, and/or prd-compliance agents when their respective documents exist
-- Never do manual review instead of agents
-- Provide full context to each agent
-- Always use a consolidation agent (`run_in_background: true`) to read output files and write to `docs/reviews/review-{timestamp}.md`
-- Never read raw agent output files or the full summary file into the main conversation
-- Read only the executive summary (~50 lines) from the summary file into context
+- Always use background agents with three-layer context isolation
+- BRIEF: 3 core agents; STANDARD: 6 core + conditional; COMPREHENSIVE: all + re-review
+- Include design-intent, plan-intent, and/or prd-compliance agents when upstream docs exist
+- Never read raw agent outputs into the main conversation
 
-### Design, Plan & PRD Verification
-- When a design document exists (`${PROJECT_ROOT}/docs/designs/{feature}/design.md`), always include the design-intent agent
-- When a plan document exists (`${PROJECT_ROOT}/docs/plans/{feature}/overview.md`), always include the plan-intent agent
-- When a PRD exists (`${PROJECT_ROOT}/docs/prd/{feature}/prd.md`), always include the prd-compliance agent
-- Design-intent findings (anti-requirement violations, scope creep, kill criteria) should be treated as Must Fix severity
-- Plan-intent findings (missing components, logic contradicting pseudocode, failure criteria violated) should be treated as Must Fix severity
-- PRD-compliance findings (Must-Have FRs not implemented, security criteria not enforced, scope creep) should be treated as Must Fix severity
-
-### Findings
+### Findings Quality
 - Deduplicate across agents
-- Sort by severity
-- Make suggestions actionable
+- Filter by confidence >= 70
+- Sort by criticality
+- Make suggestions actionable with file:line references
+- Include praise for well-written code
 
-### Implementation
+### Fix Implementation
 - Only implement approved items
 - Keep fixes minimal
 - Run tests after each fix
-
-### Self-Review
-- Verify all agents completed (check Agent Completion Status table in executive summary)
-- Check for false positives in consolidated summary
-- Cross-reference with learnings
-- If detail is needed on a specific finding, read that section from `docs/reviews/review-{timestamp}.md` or the original agent output file (do not load the entire file)
-
----
-
-## Anti-Patterns
-
-❌ **Running agents in foreground (dumps all output into conversation context)**
-```
-Launch 6-9 agents → all reports land in context → context bloats → findings lost to summarization
-```
-
-❌ **Running consolidation agent in foreground**
-```
-Consolidation agent (foreground) → full deduplicated report enters context → still too large → compaction → findings lost
-```
-
-✅ **Three-layer context isolation**
-```
-6-9 agents (background) → output files → consolidation agent (background) → docs/reviews/review-{timestamp}.md → main agent reads ONLY executive summary (~50 lines)
-```
-
-❌ **Reading raw agent output files directly into the main conversation**
-```
-# Don't do this — defeats the purpose of background execution
-Read output_file_1... Read output_file_2... (all 6-9 reports enter main context)
-```
-
-❌ **Reading the full summary file into the main conversation**
-```
-# Don't do this — the full report can still be large enough to cause compaction
-Read docs/reviews/review-{timestamp}.md (entire file enters main context)
-```
-
-✅ **Selective reading of executive summary only**
-```
-# Read only the first ~50 lines (stats + must-fix table + agent status)
-Read docs/reviews/review-{timestamp}.md with limit: 50
-# Full findings stay on disk, read on-demand during Phase 6
-```
-
-❌ **Manual inline review instead of agents**
-```
-Let me read each file and review it myself...
-```
-
-✅ **Always use all applicable agents (6 core + design-intent, plan-intent, and/or prd-compliance when docs exist)**
-```
-Each agent catches issues others miss. The consolidation step deduplicates overlap.
-```
+- Stage specific files (not `git add -A`)
+- Ask before pushing
 
 ---
 
 ## Exit Signals
 
-| Signal | Meaning |
-|--------|---------|
-| "another round" | Run agents again |
-| "changes approved" | Review complete |
-| specific concerns | Address and re-review |
+| Signal | Meaning | Next Action |
+|--------|---------|-------------|
+| "another round" | Run agents again | Return to Phase 2 |
+| "approved" | Review complete | Proceed to /compound |
+| specific concerns | Address and re-review | Target specific areas |
 
 When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 2.0*
-*Added in v2: PRD-compliance agent, discovery domain requirement verification*
+*Skill Version: 3.0*
+*v3: Mode selection (BRIEF/STANDARD/COMPREHENSIVE), confidence-based filtering, praise section, no auto-push, learning identification, streamlined anti-patterns*

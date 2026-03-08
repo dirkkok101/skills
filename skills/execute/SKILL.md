@@ -14,6 +14,8 @@ argument-hint: "[epic-id] or [feature-name]"
 
 **Philosophy:** Each bead is a self-contained work package. The agent loads surgical context, designs the implementation from codebase patterns, implements, verifies, and commits — then resets context and moves to the next bead. Beads carry intent, not implementation. The agent writes code by understanding the codebase, not by copying from the bead. Execution is autonomous — the agent runs until all beads are complete or a genuine blocker requires human input.
 
+**Duration targets:** BRIEF ~15-30 minutes (3-6 simple beads), STANDARD ~1-3 hours (typical feature), COMPREHENSIVE ~3-8 hours (multi-service, high-risk). These vary widely with feature complexity — the key signal is whether individual beads are completing smoothly, not total elapsed time.
+
 ## Why This Matters
 
 A well-written bead tells the agent what to build and how to verify it. But execution is where the value is delivered — turning intent into working, tested code. The execution loop must be:
@@ -21,7 +23,7 @@ A well-written bead tells the agent what to build and how to verify it. But exec
 - **Verifiable** — every change is tested before committing
 - **Recoverable** — failures are handled gracefully with rollback and retry
 - **Resumable** — interrupted execution can pick up where it left off
-- **Context-clean** — each bead starts fresh, preventing drift from accumulated context
+- **Context-clean** — each bead starts with fresh context, preventing drift from accumulated state
 
 ---
 
@@ -30,7 +32,7 @@ A well-written bead tells the agent what to build and how to verify it. But exec
 Run this skill when:
 - Beads have been approved (`/beads` completed)
 - User says "beads approved", "start implementation", "execute"
-- Ready beads exist (`br ready` shows tasks)
+- Ready beads exist in the issue tracker
 
 ---
 
@@ -49,12 +51,11 @@ In COMPREHENSIVE mode, beads tagged as high-risk in the plan get a user check-in
 ## Prerequisites
 
 Before starting, verify:
-- [ ] Beads exist for the feature (`br ready` shows tasks)
-- [ ] Beads have been approved by user
-- [ ] All beads assessed as "Ready" during /beads
-- [ ] Tests pass before starting (run project test command)
-- [ ] Build succeeds (run project build command)
-- [ ] If no beads, run `/beads` first
+- Beads exist for the feature and have been approved by user
+- All beads assessed as "Ready" during /beads
+- Tests pass before starting (run project test command)
+- Build succeeds (run project build command)
+- If no beads exist, run `/beads` first
 
 ---
 
@@ -67,7 +68,7 @@ Before starting, verify:
 │                                                              │
 │  1. ORIENT                                                   │
 │     └─ Read bead: objective, criteria, context refs          │
-│     └─ Check progress file for prior state                   │
+│     └─ Check progress for prior state                        │
 │                                                              │
 │  2. LOAD CONTEXT (surgical)                                  │
 │     └─ Read ONLY files listed in "Context to Load"           │
@@ -95,11 +96,13 @@ Before starting, verify:
 │  6. COMMIT                                                   │
 │     └─ Stage specific files (not git add -A)                 │
 │     └─ Commit with message from bead                         │
-│     └─ Close bead in br                                      │
+│     └─ Close bead in issue tracker                           │
 │                                                              │
-│  7. RESET                                                    │
+│  7. SUMMARISE & RESET                                        │
+│     └─ Record what was done for this bead                    │
 │     └─ Update progress tracking                              │
 │     └─ Clear mental model of previous bead                   │
+│     └─ Check execution health                                │
 │     └─ Start next bead fresh                                 │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
@@ -112,52 +115,34 @@ Before starting, verify:
 ### Phase 1: Verify Baseline
 
 **Step 1.1 — Identify Available Work:**
-```bash
-br ready                    # Find available beads
-br dep tree bd-{epic}       # See full feature structure
-```
+
+Query the issue tracker for ready beads and the feature's dependency tree. Confirm the expected beads exist and are in the right order.
 
 **Step 1.2 — Verify Baseline:**
-```bash
-{project build command} && {project test command}
-```
 
-If baseline fails, fix issues before proceeding. Do not start executing beads on a broken codebase.
+Run the project's build and test commands. If baseline fails, fix issues before proceeding. Do not start executing beads on a broken codebase.
 
 **Step 1.3 — Initialise Progress Tracking:**
 
-Use TodoWrite to show overall progress:
-```
-- [ ] bd-{id}: {title}
-- [ ] bd-{id}: {title}
-- [ ] bd-{id}: {title}
-```
+Track overall progress so you (and the user) can see what's been completed and what remains. Use whatever progress mechanism is available (TodoWrite, comments, etc.).
 
 ---
 
 ### Phase 2: Execute Beads
 
-**Loop until all beads are complete:**
+**Loop until all beads are complete.**
 
-```
-while (br ready shows tasks OR br list --status in_progress shows tasks):
-    execute_next_bead()
-```
+When multiple beads are ready simultaneously (no dependency between them), they can be executed in any order. Prefer: data model beads before service beads, service beads before integration beads. Execute each bead fully before starting the next.
 
 #### For Each Bead:
 
 **Step 2.1 — Claim Bead:**
-```bash
-br ready                              # Get next available bead(s)
-br update bd-{bead-id} --status in_progress
-```
+
+Mark the next available bead as in-progress to track state.
 
 **Step 2.2 — Orient (Read Bead):**
-```bash
-br show bd-{bead-id}
-```
 
-Parse the bead for:
+Read the full bead description and parse:
 - **Objective** — what to achieve
 - **Success Criteria** — how to know it's done
 - **Failure Criteria** — what to avoid
@@ -201,15 +186,7 @@ Based on loaded context:
 
 **Step 2.6 — Verify:**
 
-```bash
-# Run bead-specific tests
-{command from bead's Verification section}
-
-# Run full test suite
-{project test command}
-```
-
-All tests must pass before proceeding.
+Run the bead's specific verification commands, then run the full test suite. All tests must pass before proceeding.
 
 **Step 2.7 — Self-Review:**
 
@@ -224,6 +201,10 @@ Per-Bead Self-Review:
 - [ ] Implementation follows the referenced pattern
 - [ ] Code style matches existing codebase
 - [ ] No obvious bugs, hardcoded values, or missing error handling
+- [ ] Tests use pure functions where possible (no unnecessary side effects)
+- [ ] Tests are deterministic (no randomness, timing, or external state)
+- [ ] Tests follow project patterns and conventions
+- [ ] Staged specific files (not git add -A)
 ```
 
 If any item fails, fix the issue, re-run tests, then re-review.
@@ -244,86 +225,71 @@ Skip this step for infrastructure-only beads with no FR references.
 
 **Step 2.9 — Commit:**
 
-```bash
-# Stage specific files (never use git add -A or git add .)
-git add {specific files changed}
+Stage specific files (never use `git add -A` or `git add .`). Commit with the message specified in the bead. Follow the project's commit conventions from CLAUDE.md for co-authorship and formatting.
 
-# Commit with message from bead
-git commit -m "{commit message from bead}
+Close the bead in the issue tracker.
 
-Co-Authored-By: Claude <noreply@anthropic.com>"
+**Step 2.10 — Summarise & Reset:**
 
-# Close the bead
-br close bd-{bead-id}
+Record a brief per-bead completion note:
+```markdown
+**bd-{id}: {title}** — Completed
+- Files changed: {list}
+- Tests added: {count}
+- Key implementation choice: {one sentence}
 ```
 
-**Step 2.10 — Context Reset:**
-
-Before starting the next bead:
-- Update TodoWrite progress
+Update progress tracking. Then reset:
 - Clear mental model of the previous bead's implementation details
 - Do NOT carry forward files loaded for the previous bead
 - Start the next bead fresh — re-read from Step 2.1
 
----
-
-### Phase 3: Parallel Beads
-
-**When `br ready` shows multiple beads:**
-
-Parallel beads can be executed in any order. Choose based on:
-1. Beads labelled `model` before `service` (data before logic)
-2. Beads labelled `test` before `integration`
-3. Independent beads in any order
-
-Execute each bead fully (Steps 2.1–2.10) before starting the next.
-
----
-
-### Phase 4: Auto-Recovery
+#### Auto-Recovery
 
 Handle issues automatically before asking the user. Different errors need different strategies.
 
 **Build Failure:**
-```
 1. Read the error message carefully
 2. Fix the specific error (missing import, type mismatch, etc.)
 3. Re-run build
 4. If same error persists after 2 fixes → re-read context files for correct pattern
-```
 
 **Test Failure:**
-```
 1. Read the failing test and the assertion message
 2. Compare expected vs actual — is the test wrong or the implementation?
 3. Fix whichever is incorrect
 4. Re-run tests
-```
 
 **Regression (Other Tests Break):**
-```
 1. Identify which test(s) broke and why
 2. If your change accidentally broke existing behaviour → fix to preserve it
 3. If the change intentionally alters behaviour → the bead should have mentioned this
 4. If the bead didn't mention it → ask the user before proceeding
-```
 
 **Implementation Doesn't Work:**
-```
 1. Re-read the bead objective and success criteria
 2. Re-read context files for the correct pattern
 3. Check if you deviated from the referenced pattern
 4. Try a different approach based on the codebase patterns
-```
 
 **Recovery Limits:**
 - Try auto-recovery up to **3 times** per issue
 - After 3 attempts, try a **different approach** (max 2 alternative approaches)
-- After exhausting alternatives → escalate to user (Phase 5)
+- After exhausting alternatives → escalate to user (see Blocker Handling)
+
+#### Execution Health Check
+
+After every 3 completed beads, or when auto-recovery is triggered, check overall health:
+
+- **Beads completing smoothly?** If most beads require recovery, the bead descriptions may lack sufficient context or patterns. Consider pausing to improve remaining beads.
+- **Scope growing?** If implementation reveals that remaining beads are larger than expected, flag to the user: "Implementation is revealing more complexity than expected in upcoming beads. Continue or reassess?"
+- **Kill criteria still valid?** If execution is taking significantly longer than estimated, check brainstorm kill criteria. Flag if a time-based criterion is at risk.
+
+If 3+ beads in a row require recovery or produce unexpected complexity, stop and present an honest assessment: "Execution is struggling — {N} of {M} beads needed recovery. This may indicate the design or beads need revision rather than more implementation attempts."
 
 ---
 
-### Phase 5: Blocker Handling
+### Phase 3: Blocker Handling
 
 **Stop execution only for these conditions:**
 
@@ -349,20 +315,82 @@ Handle issues automatically before asking the user. Different errors need differ
 **What I Need:** {specific clarification or decision}
 
 Options:
-- Provide clarification/decision → I'll resume this bead
-- "skip" → Skip this bead, continue with next
-- "stop" → Halt execution, push current work
+- **Clarify** — provide the missing information, I'll resume this bead
+- **Skip** — skip this bead, continue with next ready bead
+- **Stop** — halt execution, commit and push current work
+- **Escalate** — return to /beads or /plan to revise
 ```
 
 After user provides resolution, apply the guidance and resume from the current bead.
 
 ---
 
-### Phase 6: Post-Review Learning Identification
+### Phase 4: Feature Completion
 
-**After fixing issues from review, identify learnings:**
+**When no beads remain (none ready, none in-progress):**
 
-For each fix applied:
+**Step 4.1 — Final Quality Gates:**
+
+Run the project's build and test commands. All must pass.
+
+**Step 4.2 — Verify All Beads Closed:**
+
+Check the issue tracker: all task beads should be closed, only the epic should remain open.
+
+**Step 4.3 — Close Epic:**
+
+Close the feature epic in the issue tracker.
+
+**Step 4.4 — Report Completion:**
+
+```markdown
+## Execution Complete
+
+**Feature:** {name}
+**Epic:** {epic-id}
+**Beads Completed:** {N} of {N}
+**Tests:** All passing
+
+### Implementation Summary
+{Brief description of what was built}
+
+### Per-Bead Notes
+{Completion notes from Step 2.10 for each bead}
+
+### Commits Made
+{git log --oneline for this feature's commits}
+
+### Files Changed
+{git diff main --stat}
+
+---
+
+Ready for code review. Run /review to start.
+```
+
+**Step 4.5 — Push (with user confirmation):**
+
+Ask the user before pushing: "Feature complete. Ready to push to remote?"
+
+---
+
+## Re-Entry: Review Fix Cycle
+
+When /review identifies issues and the user returns to /execute to fix them:
+
+**Step R.1 — Load Review Findings:**
+
+Read the review output. For each finding, understand what needs to change and why.
+
+**Step R.2 — Fix Issues:**
+
+Apply fixes following the same execution discipline: load context, implement, verify, commit. Each fix should be a separate commit with a clear message.
+
+**Step R.3 — Identify Learnings:**
+
+After fixing review issues, check if any fixes reveal learnings worth capturing:
+
+For each fix:
 1. Was it non-obvious? (took investigation, not a typo)
 2. Would it recur in similar features?
 3. Does it reveal a process, skill, or bead gap?
@@ -382,64 +410,9 @@ Fixed {N} issues from review.
    {1-sentence description}
 
 Options:
-- "compound all" → Document all learnings via /compound
-- "compound 1" → Document specific learning
-- "skip" → Continue without documenting
-```
-
----
-
-### Phase 7: Feature Completion
-
-**When `br ready` shows no beads and no in_progress beads:**
-
-**Step 7.1 — Final Quality Gates:**
-```bash
-{project build command} && {project test command}
-```
-
-**Step 7.2 — Verify All Beads Closed:**
-```bash
-br list --status open      # Should only show epic
-br dep tree bd-{epic}      # All beads should be closed
-```
-
-**Step 7.3 — Close Epic:**
-```bash
-br close bd-{epic}
-```
-
-**Step 7.4 — Report Completion:**
-
-```markdown
-## Execution Complete
-
-**Feature:** {name}
-**Epic:** bd-{epic-id}
-**Beads Completed:** {N} of {N}
-**Tests:** All passing
-
-### Implementation Summary
-{Brief description of what was built}
-
-### Commits Made
-{git log --oneline for this feature's commits}
-
-### Files Changed
-{git diff main --stat}
-
----
-
-Ready for code review. Run /review to start.
-```
-
-**Step 7.5 — Push (with user confirmation):**
-
-Ask the user before pushing:
-"Feature complete. Ready to push to remote?"
-
-```bash
-git push
+- "Compound all" → Document all learnings via /compound
+- "Compound {N}" → Document specific learning
+- "Skip" → Continue without documenting
 ```
 
 ---
@@ -449,7 +422,7 @@ git push
 ### Between Beads: Reset
 
 Each bead starts with a clean context. After completing a bead:
-- Summarise what was done (in the TodoWrite update)
+- Record what was done (in the per-bead completion note)
 - Do NOT carry forward file contents from the previous bead
 - Re-read files from scratch if the next bead references the same files (they may have changed)
 
@@ -463,78 +436,34 @@ Each bead starts with a clean context. After completing a bead:
 ### Context Compaction Recovery
 
 If context was compacted mid-execution:
-
-1. Find current bead:
-   ```bash
-   br list --status in_progress
-   ```
-
-2. Load the bead:
-   ```bash
-   br show bd-{bead-id}
-   ```
-
+1. Find the current in-progress bead in the issue tracker
+2. Load the bead's full description
 3. Load surgical context from the bead's "Context to Load" section
-
 4. Continue: Design → Implement → Verify → Commit
 
 Each bead is self-contained — no need to reload plan documents.
 
 ### Resume After Interruption
 
-```bash
-# Find where we left off
-br list --status in_progress    # Bead being worked on
-br ready                         # Beads that can be started
-
-# Resume from in_progress bead
-br show bd-{bead-id}
-# Load context, continue implementation
-```
+1. Query the issue tracker for in-progress and ready beads
+2. Resume from the in-progress bead (re-read it, load context, continue)
+3. If no in-progress bead, pick up the next ready bead
 
 ---
 
 ## Anti-Patterns
 
-**The One-Shot Attempt** — Trying to implement an entire bead in a single pass without running the build or tests until the end. Run the build after each file change. Catch errors early when the fix is obvious, not after 10 files have been modified.
+**The One-Shot Attempt** — Trying to implement an entire bead in a single pass without running the build or tests until the end. Run the build after each file change. Catch errors early when the fix is obvious, not after 10 files have been modified. Early feedback loops are the difference between smooth execution and debugging spirals.
 
-**Context Hoarding** — Carrying forward file contents, error messages, and implementation details from previous beads. This leads to context rot — accuracy drops as the window fills with stale information. Reset between beads.
+**Context Hoarding** — Carrying forward file contents, error messages, and implementation details from previous beads. This leads to context rot — accuracy drops as the window fills with stale information. Each bead gets a clean slate because the codebase may have changed since the last bead was written.
 
-**Scope Creep During Execution** — "While I'm here, I'll also fix this adjacent issue." The bead has an "Out of Scope" section for a reason. If you discover adjacent work, note it for a future bead, don't act on it now.
+**Scope Creep During Execution** — "While I'm here, I'll also fix this adjacent issue." The bead has an "Out of Scope" section for a reason. If you discover adjacent work, note it for a future bead, don't act on it now. Scope creep during execution produces untested changes and surprising diffs.
 
-**Guessing at Design Decisions** — When the bead's approach guidance is insufficient, the agent should ask rather than guess. A wrong design decision is far more expensive to fix than a brief pause for clarification.
+**Guessing at Design Decisions** — When the bead's approach guidance is insufficient, the agent should ask rather than guess. A wrong design decision is far more expensive to fix than a brief pause for clarification. The bead's "Approach" section exists to prevent guessing — if it's insufficient, that's a bead quality issue to flag.
 
-**Retrying the Same Approach** — When auto-recovery fails, trying the exact same thing again with minor variations. After 3 attempts, fundamentally rethink the approach or escalate.
+**Retrying the Same Approach** — When auto-recovery fails, trying the exact same thing again with minor variations. After 3 attempts, fundamentally rethink the approach or escalate. Persistence is a virtue, but repeating failed strategies is not persistence — it's a loop.
 
-**Skipping Verification** — Committing without running the full test suite because "my tests pass." Regressions in other tests are just as serious as failures in new tests.
-
----
-
-## Quality Standards
-
-### Per-Bead Checklist
-
-```
-[ ] Loaded only files specified in bead context
-[ ] Implementation follows pattern from referenced code
-[ ] Tests verify bead's success criteria
-[ ] Failure criteria not violated
-[ ] No code beyond bead's objective
-[ ] Build passes
-[ ] Full test suite passes
-[ ] Committed with bead's commit message
-[ ] Bead closed in br
-[ ] Staged specific files (not git add -A)
-```
-
-### Testing Standards
-
-```
-[ ] Tests use pure functions where possible (no unnecessary side effects)
-[ ] Tests are deterministic (no randomness, timing, or external state)
-[ ] Tests follow project patterns and conventions (see CLAUDE.md)
-[ ] No flaky dependencies (network, filesystem, clock) unless testing those specifically
-```
+**Skipping Verification** — Committing without running the full test suite because "my tests pass." Regressions in other tests are just as serious as failures in new tests. The full suite is the contract with the rest of the codebase.
 
 ---
 
@@ -545,10 +474,11 @@ br show bd-{bead-id}
 | All beads complete | Report completion, suggest /review |
 | Blocker hit | Stop, ask user, resume after resolution |
 | User says "stop" | Commit current work, report progress |
+| Execution health critical | Stop, assess whether to continue or revise |
 
 When all beads complete: **"Feature complete. Run /review to start code review."**
 
 ---
 
-*Skill Version: 3.0*
-*v3: Context reset between beads, mode selection, structured auto-recovery with limits, explicit staging (no git add -A), user confirmation before push, anti-patterns, context management guidance, fixed duplicate phase numbering*
+*Skill Version: 3.1*
+*v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*

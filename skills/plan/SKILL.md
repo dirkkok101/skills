@@ -16,6 +16,8 @@ argument-hint: "[feature-name] or path to design doc"
 
 **Philosophy:** A plan answers "how do we build it, in what order, and how do we know each piece is done?" The design doc made the architectural decisions; the plan decomposes them into executable work. Plans are permanent documentation — they explain the decomposition rationale so future engineers understand not just what was built but why it was built in that sequence.
 
+**Duration targets:** BRIEF ~15-20 minutes, STANDARD ~30-60 minutes, COMPREHENSIVE ~1-2 hours. Most time should be spent on Phase 1 (decomposition and ordering). If you're spending more time writing sub-plans than thinking about task boundaries, the balance is wrong.
+
 ## Why This Matters
 
 A plan that just lists tasks in a spreadsheet is a todo list, not an implementation plan. This skill produces plans that are:
@@ -52,57 +54,46 @@ BRIEF mode produces a single file with 3-6 tasks. No sub-plan files — the over
 ## Collaborative Model
 
 ```
-Phase 1: Import & Decompose
+Phase 0: Import & Prerequisites
+Phase 1: Decomposition (with kill criteria check)
   ── PAUSE 1: "Here's the decomposition. Right tasks? Right order?" ──
 Phase 2: Overview Document
 Phase 3: Sub-Plans (STANDARD+)
-  ── PAUSE 2: "Sub-plans written. Ready for review?" ──
-Phase 4: Self-Review
-  ── PAUSE 3: "Plan complete. Approve for /beads?" ──
+Phase 4: Self-Review (before presenting to user)
+  ── PAUSE 2: "Plan complete. Approve for /beads?" ──
 ```
 
 ---
 
 ## Prerequisites
 
-**Step 0: Resolve Project Root:**
+**Step 0 — Resolve and Import:**
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-ls "${PROJECT_ROOT}/docs/"
-```
+Import upstream artifacts into the planning workspace:
+- **Design docs** (primary input for STANDARD+) — `docs/designs/{feature}/` (architecture, data model, API spec, sequences)
+- **PRD** — `docs/prd/{feature}/prd.md` (requirement traceability — every Must-Have FR must be covered)
+- **Work decomposition from design** — the "Work Decomposition" section of `docs/designs/{feature}/design.md` is the starting point for Phase 1
+- **Brainstorm** — `docs/brainstorm/{feature}/brainstorm.md` (scope classification, kill criteria)
+- **Learnings** — `docs/learnings/` (relevant compound learnings from past features)
 
-**Determine mode:**
+Create the output directory: `docs/plans/{feature}/`
 
-```bash
-# STANDARD/COMPREHENSIVE mode: Design document exists
-ls "${PROJECT_ROOT}/docs/designs/{feature}/" 2>/dev/null && echo "STANDARD mode"
-
-# BRIEF mode: No design doc, work from brainstorm + PRD
-ls "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md" 2>/dev/null && echo "BRIEF mode"
-```
-
-**Import upstream artifacts:**
-
-```bash
-# Design docs (primary input for STANDARD+)
-ls "${PROJECT_ROOT}/docs/designs/{feature}/"
-
-# PRD for requirement traceability
-cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
-
-# Work decomposition from design
-grep -A 50 "Work Decomposition" "${PROJECT_ROOT}/docs/designs/{feature}/design.md" 2>/dev/null
-
-# Learnings from past features
-ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
+Do not re-interview the user for context that exists in these artifacts. Import it, reference it, build on it.
 
 ---
 
 ## Critical Sequence
 
 ### Phase 1: Decomposition
+
+**Step 1.0 — Kill Criteria Check:**
+
+Review kill criteria from brainstorm output before investing in detailed planning. During decomposition, check whether the work scope threatens any kill criterion:
+- Does the task count or complexity suggest the feature is larger than brainstorm estimated?
+- Do dependencies reveal timeline risks that threaten kill criteria?
+- Are there integration unknowns that could block the critical path?
+
+If a kill criterion is violated or at serious risk: "Kill criterion '{criterion}' appears at risk because decomposition reveals {reason}. Recommend returning to brainstorm to reassess scope before continuing to plan."
 
 **Step 1.1 — Choose Decomposition Strategy:**
 
@@ -149,7 +140,7 @@ Every Must-Have FR from the PRD must appear in at least one task.
 | FR-{MODULE}-{NAME} | — | ⚠ Gap (deferred?) |
 ```
 
-Flag any uncovered Must-Have FRs as blocking issues.
+Flag any uncovered Must-Have FRs as blocking issues. If the project uses an issue tracker, offer to create tracked items: "These Must-Have FRs have no covering task. Want me to create tracked issues for them?"
 
 **Step 1.5 — Order by Risk and Dependency:**
 
@@ -193,6 +184,11 @@ Verify: no circular dependencies. Every task has explicit "Depends on" and "Bloc
 
 **PAUSE 1:** Present the decomposition, FR coverage, and ordering to the user.
 "Here's how I've broken down the work: {N} tasks across {N} phases. The critical path is {chain}. Does this decomposition look right? Any tasks missing or mis-ordered?"
+
+Response options:
+- **Accept** — decomposition is correct, proceed to write overview and sub-plans
+- **Modify** — adjust tasks, sizing, or ordering (specify which)
+- **Escalate** — decomposition reveals the design is incomplete or scope is wrong; return upstream
 
 ---
 
@@ -293,9 +289,10 @@ This should be 2-4 sentences, not a paragraph.}
 Only include decisions that affect THIS task.}
 
 ### Patterns to Follow
-{Which existing codebase patterns to follow.
-"Follow the pattern established in {ExistingModule} for {pattern type}."
-Check project CLAUDE.md for pattern references.}
+{Identify specific patterns from the existing codebase that this task should follow.
+Check project CLAUDE.md for pattern references — look for "pattern" or "example" sections.
+Be specific: name the file, class, or module that establishes the pattern, not just "follow existing patterns."
+Example: "Follow the CreateWidgetEndpoint pattern from src/Widgets/Features/CreateWidget.cs — same request/response structure, validation approach, and test layout."}
 
 ## Scope
 
@@ -340,14 +337,27 @@ that the executing agent must satisfy.}
 - Source code or implementation steps (that's the agent's job during /execute)
 - Commit messages or test commands (that's /beads territory)
 - Duplicated design doc content (reference it, don't copy it)
+- Specific file modification lists (that's /beads territory)
 
 The boundary: **plans say WHAT to build. Beads say HOW to execute it.** /beads reads these sub-plans and adds execution-level detail (specific files to modify, test commands, commit messages, failure criteria).
+
+**Step 3.1 — Reconcile Overview:**
+
+After writing all sub-plans, review whether the overview needs updating. Sub-plans may reveal:
+- A task was harder than estimated — update complexity in Task Summary
+- A dependency was missed — update Dependency Graph
+- An FR was partially covered — update FR Coverage table
+- A task should be split — add new rows to Task Summary and Sub-Plans table
+
+Update the overview to reflect what sub-plans actually contain, so the overview remains the single source of truth for plan structure.
 
 ---
 
 ### Phase 4: Self-Review
 
 **2 rounds minimum. Exit on 2 consecutive clean rounds.**
+
+Run self-review BEFORE presenting to the user. The agent should catch its own issues rather than showing unreviewed work.
 
 **Theme 1: Completeness**
 - [ ] Every Must-Have FR covered by at least one task?
@@ -378,9 +388,15 @@ The boundary: **plans say WHAT to build. Beads say HOW to execute it.** /beads r
 - [ ] Context references point to actual files?
 - [ ] A developer (or agent) could pick up any sub-plan and understand what to build?
 
+**Theme 6: Plan/Beads Boundary**
+- [ ] No sub-plan contains source code or implementation steps?
+- [ ] No sub-plan specifies exact files to modify (that's /beads)?
+- [ ] No sub-plan contains commit messages or test commands?
+- [ ] Sub-plans describe WHAT, beads will describe HOW?
+
 **Known limitation:** Self-review is performed by the same agent that wrote the plan. Mitigate by following themes as a checklist. Invite the user to spot-check the tasks they're least confident about.
 
-**PAUSE 3:** Present completed plan with summary.
+**PAUSE 2:** Present completed plan with summary.
 
 ```markdown
 ## Implementation Plan Complete
@@ -393,17 +409,18 @@ The boundary: **plans say WHAT to build. Beads say HOW to execute it.** /beads r
 **Risk items:** {N} tasks flagged as high-risk (addressed in Phase 1)
 
 Ready for review:
-1. "plan approved" → Proceed to /beads
-2. "refine {task}" → Iterate on specific task
-3. "reorder" → Change task sequencing
-4. "park" / "abandon"
+1. "Accept" / "plan approved" → Proceed to /beads
+2. "Modify {task}" → Iterate on specific task
+3. "Reorder" → Change task sequencing
+4. "Park" → Save for later
+5. "Abandon" → Document decision rationale
 ```
 
 ---
 
-## BRIEF Mode Template
+## BRIEF Mode Output Format
 
-For BRIEF mode, produce a single `overview.md`:
+For BRIEF mode, produce a single `overview.md`. Content comes from the same phases (with Phase 3 skipped) — this template shows the expected output format:
 
 ```markdown
 # Implementation Plan: {Feature Name}
@@ -415,7 +432,7 @@ For BRIEF mode, produce a single `overview.md`:
 
 ### T01: {Title} [Foundation]
 **Implements:** FR-{NAME}
-**What:** {2-3 sentences describing intent}
+**What:** {2-3 sentences describing intent — from Phase 1}
 **Acceptance:** {Given/When/Then from PRD}
 **Depends on:** None
 
@@ -455,8 +472,8 @@ ${PROJECT_ROOT}/docs/plans/{feature}/
 
 | Signal | Meaning | Next Action |
 |--------|---------|-------------|
-| "plan approved" | Plan complete | Proceed to /beads |
-| "refine" | Gaps or ordering issues | Return to relevant phase |
+| "plan approved" / "accept" | Plan complete | Proceed to /beads |
+| "refine" / "modify" | Gaps or ordering issues | Return to relevant phase |
 | "park" | Save for later | Archive; user resumes later |
 | "abandon" | Don't build this | Document decision rationale |
 
@@ -466,17 +483,17 @@ ${PROJECT_ROOT}/docs/plans/{feature}/
 
 ## Anti-Patterns
 
-**Horizontal-Only Decomposition** — "Task 1: All database work. Task 2: All API work. Task 3: All UI." No testable increment until the last task. Default to vertical slices instead.
+**Horizontal-Only Decomposition** — "Task 1: All database work. Task 2: All API work. Task 3: All UI." This produces no testable increment until the last task completes. Default to vertical slices instead — each task delivers a thin end-to-end slice that can be tested independently.
 
-**Deferred Risk** — Saving integrations and hard problems for the end. If the external API doesn't work as expected, you want to know in Phase 1, not Phase 5.
+**Deferred Risk** — Saving integrations and hard problems for the end. If the external API doesn't work as expected, you want to know in Phase 1, not Phase 3. Early risk discovery means cheaper course corrections — late risk discovery means rework or redesign.
 
-**Testing as Phase N** — "Phase 4: Write all the tests." Each task should include its own test expectations. Testing is part of every task, not a separate phase.
+**Testing as Phase N** — "Phase 4: Write all the tests." Each task should include its own test expectations. Testing is part of every task, not a separate phase. If you can't define test criteria for a task, the task isn't well-defined enough.
 
-**The 200-Task Plan** — Over-decomposing into trivial tasks. If a task is "add import statement", it's too small. Merge into coherent behaviour units.
+**The 200-Task Plan** — Over-decomposing into trivial tasks. If a task is "add import statement", it's too small. Merge into coherent behaviour units. The overhead of managing many tiny tasks exceeds the benefit of granularity.
 
-**Plan-as-Design** — If writing the plan surfaces architectural decisions, the design is incomplete. Plans decompose decisions already made, they don't make new ones.
+**Plan-as-Design** — If writing the plan surfaces architectural decisions, the design is incomplete. Plans decompose decisions already made, they don't make new ones. The right response is to return to technical-design, not to embed design decisions in sub-plans.
 
-**Copy-Paste Sub-Plans** — Duplicating design doc content into every sub-plan. Reference it instead. Duplication drifts and creates conflicting sources of truth.
+**Copy-Paste Sub-Plans** — Duplicating design doc content into every sub-plan. Reference it instead. Duplication drifts and creates conflicting sources of truth. When the design changes, only one location should need updating.
 
 ---
 
@@ -487,5 +504,5 @@ For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.0*
-*v3: Vertical slicing default, risk-based ordering, collaborative PAUSE points, cross-cutting concerns, sizing heuristics, cleaner plan/beads boundary, BRIEF/STANDARD/COMPREHENSIVE modes, anti-patterns*
+*Skill Version: 3.1*
+*v3.1: Duration targets, kill criteria check before decomposition, prose-based artifact import (no hardcoded shell), self-review moved before user presentation (merged PAUSE 2+3), structured PAUSE response options, conditional issue tracker for uncovered FRs, overview reconciliation after sub-plans, plan/beads boundary check in self-review, concrete pattern guidance in sub-plans, anti-patterns explain WHY*

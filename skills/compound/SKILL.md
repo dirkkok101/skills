@@ -2,18 +2,20 @@
 name: compound
 description: >
   Capture learnings from feature development to make future work easier.
-  Each call captures one focused learning — a pattern discovery, gotcha,
-  architecture decision, process improvement, or context gap. Learnings are
-  routed to the right location based on scope (project-specific vs global)
-  and surfaced in future sessions through CLAUDE.md references. Called after
-  review cycles during execute, after /review approval, or at any point
-  during development when insight is fresh.
+  Each call captures one or more focused learnings — pattern discoveries,
+  gotchas, architecture decisions, process improvements, or context gaps.
+  Learnings are routed to the right location based on scope (project-specific
+  vs global) and surfaced in future sessions through CLAUDE.md references.
+  Called after review cycles during execute, after /review approval, or at
+  any point during development when insight is fresh.
 argument-hint: "[learning-topic] or 'review' to process review findings"
 ---
 
 # Compound: Feature Learning Capture
 
-**Philosophy:** Large feature development produces valuable learnings at every phase — from brainstorm through review. Capture them while context is fresh, one at a time, so future features benefit. A learning that changes future behaviour is valuable. A learning that merely records history is shelfware. Every entry should tell the reader what to DO differently, not just what happened.
+**Philosophy:** Large feature development produces valuable learnings at every phase — from brainstorm through review. Capture them while context is fresh so future features benefit. A learning that changes future behaviour is valuable. A learning that merely records history is shelfware. Every entry should tell the reader what to DO differently, not just what happened.
+
+**Duration targets:** Single learning ~3-5 minutes. Bulk processing (review findings) ~10-20 minutes. Most time should be spent on Step 3 (threshold test and classification) — if you're spending more time writing than deciding what's worth writing, the threshold test isn't filtering hard enough.
 
 ## Why This Matters
 
@@ -31,6 +33,20 @@ Run this skill when:
 - User says "capture learning", "compound", "document what we learned"
 - After discovering a pattern, gotcha, or best practice
 - When /execute or /review identifies learnings to document
+
+---
+
+## Collaborative Model
+
+```
+Phase 1: Identify & Classify Learnings
+  ── PAUSE 1: "Here's what I've identified. Worth documenting?" ──
+Phase 2: Document & Save
+Phase 3: Surface & Verify
+  ── PAUSE 2: "Learning saved. Surfacing confirmed." ──
+```
+
+For bulk processing (review findings), Phase 1 presents all candidate learnings at once. The user approves, rejects, or modifies each before Phase 2 processes approved ones.
 
 ---
 
@@ -86,7 +102,7 @@ Learnings have different scopes. The scope determines where the learning is stor
 | Scope | Where to Store | Examples |
 |-------|---------------|---------|
 | **Project** (default) | `${PROJECT_ROOT}/docs/learnings/{category}.md` | Codebase-specific patterns, entity gotchas, service interactions |
-| **Global** | `~/.claude/learnings/` or equivalent agent memory | Language-level gotchas, tool usage patterns, general best practices |
+| **Global** | Agent's persistent memory location (configured per agent) | Language-level gotchas, tool usage patterns, general best practices |
 | **Feature** | Inline code comment or ADR in `docs/decisions/` | "This endpoint uses eventual consistency because..." |
 
 **Decision tree:**
@@ -98,30 +114,82 @@ Default to **project** scope. Promote to global only when the learning clearly t
 
 ---
 
-## Execution
+## Critical Sequence
 
-### Step 1: Identify the Learning
+### Phase 1: Identify & Classify
 
-Ask: **"What did you learn? Which category and phase does this relate to?"**
+**Step 1.1 — Gather Candidate Learnings:**
 
-If processing review findings, read the review output and extract learnings.
+**Single learning mode:** Ask the user what they learned, or extract from the context of the current conversation.
 
-### Step 2: Apply Threshold Test
+**Bulk mode (review findings):** Read the most recent review output from `docs/reviews/`. For each significant finding category, extract potential learnings:
+- **Correctness** findings → `gotcha` or `pattern` learnings
+- **Security** findings → `gotcha` learnings
+- **Performance** findings → `pattern` or `architecture` learnings
+- **Upstream compliance** findings → `process` or `context-gap` learnings
+- **Test coverage** findings → `review-feedback` learnings
 
-Check the learning against the 3 criteria. If it doesn't pass at least 2, suggest skipping:
+If no review file exists, ask the user to describe findings or run /review first.
+
+**Step 1.2 — Apply Threshold Test:**
+
+For each candidate learning, check against the 3 criteria. If it doesn't pass at least 2, flag it:
 "This seems like {reason it might not qualify}. Still worth documenting, or skip?"
 
-### Step 3: Classify
+**Step 1.3 — Classify Each Learning:**
 
-Determine:
+For each learning that passes threshold:
 - **Category** from the type table (pattern, gotcha, architecture, process, context-gap, review-feedback)
 - **Phase** where the learning originated
 - **Scope** (project, global, or feature)
 - **Feature** it was discovered during
 
-### Step 4: Document
+**PAUSE 1:** Present classified learnings to the user.
 
-**Learning Format:**
+**Single mode:**
+```markdown
+## Learning Identified
+
+**Title:** {title}
+**Category:** {category} | **Phase:** {phase} | **Scope:** {scope}
+**Threshold:** Passes {N}/3 criteria ({which ones})
+
+**What to Do:** {imperative statement}
+**Context:** {1-2 sentences}
+
+Options:
+- **Accept** — save this learning as classified
+- **Modify** — change category, scope, or wording
+- **Skip** — doesn't pass threshold after all
+```
+
+**Bulk mode:**
+```markdown
+## Learnings from Review
+
+{N} candidate learnings extracted, {M} passed threshold:
+
+| # | Title | Category | Phase | Scope | Threshold |
+|---|-------|----------|-------|-------|-----------|
+| 1 | {title} | {category} | {phase} | {scope} | {N}/3 |
+| 2 | {title} | {category} | {phase} | {scope} | {N}/3 |
+
+Filtered out: {list of candidates that didn't pass threshold and why}
+
+Options:
+- **Accept all** — save all {M} learnings
+- **Accept {numbers}** — save specific learnings (e.g., "1, 3")
+- **Modify {number}** — change a specific learning
+- **Skip all** — none worth documenting
+```
+
+---
+
+### Phase 2: Document & Save
+
+For each approved learning:
+
+**Step 2.1 — Write in Format:**
 
 ```markdown
 ## {Learning Title}
@@ -144,7 +212,17 @@ This is the minimum viable learning. If someone reads nothing else, this line sh
 {What would have happened without this learning? How much time/effort does it save?}
 ```
 
-### Step 5: Save
+**Step 2.2 — Format Validation:**
+
+Before saving, verify the learning follows the format:
+- [ ] Has a "What to Do" section with an imperative statement (not narrative)
+- [ ] "What to Do" is specific and actionable (not vague advice)
+- [ ] Context is brief (1-3 sentences, not a novel)
+- [ ] Category and scope are correct
+
+If validation fails, fix the learning before saving. This prevents the "Problem-Only Entry" anti-pattern from slipping through.
+
+**Step 2.3 — Save:**
 
 **Project scope:** Append to `${PROJECT_ROOT}/docs/learnings/{category}.md`
 
@@ -156,27 +234,32 @@ Accumulated learnings from feature development.
 Referenced by brainstorm and discovery skills.
 ```
 
-**Global scope:** Append to `~/.claude/learnings/{category}.md` or equivalent agent memory location.
+**Global scope:** Append to the agent's persistent memory location. Keep it concise — global files are loaded every session and consume tokens.
 
 **Feature scope:** Add as an inline code comment at the relevant location, or create an ADR in `docs/decisions/`.
 
-### Step 6: Surface the Learning
+---
 
-A learning that's stored but never found is shelfware. Ensure the learning will surface in future sessions:
+### Phase 3: Surface & Verify
 
-**For project learnings:**
-- Verify `docs/learnings/` is referenced in the project's CLAUDE.md or equivalent
+A learning that's stored but never found is shelfware. This phase ensures the learning will actually surface in future sessions.
+
+**Step 3.1 — Verify Upstream Consumption:**
+
+Check that the learnings directory is referenced by files that agents load:
+
+- Does the project's CLAUDE.md (or equivalent) reference `docs/learnings/`?
 - If not, suggest adding: `# Check docs/learnings/ for codebase-specific patterns and gotchas`
 
-**For global learnings:**
+For global learnings:
 - Add a one-line imperative to the global agent instructions file
-- Keep it concise — global files are loaded every session and consume tokens
+- Keep it concise — global files are loaded every session
 
-**For coding standards (review-feedback category):**
+For coding standards (review-feedback category):
 - Suggest updating CLAUDE.md with the new standard
 - Frame as an imperative: "Always X when Y" or "Never X because Y"
 
-### Step 7: Reference Updates (if applicable)
+**Step 3.2 — Reference Updates (if applicable):**
 
 If the learning improves a shared reference file (project conventions, patterns doc, etc.):
 
@@ -191,51 +274,42 @@ Update the reference? [yes / no]"
 
 If user approves, update the reference file directly.
 
----
+**Step 3.3 — Verify End-to-End:**
 
-## Bulk Processing (Review Findings)
+Confirm the learning will actually surface by checking the full chain:
+1. Learning is saved in the correct location
+2. That location is referenced from a file agents load at startup
+3. Upstream skills (research, brainstorm, discovery) will encounter it when they import learnings
 
-When called with "review" argument, process the most recent review output:
+If any link in the chain is broken, fix it now — don't leave a learning orphaned.
 
-```bash
-ls "${PROJECT_ROOT}/docs/reviews/" 2>/dev/null | sort | tail -1
+**PAUSE 2:** Confirm completion.
+
+```markdown
+## Learning Captured
+
+**Saved:** {file path}
+**Surfacing verified:** {Yes — referenced from CLAUDE.md / No — needs reference added}
+**Reference updates:** {any files updated}
+
+Options:
+- **"More"** — capture another learning
+- **"Done"** — session complete
 ```
-
-If no review file exists, ask the user to describe findings or run /review first.
-
-For each significant finding category, extract potential learnings:
-- **Correctness** findings → `gotcha` or `pattern` learnings
-- **Security** findings → `gotcha` learnings
-- **Performance** findings → `pattern` or `architecture` learnings
-- **Upstream compliance** findings → `process` or `context-gap` learnings
-- **Test coverage** findings → `review-feedback` learnings
-
-Present extracted learnings to user for confirmation before saving. Apply the threshold test to each.
 
 ---
 
 ## Anti-Patterns
 
-**The Problem-Only Entry** — "We had trouble with X." Without a "What to Do" section, this is a diary entry, not a learning. Every learning must include an imperative statement.
+**The Problem-Only Entry** — "We had trouble with X." Without a "What to Do" section, this is a diary entry, not a learning. Every learning must include an imperative statement that tells the reader what to DO differently. The format validation step catches this — if it slips through, the validation isn't running.
 
-**The Novel** — A 500-word learning about a minor gotcha. Learnings should be scannable — one imperative line, 1-3 sentences of context, done. Detailed analysis belongs in an ADR or design doc, not a learning.
+**The Novel** — A 500-word learning about a minor gotcha. Learnings should be scannable — one imperative line, 1-3 sentences of context, done. Detailed analysis belongs in an ADR or design doc, not a learning. If you're writing more than 10 lines, you're probably documenting an architecture decision, not a learning.
 
-**The Kitchen Sink** — Batching 10 learnings into one compound call. Each call captures one focused learning. Multiple learnings get separate entries so they can be independently categorised and found.
+**The Kitchen Sink** — Mixing unrelated learnings into a single entry. Each learning gets its own entry with its own category and scope so it can be independently found and acted on. A single compound session can process multiple learnings (especially in bulk mode), but each one is a separate entry.
 
-**CLAUDE.md Pollution** — Adding every learning directly to CLAUDE.md. This file is loaded every session and consumes tokens. Only the highest-signal, most frequently relevant learnings belong there. Route everything else to `docs/learnings/` and reference the directory.
+**CLAUDE.md Pollution** — Adding every learning directly to CLAUDE.md. This file is loaded every session and consumes tokens. Only the highest-signal, most frequently relevant learnings belong there. Route everything else to `docs/learnings/` and reference the directory. A CLAUDE.md that grows to 500 lines of learnings degrades agent performance.
 
-**Write-Only Documentation** — Storing learnings in a location nobody visits. Route learnings to files that agents load automatically, or reference them from files that agents load.
-
----
-
-## Quality Standards
-
-- **Imperative, not narrative** — "Always X when Y" not "We discovered that X can happen"
-- **Specific, not vague** — "Add tenant filter to all entity queries" not "Watch out for multi-tenancy issues"
-- **Threshold-tested** — Passes at least 2 of 3 criteria before persisting
-- **Correctly scoped** — Project vs global vs feature, stored in the right location
-- **Surfaced** — Referenced from a file that agents load, not buried in an unvisited directory
-- **One per call** — Focused entries that can be independently found and categorised
+**Write-Only Documentation** — Storing learnings in a location nobody visits. This is why Phase 3 exists — verify the full chain from saved file to agent startup. If no upstream skill references the learnings directory, the learning might as well not exist.
 
 ---
 
@@ -243,11 +317,11 @@ Present extracted learnings to user for confirmation before saving. Apply the th
 
 | Signal | Meaning | Next Action |
 |--------|---------|-------------|
-| "done" | Learning captured | Session complete or capture another |
-| "more" | Capture another learning | Return to Step 1 |
+| "done" | Learning(s) captured | Session complete |
+| "more" | Capture another learning | Return to Phase 1 |
 | "skip" | Learning doesn't pass threshold | Discard and move on |
 
 ---
 
-*Skill Version: 3.0*
-*v3: Threshold test for documentation worthiness, learning scope routing (project/global/feature), imperative voice requirement, anti-patterns, removed project-specific domain references, surfacing guidance*
+*Skill Version: 3.1*
+*v3.1: Duration targets, collaborative model with PAUSE points, structured response options (single + bulk mode), format validation before saving, surfacing verification as dedicated phase with end-to-end chain check, generic agent memory path (not hardcoded), clarified one-entry-per-learning vs session-can-process-multiple, removed duplicate Quality Standards section, shell commands replaced with prose, anti-patterns explain WHY*

@@ -15,6 +15,8 @@ argument-hint: "[feature-name] or [file paths]"
 
 **Philosophy:** Multiple specialised perspectives catch more issues than a single review pass. Each agent focuses on a narrow concern — bugs, security, test gaps, silent failures, type design, comment accuracy — and the consolidation step deduplicates and prioritises findings. Three-layer context isolation keeps raw findings on disk, not in the conversation, so nothing is lost to context compaction. When upstream documents exist (design, plan, PRD), conditional agents verify the implementation honours the decisions and requirements that shaped it.
 
+**Duration targets:** BRIEF ~5-10 minutes (3 agents, small scope), STANDARD ~15-30 minutes (6-9 agents, typical feature), COMPREHENSIVE ~30-60 minutes (all agents + re-review rounds). Agent execution is parallel, so duration scales with the slowest agent, not the total count.
+
 ## Why This Matters
 
 AI-generated code produces 1.7x more issues per PR than human-written code (CodeRabbit 2025 report). A well-structured review catches 70-80% of issues that would otherwise reach human reviewers, letting them focus on architecture and business logic. The key is specialisation — a security-focused reviewer catches different issues than a test coverage analyser, and running them in parallel means the review takes minutes, not hours.
@@ -39,7 +41,7 @@ Do NOT use for:
 
 | Mode | When | Agents | Output |
 |------|------|--------|--------|
-| **BRIEF** | Small changes (1-5 files, single concern) | 3 core agents | Executive summary only |
+| **BRIEF** | Small changes (1-5 files, single concern) | 3 core agents | Executive summary only (no consolidation agent) |
 | **STANDARD** | Typical feature (5-20 files) | 6 core agents + conditional upstream agents | Full review with consolidated report |
 | **COMPREHENSIVE** | Large feature, multi-service, pre-release | 6 core agents + conditional upstream agents + second pass | Full review + re-review after fixes |
 
@@ -52,9 +54,9 @@ Do NOT use for:
 ## Prerequisites
 
 Before starting, verify:
-- [ ] All tests pass (run project test command)
-- [ ] Build succeeds (run project build command)
-- [ ] Changes are committed (not necessarily pushed)
+- All tests pass (run project test command)
+- Build succeeds (run project build command)
+- Changes are committed (not necessarily pushed)
 
 ---
 
@@ -64,11 +66,13 @@ This is the core architectural pattern of the review skill. It prevents context 
 
 | Layer | What | Where | Size |
 |-------|------|-------|------|
-| Review agents (6-9) | Raw findings | Background output files | Unlimited |
+| Review agents (3-9) | Raw findings | Background output files | Unlimited |
 | Consolidation agent | Deduplicated structured report | `docs/reviews/review-{timestamp}.md` | Full report |
 | Main agent | Executive summary only | Conversation context | ~50 lines |
 
 The consolidation agent gets its own fresh context to hold all reports. The main agent reads only the compact executive summary. Full findings stay on disk, accessed on-demand during fix implementation.
+
+**BRIEF mode exception:** With only 3 agents and 1-5 files, skip the consolidation agent. Read agent outputs directly and produce the executive summary inline. The overhead of a consolidation agent exceeds the benefit for small reviews.
 
 ---
 
@@ -76,40 +80,27 @@ The consolidation agent gets its own fresh context to hold all reports. The main
 
 ### Phase 1: Identify Scope
 
-**Step 1.0 — Resolve Project Root:**
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-```
-
 **Step 1.1 — Find Changed Files:**
-```bash
-# If comparing to main
-git diff main --name-only
 
-# If reviewing recent commits
-git log --oneline -10
-git diff HEAD~{N} --name-only
-```
+Identify all files changed relative to the base branch (typically main). Gather:
+- List of all modified files with line counts
+- The feature/change being reviewed
+- Any specific concerns from the user
 
-**Step 1.2 — Gather Context:**
-- List all modified files with line counts
-- Identify the feature/change being reviewed
-- Note any specific concerns from the user
+**Step 1.2 — Determine Mode:**
 
-**Step 1.3 — Determine Mode:**
 Count changed files and assess scope. If the user hasn't specified a mode:
 - 1-5 files, single concern → BRIEF
 - 5-20 files, typical feature → STANDARD
 - 20+ files, multi-service, or pre-release → COMPREHENSIVE
 
-**Step 1.4 — Locate Upstream Documents:**
+**Step 1.3 — Locate Upstream Documents:**
 
-```bash
-ls "${PROJECT_ROOT}/docs/designs/{feature}/design.md" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/plans/{feature}/overview.md" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md" 2>/dev/null
-```
+Check for the existence of upstream artifacts:
+- **Design doc** — `docs/designs/{feature}/design.md`
+- **Plan** — `docs/plans/{feature}/overview.md`
+- **PRD** — `docs/prd/{feature}/prd.md`
+- **Discovery brief** — `docs/discovery/{feature}/discovery-brief.md`
 
 Record which documents exist. Each enables a conditional review agent:
 - **Design found:** Include design-intent agent
@@ -140,9 +131,9 @@ In BRIEF mode, launch only: code-reviewer, pr-test-analyzer, silent-failure-hunt
 
 | Agent | Focus | Condition |
 |-------|-------|-----------|
-| `general-purpose` (design-intent) | Anti-requirements, trade-offs, deferred items, architecture, complexity budget | Design doc found |
-| `general-purpose` (plan-intent) | Component completeness, intent followed, failure criteria, pattern references, dependencies | Plan doc found |
-| `general-purpose` (prd-compliance) | Must-Have FR coverage, acceptance criteria, security criteria, scope compliance | PRD found |
+| `general-purpose` (design-intent) | Anti-requirements, trade-offs, deferred items, architecture, complexity budget, kill criteria | Design doc found |
+| `general-purpose` (plan-intent) | Component completeness, intent followed, failure criteria, pattern references, dependencies, kill criteria | Plan doc found |
+| `general-purpose` (prd-compliance) | Must-Have FR coverage, acceptance criteria, security criteria, scope compliance, kill criteria | PRD found |
 
 **Agent Prompt Template (core agents):**
 ```
@@ -224,9 +215,10 @@ Read the plan overview and all sub-plan files. Verify:
 4. **Pattern References** — Implementation follows referenced patterns.
 5. **Dependencies** — Component dependencies match the plan's dependency graph.
 6. **Success Criteria** — Observable outcomes are achievable by the implementation.
+7. **Kill Criteria** — Flag if implementation reveals kill criteria are triggered (e.g., scope exceeded, timeline blown).
 
 Rate each finding:
-- Criticality (1-10): 8-10 missing component/logic contradiction/failure criteria violated,
+- Criticality (1-10): 8-10 missing component/logic contradiction/failure criteria violated/kill criteria triggered,
   5-7 partial pattern adherence/unclear success criteria, 1-4 minor deviation
 - Confidence (0-100): How confident are you?
 
@@ -261,9 +253,10 @@ Read the PRD and verify:
 4. **Compliance Criteria** — For FRs with compliance criteria, verify implementation.
 5. **Scope Compliance** — Flag implemented features NOT in the PRD. Flag Won't-Have items.
 6. **Discovery Requirements** — If discovery brief exists, verify IN SCOPE domain requirements.
+7. **Kill Criteria** — Flag if implementation violates or triggers any kill criteria from brainstorm/PRD.
 
 Rate each finding:
-- Criticality (1-10): 8-10 Must-Have FR missing/security not enforced/scope creep,
+- Criticality (1-10): 8-10 Must-Have FR missing/security not enforced/scope creep/kill criteria triggered,
   5-7 Should-Have partially done/compliance gaps, 1-4 Could-Have not done
 - Confidence (0-100): How confident are you?
 
@@ -287,11 +280,16 @@ Return findings in this format:
 ### Phase 3: Consolidate Findings
 
 **Step 3.1 — Wait for All Agents:**
+
 You will receive notifications as each background agent finishes. Wait until all have completed.
 
-**Step 3.2 — Launch Consolidation Agent:**
+**Agent Health Check:** If any agent fails, times out, or returns zero findings on a substantial change (20+ files), note the gap in the summary. Do not re-run failed agents automatically — present the gap to the user and let them decide: "The {agent-name} agent failed/timed out. Want me to re-run it, or proceed without?"
 
-Generate a timestamp (`date +%Y%m%d-%H%M%S`). Launch a single Task agent (`subagent_type: general-purpose`, `run_in_background: true`) that reads all output files and writes to `docs/reviews/review-{timestamp}.md`.
+**Step 3.2 — Consolidate:**
+
+**BRIEF mode:** Read agent outputs directly. Produce the executive summary inline — no consolidation agent needed.
+
+**STANDARD/COMPREHENSIVE mode:** Launch a single Task agent (`subagent_type: general-purpose`, `run_in_background: true`) that reads all output files and writes to `docs/reviews/review-{timestamp}.md`.
 
 **Consolidation Agent Prompt:**
 ```
@@ -301,7 +299,7 @@ Create the directory if needed.
 
 Output files:
 - {output_file_1} (code-reviewer)
-- {output_file_2} (code-simplifier) ← STANDARD+ only
+- {output_file_2} (code-simplifier)
 ...
 - {output_file_N} (prd-compliance) ← conditional
 
@@ -360,11 +358,8 @@ first and be self-contained within the first ~50 lines.
 ```
 
 **Step 3.3 — Read Executive Summary Only:**
-```
-Read docs/reviews/review-{timestamp}.md with limit: 50
-```
 
-This gives you the stats, must-fix table, praise, and agent status without pulling the full report into context.
+Read the first ~50 lines of the review file. This gives you the stats, must-fix table, praise, and agent status without pulling the full report into context.
 
 ---
 
@@ -387,11 +382,11 @@ Full report: `docs/reviews/review-{timestamp}.md`
 ---
 
 Options:
-1. "all" — Implement all Must Fix + Should Consider
-2. "must-fix" — Only implement Must Fix items
-3. "{numbers}" — Implement specific items (e.g., "1, 3, 5")
-4. "none" — Approve changes as-is
-5. "another round" — Run review agents again
+- **"All"** — Implement all Must Fix + Should Consider
+- **"Must-fix only"** — Only implement Must Fix items
+- **"{numbers}"** — Implement specific items (e.g., "1, 3, 5")
+- **"Approved"** — Accept changes as-is, no fixes needed
+- **"Another round"** — Run review agents again
 ```
 
 ---
@@ -407,11 +402,11 @@ If the user selects items from the "Should Consider" section, read the relevant 
 1. Make the change following the suggestion
 2. Keep changes minimal — fix the finding, don't refactor adjacent code
 3. Run tests after each fix
-4. Stage specific files and commit:
-   ```bash
-   git add {specific files}
-   git commit -m "fix: {description from finding}"
-   ```
+4. **Self-review the fix** — before committing, verify:
+   - Does the fix address the finding without introducing new issues?
+   - Does it follow the project's existing patterns?
+   - Are tests still passing (including regressions)?
+5. Stage specific files and commit following the project's commit conventions from CLAUDE.md
 
 ---
 
@@ -429,81 +424,30 @@ If the user selects items from the "Should Consider" section, read the relevant 
 ---
 
 Options:
-1. "another round" — Run review agents again on new changes
-2. "approved" — Review complete
-3. Continue with specific concerns
+- **"Another round"** — Run review agents again on new changes
+- **"Approved"** — Review complete, proceed to /compound for learnings
+- **Specific concerns** — Address particular areas
 ```
 
 In COMPREHENSIVE mode, automatically run another round after fixes (up to 3 rounds total or until no Must Fix findings remain).
 
----
-
-### Phase 7: Learning Identification
-
-After review is complete, identify learnings from the findings:
-
-For each significant finding:
-1. Was it non-obvious? (not a typo or formatting issue)
-2. Would it recur in similar features?
-3. Does it reveal a gap in the beads, plan, or skill?
-
-If learnings exist, present them:
-
-```markdown
-### Learnings Identified
-
-{N} potential learnings from this review:
-
-1. **{Topic}** ({type})
-   {1-sentence description}
-
-Options:
-- "compound all" → Document via /compound
-- "compound {N}" → Document specific learning
-- "skip" → Complete without documenting
-```
-
-When approved: **"Review complete. Run /compound to capture learnings."**
+When approved: **"Review complete. Run /compound to capture learnings from this feature."**
 
 ---
 
 ## Anti-Patterns
 
-**Foreground Agent Execution** — Running review agents in the foreground dumps all reports into the conversation context, causing bloat and lost findings during compaction. Always use `run_in_background: true`.
+**Foreground Agent Execution** — Running review agents in the foreground dumps all reports into the conversation context, causing bloat and lost findings during compaction. Always use `run_in_background: true`. The three-layer isolation exists specifically to prevent this — bypassing it defeats the skill's core architectural pattern.
 
-**Reading Raw Output Files** — Reading agent output files directly into the main conversation defeats the purpose of background execution. Let the consolidation agent read them and produce a structured summary.
+**Reading Raw Output Files** — Reading agent output files directly into the main conversation defeats the purpose of background execution. Let the consolidation agent read them and produce a structured summary. The exception is BRIEF mode, where the small report size makes direct reading appropriate.
 
-**Reading the Full Summary** — Even the consolidated report can be large. Read only the executive summary (~50 lines) into context. Access full findings on-demand during Phase 5.
+**Reading the Full Summary** — Even the consolidated report can be large. Read only the executive summary (~50 lines) into context. Access full findings on-demand during Phase 5. This discipline is what makes the three-layer pattern work — breaking it cascades into context pressure.
 
-**Manual Review Instead of Agents** — "Let me read each file and review it myself" misses the benefit of parallel specialised perspectives. Always use agents, even for small changes (use BRIEF mode).
+**Manual Review Instead of Agents** — "Let me read each file and review it myself" misses the benefit of parallel specialised perspectives. Always use agents, even for small changes (use BRIEF mode). A single reviewer has blind spots that specialised agents cover.
 
-**No Confidence Filtering** — Presenting every finding regardless of confidence overwhelms the developer with false positives. Filter to confidence >= 70 and let agents self-assess.
+**No Confidence Filtering** — Presenting every finding regardless of confidence overwhelms the developer with false positives. Filter to confidence >= 70 and let agents self-assess. Low-confidence findings are noise that erodes trust in the review process.
 
-**Auto-Pushing After Fixes** — Pushing should always require user confirmation. The user may want to review the fixes before they're visible to others.
-
----
-
-## Quality Standards
-
-### Agent Usage
-- Always use background agents with three-layer context isolation
-- BRIEF: 3 core agents; STANDARD: 6 core + conditional; COMPREHENSIVE: all + re-review
-- Include design-intent, plan-intent, and/or prd-compliance agents when upstream docs exist
-- Never read raw agent outputs into the main conversation
-
-### Findings Quality
-- Deduplicate across agents
-- Filter by confidence >= 70
-- Sort by criticality
-- Make suggestions actionable with file:line references
-- Include praise for well-written code
-
-### Fix Implementation
-- Only implement approved items
-- Keep fixes minimal
-- Run tests after each fix
-- Stage specific files (not `git add -A`)
-- Ask before pushing
+**Auto-Pushing After Fixes** — Pushing should always require user confirmation. The user may want to review the fixes before they're visible to others. The review found issues in the code — fixes for those issues deserve the same scrutiny.
 
 ---
 
@@ -519,5 +463,5 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.0*
-*v3: Mode selection (BRIEF/STANDARD/COMPREHENSIVE), confidence-based filtering, praise section, no auto-push, learning identification, streamlined anti-patterns*
+*Skill Version: 3.1*
+*v3.1: Duration targets, BRIEF mode skips consolidation agent, agent failure/timeout recovery with health check, kill criteria added to plan-intent and prd-compliance agent prompts, self-review step before committing fixes, removed duplicate Quality Standards section, structured PAUSE response options, removed Phase 7 learning identification (handled by execute re-entry and compound), commit format deferred to CLAUDE.md, anti-patterns explain WHY*

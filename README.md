@@ -129,6 +129,16 @@ Each phase requires explicit user approval before proceeding:
 | execute | "done" | review |
 | review | "changes approved" | compound |
 
+## Prerequisites
+
+This skill library assumes your Claude Code environment has global tooling configured via `~/.claude/CLAUDE.md` and `~/AGENTS.md`. These provide the tool instructions that skills reference conditionally (issue tracking, session search, knowledge base).
+
+**Required:** `br` (beads-rust), `rtk` (token optimization)
+**Recommended:** `bv` (beads-viewer), `cass` (session search), `qmd` (knowledge base)
+**Optional:** `agent-browser` (browser automation for UI work)
+
+See [`skills/_shared/prerequisites.md`](skills/_shared/prerequisites.md) for full details on each tool and how skills reference them.
+
 ## Installation
 
 ### Step 1: Install br (beads-rust) CLI

@@ -14,6 +14,8 @@ argument-hint: "[symptom or issue description]"
 
 **Philosophy:** Understand WHAT is happening before deciding what to do. Evidence over assumption. Reproduce before theorizing. The right response might be a 5-line fix or a full redesign — diagnosis tells you which.
 
+**Duration targets:** Fix-in-place ~15-30 minutes, targeted beads ~30-60 minutes (diagnosis + bead creation), design escalation ~20-30 minutes (diagnosis only, then hand off). Most time should be spent on Phases 1-2 (reproduce and isolate). If you're spending more time on the fix than on understanding the problem, you may be fixing a symptom, not a cause.
+
 ## Why This Matters
 
 Bugs are the most common interrupt in software development, yet most debugging time is wasted on the wrong hypothesis. Studies show developers spend 35-50% of their time debugging, but the majority of that time goes to understanding the problem, not writing the fix. The fix itself is usually small — the hard part is finding the right place to fix.
@@ -43,13 +45,19 @@ Do NOT use for:
 ```
 Phase 0: Context Gathering
 Phase 1: Reproduce & Verify
+  ── (if non-reproducible) PAUSE: "Can't reproduce. More details?" ──
 Phase 2: Investigation & Isolation
   ── PAUSE 1: "Isolated the fault. Here's what I found." ──
 Phase 3: Root Cause Analysis
 Phase 4: Triage Decision
-  ── Self-Review gates presentation ──
-Phase 5: Resolution (Fix / Beads / Design)
-  ── PAUSE 2: "Here's the proposed resolution. Proceed?" ──
+  ── Self-review gates presentation ──
+  ── Triage fork: ──
+      ├─ 5a: Fix-in-Place (isolated, simple)
+      │    ── PAUSE 2a: "Here's the proposed fix. Apply?" ──
+      ├─ 5b: Targeted Beads (localized, multiple files)
+      │    ── PAUSE 2b: "Beads created. Run /execute?" ──
+      └─ 5c: Design Required (cross-cutting/systemic)
+           ── PAUSE 2c: "Needs design. Run /brainstorm?" ──
 ```
 
 ---
@@ -81,28 +89,14 @@ Ask if not provided:
 
 **Step 0.3 — Quick Context Scan:**
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-
-# Recent commits that might be relevant
-git log --oneline -15
-
-# Uncommitted changes
-git status
-
-# Recent changes in affected area
-git log --oneline -10 -- {path/to/affected/area}
-```
+Gather recent context that might be relevant:
+- Recent commits (especially in the affected area)
+- Uncommitted changes that could contribute
+- Recent changes in the affected files or directory
 
 **Step 0.4 — Check for Known Issues:**
 
-```bash
-# Past learnings for similar issues
-grep -r "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-
-# If issue tracker available (e.g., br, gh, jira CLI)
-# Search for existing issues matching this symptom
-```
+Search project learnings for similar symptoms — past gotchas often explain current bugs. If the project uses an issue tracker, search for existing issues matching this symptom.
 
 ---
 
@@ -129,13 +123,7 @@ grep -r "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
 
 **Step 1.2 — Verify It's Not Already Fixed:**
 
-```bash
-git stash  # if needed
-git checkout main
-# Run reproduction steps
-git checkout -
-git stash pop  # if needed
-```
+Check whether the issue exists on the main branch. Use a safe approach — create a temporary branch or worktree rather than stashing uncommitted work, which risks losing changes. If the issue doesn't exist on main, the regression was introduced in the current branch and git history analysis can narrow the culprit.
 
 **Step 1.3 — Handle Non-Reproducible Issues:**
 
@@ -153,7 +141,13 @@ If you cannot reproduce after 3 genuine attempts:
 **Recommended:** Ask user for more details, add logging, review for race conditions.
 ```
 
-Present to user and ask for guidance before proceeding.
+**PAUSE (non-reproducible):** Present to user.
+"I couldn't reproduce this after {N} attempts. Here's what I tried: {summary}. Possible explanations: {list}."
+
+Response options:
+- **More details** — provide additional reproduction context
+- **Add logging** — instrument the code to capture the issue next time it occurs
+- **Park** — save findings, revisit when it recurs with more data
 
 ---
 
@@ -172,24 +166,20 @@ Evidence collection and isolation are iterative — each piece of evidence narro
 
 **Step 2.2 — Code Path Analysis:**
 
-Use Explore agent to trace execution from entry point through to where behavior diverges from expected.
+Trace execution from entry point through to where behavior diverges from expected. Use Explore agent or LSP tools (go to definition, find references) to follow the flow efficiently.
 
 **Step 2.3 — Git History Analysis:**
 
+Examine blame and recent changes on affected files. Look for suspect commits — recent changes that touch the failing code path. Example investigation commands:
 ```bash
-git blame {affected_file} | head -50
+git blame {affected_file}
 git log --oneline -10 -- {affected_path}
 git show {suspect_commit} --stat
 ```
 
 **Step 2.4 — Test Analysis:**
 
-```bash
-# Run tests for affected area
-{project_test_command} {affected_test_path}
-```
-
-Note missing test coverage for the buggy path — this is often a contributing factor.
+Run tests for the affected area. Note missing test coverage for the buggy path — this is often a contributing factor.
 
 **Step 2.5 — Narrow Scope Iteratively:**
 
@@ -210,7 +200,7 @@ If the fault location isn't obvious:
 2. Does issue occur before or after this point?
 3. Repeat, halving the search space each time
 
-For regressions, use `git bisect`:
+For regressions, `git bisect` is highly effective:
 ```bash
 git bisect start
 git bisect bad HEAD
@@ -249,7 +239,10 @@ Can you reproduce with fewer steps, simpler input, or mocked dependencies? The m
 **PAUSE 1:** Present investigation results.
 "I've isolated the fault to {file}:{function}. Here's what I found: {evidence summary}. The issue is in {area}, which {matches/differs from} where you expected. Does this align with what you're seeing?"
 
-If non-reproducible (from Phase 1): "I couldn't reproduce this after {N} attempts. Here's what I tried: {summary}. Can you provide more details?"
+Response options:
+- **Accept** — isolation looks correct, proceed to root cause analysis
+- **Redirect** — the fault is elsewhere, investigate a different area
+- **More investigation** — need deeper analysis before concluding
 
 ---
 
@@ -364,6 +357,10 @@ Before presenting the triage and resolution to the user, verify quality:
 - [ ] Triage decision follows the matrix?
 - [ ] Scope and complexity honestly assessed (not inflated or deflated)?
 
+**Theme 5: Proportionality**
+- [ ] Is the resolution proportional to the issue? A simple off-by-one shouldn't escalate to "Design Required," and a systemic architecture flaw shouldn't be patched with a one-line fix.
+- [ ] If escalating, is there a genuine design decision to make, or could a simpler approach work?
+
 If any theme fails, return to the relevant phase before proceeding.
 
 ---
@@ -374,15 +371,7 @@ If any theme fails, return to the relevant phase before proceeding.
 
 **Step 5a.1 — Write a Failing Test First:**
 
-Before touching the buggy code, write a test that reproduces the bug:
-
-```bash
-# Write test that captures the bug
-# Run it — it MUST fail (proving it catches the bug)
-{project_test_command} {new_test}
-```
-
-If you can't write a failing test, reconsider whether you've truly identified the root cause.
+Before touching the buggy code, write a test that reproduces the bug. Run it — it MUST fail (proving it catches the bug). If you can't write a failing test, reconsider whether you've truly identified the root cause.
 
 **Step 5a.2 — Propose the Fix:**
 
@@ -402,8 +391,13 @@ If you can't write a failing test, reconsider whether you've truly identified th
 - Side effects: {any potential}
 ```
 
-**PAUSE 2:** Present fix proposal.
+**PAUSE 2a:** Present fix proposal.
 "Root cause: {summary}. The fix is {summary}. Risk is {level}. I've written a failing test that captures the bug. Shall I apply the fix?"
+
+Response options:
+- **Accept** — apply the fix
+- **Modify** — adjust the approach
+- **Escalate** — this is more complex than it looks, create beads or escalate to design
 
 **Step 5a.3 — Apply Fix (with approval):**
 
@@ -411,14 +405,13 @@ If you can't write a failing test, reconsider whether you've truly identified th
 2. Run the regression test — it MUST now pass
 3. Run the full relevant test suite
 4. Verify the original symptom is resolved
-5. Stage specific files and commit:
-   ```
-   fix: {brief description}
+5. Stage specific files and commit following the project's commit conventions from CLAUDE.md
 
-   Root cause: {1 sentence}
-   ```
+**Step 5a.4 — Track and Learn:**
 
-**After fix:** "This might be worth capturing as a learning. Run `/compound`?"
+If the project uses an issue tracker, offer to create a tracked item documenting the bug and fix: "Want me to create a tracked issue for this bug fix?"
+
+Offer learning capture: "This might be worth capturing as a learning. Run `/compound`?"
 
 ---
 
@@ -454,7 +447,14 @@ Save to `${PROJECT_ROOT}/docs/diagnosis/{issue-slug}.md` so beads can reference 
 
 Create focused beads that reference the diagnostic context document. Each bead should include a pointer to the saved diagnosis.
 
-**PAUSE 2:** "Diagnosis saved to `docs/diagnosis/{issue-slug}.md`. Created {N} beads. Run `/execute` to implement the fix."
+If the project uses an issue tracker, create a parent issue linking the beads to the diagnosed bug.
+
+**PAUSE 2b:** "Diagnosis saved to `docs/diagnosis/{issue-slug}.md`. Created {N} beads."
+
+Response options:
+- **Accept** — proceed to `/execute` to implement the fix
+- **Modify** — adjust bead scope or approach
+- **Compound** — capture a learning before executing
 
 ---
 
@@ -484,25 +484,32 @@ Save diagnostic context to `${PROJECT_ROOT}/docs/diagnosis/{issue-slug}.md`:
 - {question that emerged}
 ```
 
-**PAUSE 2:** "This issue needs design work because {reasoning}. Diagnosis saved to `docs/diagnosis/{issue-slug}.md`. Run `/brainstorm` with the diagnostic context?"
+If the project uses an issue tracker, create a tracked issue linking the diagnosis to the upcoming design work.
+
+**PAUSE 2c:** "This issue needs design work because {reasoning}. Diagnosis saved to `docs/diagnosis/{issue-slug}.md`."
+
+Response options:
+- **Accept** — proceed to `/brainstorm` with the diagnostic context
+- **Compound** — capture a learning before escalating
+- **Park** — save the diagnosis for later
 
 ---
 
 ## Anti-Patterns
 
-**Fixing Symptoms, Not Causes** — Adding a null check to prevent a crash without asking WHY the value is null. The null check masks the real bug, which will surface elsewhere. The 5 Whys exist specifically to push past the immediate symptom to the underlying cause.
+**Fixing Symptoms, Not Causes** — Adding a null check to prevent a crash without asking WHY the value is null. The null check masks the real bug, which will surface elsewhere. The 5 Whys exist specifically to push past the immediate symptom to the underlying cause. If your fix doesn't address the root cause from Step 3.1, it's a band-aid.
 
-**Shotgun Debugging** — Making multiple speculative changes at once ("maybe it's this, and also this, and let me try this"). When the bug goes away, you don't know which change fixed it — and the other changes may introduce new bugs. Change one thing at a time, verify, then proceed.
+**Shotgun Debugging** — Making multiple speculative changes at once ("maybe it's this, and also this, and let me try this"). When the bug goes away, you don't know which change fixed it — and the other changes may introduce new bugs. Change one thing at a time, verify, then proceed. Discipline here prevents cascading uncertainty.
 
-**Guessing Without Evidence** — "I think the bug is probably in the auth code" based on intuition rather than evidence. Before theorizing, collect data: git blame, logs, reproduction steps. Evidence narrows the search space; guesses expand it.
+**Guessing Without Evidence** — "I think the bug is probably in the auth code" based on intuition rather than evidence. Before theorizing, collect data: git blame, logs, reproduction steps. Evidence narrows the search space; guesses expand it. Phase 2 exists to force evidence-first investigation.
 
-**Skipping Reproduction** — Jumping straight to code inspection without confirming the bug exists and understanding exactly when it triggers. Without reproduction steps, you can't verify the fix works. If you can't reproduce it, say so and investigate why.
+**Skipping Reproduction** — Jumping straight to code inspection without confirming the bug exists and understanding exactly when it triggers. Without reproduction steps, you can't verify the fix works. If you can't reproduce it, say so and investigate why — that's valuable diagnostic information in itself.
 
-**Over-Engineering the Fix** — A simple off-by-one bug doesn't need a module refactor. Fix the specific issue, verify it, and move on. If the surrounding code needs improvement, that's a separate brainstorm/design effort — don't mix bug fixes with refactoring.
+**Over-Engineering the Fix** — A simple off-by-one bug doesn't need a module refactor. Fix the specific issue, verify it, and move on. If the surrounding code needs improvement, that's a separate brainstorm/design effort — don't mix bug fixes with refactoring. The proportionality theme in self-review catches this.
 
-**Premature Escalation** — Routing to "Design Required" before actually isolating the issue. Many bugs that look complex turn out to be simple once isolated. Complete the investigation phase before deciding on triage.
+**Premature Escalation** — Routing to "Design Required" before actually isolating the issue. Many bugs that look complex turn out to be simple once isolated. Complete the investigation phase before deciding on triage. The triage matrix exists to make this decision systematic, not instinctive.
 
-**Confirmation Bias** — Forming a hypothesis early and only looking for evidence that supports it. The most dangerous bugs are the ones that almost match a familiar pattern but have a different root cause. Step 3.2 exists to force a counter-evidence search before concluding.
+**Confirmation Bias** — Forming a hypothesis early and only looking for evidence that supports it. The most dangerous bugs are the ones that almost match a familiar pattern but have a different root cause. Step 3.2 exists to force a counter-evidence search before concluding. If you skip it, your confidence in the diagnosis is unearned.
 
 ---
 
@@ -521,5 +528,5 @@ Save diagnostic context to `${PROJECT_ROOT}/docs/diagnosis/{issue-slug}.md`:
 
 ---
 
-*Skill Version: 3.0*
-*v3: PAUSE points repositioned after isolation and before resolution, self-review gates presentation, regression test before fix, confirmation bias guard, error reading discipline, investigation circuit breaker, diagnostic context persistence, merged evidence/isolation phases, tightened anti-patterns, reduced from 907 to ~430 lines*
+*Skill Version: 3.1*
+*v3.1: Duration targets, prose-based context gathering (no hardcoded setup commands), structured PAUSE response options at all decision points, non-reproducible path as explicit PAUSE, collaborative model shows three-path fork, proportionality theme in self-review, conditional issue tracker for bug tracking, all resolution paths offer /compound, commit format deferred to CLAUDE.md, safe git practices (no stash prescription), anti-patterns explain WHY*

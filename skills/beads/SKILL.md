@@ -16,6 +16,8 @@ argument-hint: "[feature-name] or path to plan"
 
 **Philosophy:** A bead is a self-contained work package that an agent can pick up, understand, and execute without needing to read the full plan or design. The plan decided WHAT to build and in what order. Beads translate that into packages an agent can act on — each one carrying just enough context to produce working, tested code. Beads contain intent, not implementation. The agent writes code by understanding codebase patterns, not by copying snippets from the bead.
 
+**Duration targets:** BRIEF ~10-15 minutes, STANDARD ~20-40 minutes, COMPREHENSIVE ~45-90 minutes. Most time should be spent on Phase 3 (self-assessment). If bead creation is fast but assessment reveals many "Needs" items, the plan's sub-plans may lack detail — consider going back to refine them.
+
 ## Why This Matters
 
 A plan with 8 well-ordered tasks is useless if the executing agent can't figure out what to do with each one. Beads bridge the gap between planning and execution by packaging each task with:
@@ -54,43 +56,33 @@ Run this skill when:
 Phase 1: Load Plan & Map Tasks to Beads
   ── PAUSE 1: "Here's the mapping. Right beads? Right granularity?" ──
 Phase 2: Create Beads (epic, tasks, dependencies)
-Phase 3: Self-Assessment Gate
-  ── PAUSE 2: "All beads assessed. Review readiness?" ──
-Phase 4: Present & Approve
-  ── PAUSE 3: "Beads ready. Approve for /execute?" ──
+Phase 3: Self-Assessment Gate (per-bead readiness + cross-bead review)
+  ── PAUSE 2: "All beads assessed and ready. Approve for /execute?" ──
 ```
 
 ---
 
 ## Prerequisites
 
-**Step 0: Resolve Project Root:**
+Import upstream artifacts into the beads workspace:
+- **Plan overview** (primary input) — `docs/plans/{feature}/overview.md` (task summary, dependency graph, FR coverage)
+- **Sub-plans** (STANDARD+ mode) — `docs/plans/{feature}/NN-*.md` (per-task intent, scope, acceptance criteria)
+- **PRD** — `docs/prd/{feature}/prd.md` (FR references and acceptance criteria)
+- **Learnings** — `docs/learnings/` (relevant compound learnings from past features)
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-```
-
-**Import upstream artifacts:**
-
-```bash
-# Plan overview (primary input)
-cat "${PROJECT_ROOT}/docs/plans/{feature}/overview.md"
-
-# Sub-plans (STANDARD+ mode)
-ls "${PROJECT_ROOT}/docs/plans/{feature}/"
-
-# PRD for FR references and acceptance criteria
-cat "${PROJECT_ROOT}/docs/prd/{feature}/prd.md" 2>/dev/null
-
-# Learnings from past features
-ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
+Do not re-derive information that exists in these artifacts. Import it, reference it, build on it.
 
 ---
 
 ## Critical Sequence
 
 ### Phase 1: Map Plan Tasks to Beads
+
+**Step 1.0 — Scope Growth Check:**
+
+Before creating beads, review brainstorm kill criteria. As you map tasks to beads, watch for scope growth — if splitting tasks produces significantly more beads than the plan anticipated, the feature may be larger than originally scoped:
+- Plan estimated {N} tasks → bead mapping produces {M} beads
+- If M > N × 1.5, flag: "Bead count ({M}) significantly exceeds plan task count ({N}). This suggests the work is larger than estimated. Kill criterion '{criterion}' may be at risk. Continue or return to plan?"
 
 **Step 1.1 — Read Plan Structure:**
 
@@ -141,24 +133,26 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 **PAUSE 1:** Present the task-to-bead mapping to the user.
 "Here's how I've mapped plan tasks to beads: {N} beads across {N} phases. {N} can run in parallel. Does the granularity look right? Any tasks that should be split or merged?"
 
+Response options:
+- **Accept** — mapping is correct, proceed to create beads
+- **Modify** — adjust granularity for specific tasks (specify which)
+- **Escalate** — mapping reveals the plan needs revision; return to /plan
+
 ---
 
 ### Phase 2: Create Beads
 
+This phase creates work packages in the project's issue tracker. The examples below use `br` (beads-rust); adapt commands to your issue tracker as configured in your CLAUDE.md.
+
 **Step 2.1 — Create Epic:**
 
-```bash
-br create "Feature: {feature-name}" --type feature -p 2
-```
+Create a parent work item for the feature to link all beads under. Example: `br create "Feature: {feature-name}" --type feature -p 2`
 
 Record epic ID for linking all beads.
 
 **Step 2.2 — Create Each Bead:**
 
-```bash
-br create "{Bead title}" --type task -p 2 \
-  --tag "FR-{MODULE}-{NAME}"
-```
+For each bead, create a work item with the full bead description. Example: `br create "{Bead title}" --type task -p 2 --tag "FR-{MODULE}-{NAME}"`
 
 **Bead Description Format:**
 
@@ -216,34 +210,16 @@ Then {error handling result}
 - **Commit:** `{type}({scope}): {message}`
 ```
 
-**Step 2.3 — Add Labels:**
+**Step 2.3 — Apply Labels:**
 
-```bash
-br label add bd-{id} model          # Data model changes
-br label add bd-{id} service        # Business logic
-br label add bd-{id} api            # API / endpoint changes
-br label add bd-{id} ui             # Frontend / UI changes
-br label add bd-{id} test           # Test-focused bead
-br label add bd-{id} integration    # Cross-component wiring
-br label add bd-{id} config         # Configuration changes
-```
+Categorise each bead by concern area (e.g., model, service, api, ui, test, integration, config). Labels help with parallel track identification and progress reporting.
 
 **Step 2.4 — Set Dependencies:**
 
-```bash
-# Bead B depends on Bead A (B is blocked by A)
-br dep add bd-{B} bd-{A}
-
-# Epic blocked by final bead
-br dep add bd-{epic} bd-{final-bead}
-```
-
-**Verify structure:**
-```bash
-br dep cycles       # Must be empty
-br dep tree bd-{epic}   # Visual hierarchy
-br ready             # First bead(s) with no blockers
-```
+Register dependencies between beads as specified in the plan's dependency graph. Verify:
+- No circular dependencies
+- The dependency tree reflects the plan's ordering
+- First bead(s) have no blockers and are ready to execute
 
 ---
 
@@ -251,18 +227,12 @@ br ready             # First bead(s) with no blockers
 
 Every bead must pass a readiness check before presenting to the user. This catches missing context, ambiguous objectives, and oversized beads before they cause problems during execution.
 
-**Step 3.1 — Pre-Assessment Checks:**
+**Step 3.1 — Pre-Assessment Verification:**
 
-```bash
-# Verify pattern references actually exist
-ls {pattern file paths from beads}
-
-# Check for relevant learnings
-grep -r "{keywords}" docs/learnings/ 2>/dev/null
-
-# Verify FR references match PRD
-grep "FR-{MODULE}" docs/prd/{feature}/prd.md
-```
+Before assessing individual beads, verify structural integrity:
+- All context file references in beads point to files that actually exist in the codebase
+- All FR references match FRs in the PRD
+- Check for relevant learnings that should be referenced but aren't
 
 **Step 3.2 — Assess Each Bead:**
 
@@ -294,7 +264,39 @@ For "Too Large" items:
 - Each sub-bead gets its own assessment
 - Update dependencies for the new beads
 
-**Step 3.4 — Record Assessment:**
+**Step 3.4 — Cross-Bead Review:**
+
+After individual assessment, review the full bead set against these themes:
+
+**Completeness:**
+- [ ] Every Must-Have FR covered by at least one bead?
+- [ ] Every bead has acceptance criteria from the PRD?
+- [ ] Every bead has executable verification commands?
+- [ ] Dependencies imported from plan?
+
+**Independence:**
+- [ ] Each bead executable without reading other beads?
+- [ ] Context references sufficient for the agent to proceed?
+- [ ] No implicit knowledge required beyond what's referenced?
+- [ ] Scope boundaries (in/out) defined?
+
+**Sizing:**
+- [ ] No bead exceeds agent context budget?
+- [ ] No bead too small to test meaningfully?
+- [ ] Each bead produces a committable unit of work?
+
+**Clarity:**
+- [ ] Objectives state intent, not implementation?
+- [ ] Success criteria are observable and testable?
+- [ ] Failure criteria flag realistic anti-patterns?
+- [ ] Context references point to files that exist?
+
+**Traceability:**
+- [ ] Every bead tags the FR(s) it implements?
+- [ ] FR coverage table has no Must-Have gaps?
+- [ ] Beads reference design decisions where relevant?
+
+**Step 3.5 — Record Assessment:**
 
 ```markdown
 ## Bead Readiness Assessment
@@ -315,16 +317,9 @@ For "Too Large" items:
 - bd-004c: Blocking flow integration test
 ```
 
-**Re-assess until ALL beads show "Ready".**
+**Re-assess until ALL beads show "Ready" and cross-bead review passes.**
 
-**PAUSE 2:** Present the readiness assessment to the user.
-"All {N} beads assessed. {N} were Ready immediately, {N} needed resolution (details above), {N} were split. Ready to review the full bead set?"
-
----
-
-### Phase 4: Present & Approve
-
-**Step 4.1 — FR Coverage Check:**
+**Step 4 — FR Coverage Check:**
 
 ```markdown
 ### FR Coverage
@@ -335,15 +330,15 @@ For "Too Large" items:
 | FR-{MODULE}-{NAME} (Should) | — | Deferred |
 ```
 
-All Must-Have FRs must be covered. Flag any gaps as blocking.
+All Must-Have FRs must be covered. Flag any gaps as blocking. If the project uses an issue tracker, offer to create tracked items for gaps.
 
-**Step 4.2 — Present Summary:**
+**PAUSE 2:** Present the full bead set with readiness assessment and FR coverage.
 
 ```markdown
 ## Beads Summary
 
 **Feature:** {name}
-**Epic:** bd-{epic-id}
+**Epic:** {epic-id}
 **Beads:** {N} intent-based work packages
 **Parallel tracks:** {N} beads can run in parallel
 
@@ -355,17 +350,11 @@ All Must-Have FRs must be covered. Flag any gaps as blocking.
 | bd-{id} | {title} | 1: Core | service | Ready |
 | bd-{id} | {title} | 2: Feature | api, ui | Ready |
 
-### Sample Bead
-{Show `br show bd-{first-task}` to demonstrate the format}
-
 ### Dependency Tree
-{Output from `br dep tree bd-{epic}`}
+{Visual hierarchy of bead dependencies}
 
 ### Parallel Tracks
 {From Phase 1.4}
-
-### Ready to Start
-{Output from `br ready`}
 
 ### Self-Assessment Summary
 | Category | Count |
@@ -375,20 +364,19 @@ All Must-Have FRs must be covered. Flag any gaps as blocking.
 | Split | {N} into {M} sub-beads |
 
 ### FR Coverage
-{Table from Step 4.1}
+{Table from Step 4}
 
 ---
 
 All beads assessed as Ready.
 
 Options:
-1. "beads approved" → Proceed to /execute
-2. "adjust bd-{id}" → Modify specific bead
-3. "reassess" → Re-run self-assessment gate
-4. "back to plan" → Revise plan first
+1. "Accept" / "beads approved" → Proceed to /execute
+2. "Adjust bd-{id}" → Modify specific bead
+3. "Reassess" → Re-run self-assessment gate
+4. "Back to plan" → Revise plan first
+5. "Park" → Save for later
 ```
-
-**PAUSE 3:** Wait for user approval.
 
 ---
 
@@ -412,7 +400,7 @@ distinguish verified from unverified accounts.
 
 **Context references** — pointers to files, not duplicated content:
 ```
-- Read: src/models/account.ext — understand existing status flag pattern
+- Read: src/models/account.{ext} — understand existing status flag pattern
 - Pattern: IsActive property — follow same structure and defaults
 ```
 
@@ -431,23 +419,11 @@ for why we chose a boolean flag over a status enum.
 
 ### What Beads Do NOT Contain
 
-**Source code** — the agent writes code from patterns, not from bead content:
-```
-// DON'T include implementation in any language
-isVerified: boolean = false
-```
+**Source code** — the agent writes code from patterns, not from bead content. Including implementation creates false confidence and prevents the agent from adapting to the actual codebase state.
 
-**Test code** — the agent designs tests from acceptance criteria:
-```
-// DON'T include test implementations
-test("should verify") { assert(account.isVerified) }
-```
+**Test code** — the agent designs tests from acceptance criteria. Pre-written tests can't account for the actual implementation shape.
 
-**Duplicated content** — reference upstream docs, don't copy them:
-```
-// DON'T reproduce the design doc or plan content
-// Instead: Reference: docs/designs/feature/design.md §Data Model
-```
+**Duplicated content** — reference upstream docs, don't copy them. When the design changes, only one location should need updating.
 
 ---
 
@@ -488,7 +464,7 @@ has completed the verification process.
 - Don't break existing data serialisation or migrations
 
 ## Context to Load
-- **Read:** `src/models/account.ext` — understand existing status flag pattern
+- **Read:** `src/models/account.{ext}` — understand existing status flag pattern
 - **Pattern:** `IsActive` property — follow same structure and defaults
 - **Reference:** `docs/plans/account-verification/01-models.md` — design rationale
 
@@ -517,18 +493,18 @@ Then IsVerified is set to true and persisted
 ## Task 2
 
 Add the IsVerified property:
-isVerified: boolean = false
+  isVerified = false
 
 Then add this test:
-test Account_HasIsVerifiedProperty:
-    account = new Account(isVerified: true)
-    assert account.isVerified == true
+  test Account_HasIsVerifiedProperty:
+      account = new Account(isVerified: true)
+      assert account.isVerified == true
 
 See plan for details.
 ```
 
 **Why bad:**
-- Contains source code (agent should write this from patterns)
+- Contains implementation code (agent should write this from patterns)
 - Contains test code (agent should design tests from criteria)
 - Vague "see plan" — no specific context references
 - No success/failure criteria — agent can't self-verify
@@ -537,71 +513,27 @@ See plan for details.
 
 ---
 
-## Handling Execution Uncertainty
+## Bead Quality Signal
 
-When an agent starts a bead and becomes uncertain:
+The ultimate test of bead quality is execution. If agents frequently need to ask questions during /execute, the beads need improvement. Well-written beads should be executable with minimal or no clarification.
 
-**Agent should:**
-- Ask the user for clarification before guessing
-- Request additional context if references are insufficient
-- Pause and explain specifically what's unclear
-
-**Agent should not:**
-- Guess at implementation when objective is ambiguous
-- Deviate from the objective to "improve" adjacent code
-- Skip verification because tests are hard to write
-
-**The quality signal:** If agents frequently need to ask questions during /execute, the beads need improvement. Well-written beads should be executable with minimal or no clarification.
+Track this across features: if the same types of questions recur (missing pattern references, ambiguous criteria, unclear scope), capture that as a compound learning so future beads avoid the same gaps.
 
 ---
 
 ## Anti-Patterns
 
-**The Code Bead** — Including source code or test code in the bead description. The agent should write code from codebase patterns, not copy from beads. Code in beads becomes stale, creates false confidence, and prevents the agent from learning project conventions.
+**The Code Bead** — Including source code or test code in the bead description. The agent should write code from codebase patterns, not copy from beads. Code in beads becomes stale, creates false confidence, and prevents the agent from learning project conventions. Beads that contain code also tend to be fragile — any refactoring of the codebase invalidates the bead's snippets.
 
-**The Kitchen Sink** — Packing everything into one bead because "it's all related." If a bead touches 10+ files across multiple concerns, it's too large. Split by concern, even if the pieces are small.
+**The Kitchen Sink** — Packing everything into one bead because "it's all related." If a bead touches 10+ files across multiple concerns, it's too large. Split by concern, even if the pieces are small. Large beads produce large diffs that are harder to review and more likely to conflict with parallel work.
 
-**Vague Verification** — "Make sure it works" or "Test thoroughly." Give executable commands: `{project test command} --filter "AccountVerification"`. If you can't write a verification command, the acceptance criteria aren't specific enough.
+**Vague Verification** — "Make sure it works" or "Test thoroughly." Give executable commands with specific filters. If you can't write a verification command, the acceptance criteria aren't specific enough — fix the criteria first, then the verification follows naturally.
 
-**Plan Duplication** — Copying paragraphs from the design doc or plan into every bead. Reference the upstream doc with a file path and section pointer. Duplication drifts and creates conflicting sources of truth.
+**Plan Duplication** — Copying paragraphs from the design doc or plan into every bead. Reference the upstream doc with a file path and section pointer. Duplication drifts and creates conflicting sources of truth — when the design changes, every bead with copied content becomes stale.
 
-**Missing Scope Boundaries** — Without an "Out of Scope" section, agents tend to expand their work into adjacent areas. Explicit boundaries prevent scope creep and keep each bead focused.
+**Missing Scope Boundaries** — Without an "Out of Scope" section, agents tend to expand their work into adjacent areas. Explicit boundaries prevent scope creep and keep each bead focused. The most effective boundaries name the OTHER bead that handles the excluded work.
 
-**Dependency Amnesia** — Creating beads without importing the plan's dependency graph. Dependencies should flow directly from the plan. Re-deriving them risks introducing circular dependencies or breaking the critical path.
-
----
-
-## Self-Review
-
-**2 rounds minimum. Exit on 2 consecutive clean rounds.**
-
-**Theme 1: Completeness**
-- [ ] Every Must-Have FR covered by at least one bead?
-- [ ] Every bead has acceptance criteria from the PRD?
-- [ ] Every bead has executable verification commands?
-- [ ] Dependencies imported from plan?
-
-**Theme 2: Independence**
-- [ ] Each bead executable without reading other beads?
-- [ ] Context references sufficient for the agent to proceed?
-- [ ] No implicit knowledge required beyond what's referenced?
-- [ ] Scope boundaries (in/out) defined?
-
-**Theme 3: Sizing**
-- [ ] No bead exceeds agent context budget?
-- [ ] No bead too small to test meaningfully?
-- [ ] Each bead produces a committable unit of work?
-
-**Theme 4: Clarity**
-- [ ] Objectives state intent, not implementation?
-- [ ] Success criteria are observable and testable?
-- [ ] Failure criteria flag realistic anti-patterns?
-- [ ] Context references point to files that exist?
-
-**Theme 5: Traceability**
-- [ ] Every bead tags the FR(s) it implements?
-- [ ] FR coverage table has no Must-Have gaps?
-- [ ] Beads reference design decisions where relevant?
+**Dependency Amnesia** — Creating beads without importing the plan's dependency graph. Dependencies should flow directly from the plan. Re-deriving them risks introducing circular dependencies or breaking the critical path that was carefully designed in /plan.
 
 ---
 
@@ -615,9 +547,9 @@ The bead format is identical. The only difference is that you extract objectives
 
 ## Output Structure
 
-Beads live in the `br` database, not as files. The output of this skill is:
-- An epic in `br` linking all beads
-- Individual beads in `br` with full descriptions
+Beads live in the project's issue tracker (e.g., `br` database), not as files. The output of this skill is:
+- An epic linking all beads
+- Individual beads with full descriptions
 - Dependencies set between beads
 - Labels applied for categorisation
 - Self-assessment completed with all beads Ready
@@ -628,7 +560,7 @@ Beads live in the `br` database, not as files. The output of this skill is:
 
 | Signal | Meaning | Next Action |
 |--------|---------|-------------|
-| "beads approved" | All beads ready | Proceed to /execute |
+| "beads approved" / "accept" | All beads ready | Proceed to /execute |
 | "adjust bd-{id}" | Modify specific bead | Update and re-assess |
 | "reassess" | Re-run assessment gate | Return to Phase 3 |
 | "back to plan" | Plan needs changes | Return to /plan |
@@ -637,5 +569,5 @@ Beads live in the `br` database, not as files. The output of this skill is:
 
 ---
 
-*Skill Version: 3.0*
-*v3: Collaborative PAUSE points, mode selection, context budget sizing, scope boundaries (in/out), parallel track identification, anti-patterns, self-review themes, plan-to-bead mapping guidance, BRIEF mode support*
+*Skill Version: 3.1*
+*v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

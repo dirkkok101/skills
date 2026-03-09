@@ -68,8 +68,10 @@ Phase 6: Functional Requirements
 Phase 7: Non-Functional Requirements
 Phase 8: Prioritisation & Dependencies (STANDARD+)
   ── PAUSE 3: "Priorities right? Must Haves truly minimal?" ──
+Phase 8b: Integration Points (COMPREHENSIVE only)
 Phase 9: Domain Validation (COMPREHENSIVE only)
 Phase 10: Self-Review & Approval
+Phase 10b: Document Approval (COMPREHENSIVE only)
   ── PAUSE 4: "Targeted validation questions." ──
 ```
 
@@ -97,11 +99,14 @@ cat "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md" 2>/dev/null
 # Discovery brief (COMPREHENSIVE mode)
 cat "${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md" 2>/dev/null
 
+# Discovery glossary
+cat "${PROJECT_ROOT}/docs/discovery/{feature}/glossary.md" 2>/dev/null
+
 # Research brief
 cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
 ```
 
-Import: problem statement, chosen approach, boundaries, scope classification, **kill criteria**, domain requirements, actor list, workflow maps, security analysis, compliance checkpoints.
+Import: problem statement, chosen approach, boundaries, scope classification, **kill criteria**, domain requirements, actor list, workflow maps, security analysis, compliance checkpoints, **glossary terms**.
 
 **Step 0.3 — If No Upstream Exists:**
 
@@ -117,14 +122,46 @@ Ask user:
 ```markdown
 # PRD: {Feature Name}
 
-**Status:** Draft | In Review | Approved
-**Version:** 0.1
-**Date:** {today}
-**Author:** {user}
-**Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
-**Brainstorm:** {link or N/A}
-**Discovery:** {link or N/A}
+| Field | Value |
+|---|---|
+| Version | 0.1 |
+| Date | {today} |
+| Author | {user} |
+| Status | Draft |
+| Scope | {BRIEF / STANDARD / COMPREHENSIVE} |
+| Brainstorm | {link or N/A} |
+| Discovery | {link or N/A} |
+
+## Document History
+
+| Version | Date | Changes |
+|---|---|---|
+| 0.1 | {today} | Initial PRD |
 ```
+
+Update the Document History table after each major revision — self-review rounds, user feedback incorporation, scope changes. This makes the PRD's evolution auditable.
+
+**Step 1.2 — Table of Contents (COMPREHENSIVE, 10+ sections):**
+
+For COMPREHENSIVE PRDs that grow beyond 10 sections, add a navigational TOC after the metadata table:
+
+```markdown
+## Table of Contents
+
+1. [Problem Statement](#problem-statement)
+2. [Goals](#goals)
+3. [User Personas](#user-personas)
+4. [Assumptions & Constraints](#assumptions--constraints)
+5. [Use Cases](#use-cases)
+6. [Functional Requirements](#functional-requirements)
+7. [Non-Functional Requirements](#non-functional-requirements)
+8. [Integration Points](#integration-points)
+9. [Prioritisation](#prioritisation-moscow)
+10. [Domain Validation](#domain-validation)
+11. [Document Approval](#document-approval)
+```
+
+Update the TOC as sections are added during drafting. This prevents the "scroll-hunting" problem that appears in PRDs exceeding 15 pages.
 
 ---
 
@@ -249,9 +286,14 @@ Track unknowns throughout the PRD process. Update this section as questions surf
 | {What could go wrong} | Low/Med/High | Low/Med/High | {How to reduce} |
 
 ## Open Questions
-- [ ] {Unresolved question — "How do existing users migrate?"}
-- [ ] {Decision needed — "Should we support bulk operations in v1?"}
+
+| # | Question | Context | Status | Decision | Owner |
+|---|----------|---------|--------|----------|-------|
+| 1 | {Question} | {Why it matters} | Open / Resolved | {Decision if resolved} | {Who decides} |
+| 2 | {Question} | {Context} | Open | — | {Owner} |
 ```
+
+**COMPREHENSIVE mode:** Open Questions become **decision gates** — questions that must be resolved before implementation. Track resolution status through PRD revisions. The AMPS PRD tracked 15 questions with resolution status across 4 versions; unresolved questions at implementation time caused rework.
 
 ---
 
@@ -259,45 +301,127 @@ Track unknowns throughout the PRD process. Update this section as questions surf
 
 **BRIEF/STANDARD modes skip this phase — user stories in Phase 6 are sufficient.**
 
-Cockburn fully-dressed format for primary use cases (5-8 per feature):
+**Use cases are standalone files**, not sections inside the PRD. This prevents the PRD from becoming a monolith (the identity project's 134KB PRD taught us this). Each use case is 3-15KB — manageable, reviewable, and referenceable by design and plan docs independently.
+
+```bash
+mkdir -p "${PROJECT_ROOT}/docs/use-cases"
+```
+
+**Step 5.1 — Identify Use Case Set:**
+
+Map personas and workflows from discovery to 5-10 use cases. Each use case represents a complete user goal, not a single action.
 
 ```markdown
-### UC-{MODULE}-001: {Goal as Active Verb Phrase}
+| UC ID | Goal | Primary Actor | Depth Tier | Status |
+|-------|------|---------------|-----------|--------|
+| UC-{MODULE}-001 | {Goal as active verb phrase} | {Persona} | Tier 1/2/3 | Draft |
+```
 
-  Scope:           {System name}
-  Level:           User Goal
-  Primary Actor:   {Persona from Phase 3}
-  Trigger:         {Event that starts this use case}
+**Depth tiers:**
+- **Tier 1** — Full Cockburn format: preconditions, success/failure guarantees, step-by-step scenario, extensions, failure paths. For core flows that define the feature.
+- **Tier 2** — Standard format: scenario flow with steps, postconditions, failure paths. For important but less complex flows.
+- **Tier 3** — Index entry with links to relevant guide sections and endpoint lists. For flows that are heavily dependent on external configuration or environment.
 
-  Preconditions:
-    - {State that must be true BEFORE the use case starts}
+**Step 5.2 — Write Each Use Case:**
 
-  Success End Condition:
-    {Observable state of the world when goal is achieved}
+Save each to: `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
 
-  Minimal Guarantee (on failure):
-    {What the system guarantees even if the use case fails —
-     e.g., "No data corrupted, audit log records the attempt"}
+```markdown
+# UC-{MODULE}-{NNN}: {Goal as Active Verb Phrase}
 
-  Main Success Scenario:
-    1. {Actor} {action at user-intention level}
-    2. System {validates/processes/displays}
-    ...
-    N. System {confirms completion}
+> {One-sentence summary of what this use case establishes.}
 
-  Extensions:
-    2a. {Condition — e.g., "Name already exists in tenant"}:
-        2a1. System displays "{specific error message}"
-        2a2. Actor corrects input, return to step 2
+## Metadata
 
-  Business Rules:
-    BR-{MODULE}-001: {Specific rule with parameters}
+| Field | Value |
+|-------|-------|
+| **Actor** | {Persona from Phase 3} |
+| **Trigger** | {Event that starts this use case} |
+| **Preconditions** | {State that must be true BEFORE the use case starts} |
+| **Depth Tier** | Tier {1/2/3} |
+| **Status** | Draft |
+| **Related Docs** | {Links to PRD sections, guide sections, other UCs} |
+
+## Scenario Flow
+
+### Phase 1: {Phase Name}
+
+| Step | Action | Details |
+|------|--------|---------|
+| 1.1 | {Actor or System} {action at user-intention level} | {Specifics — validation rules, API routes, business logic} |
+| 1.2 | ... | ... |
+
+### Phase 2: {Phase Name}
+...
+
+## Postconditions
+
+- {Observable state of the world when goal is achieved}
+
+## Failure Paths
+
+| Failure | Behavior |
+|---------|----------|
+| {What goes wrong} | {How the system responds — specific error, rollback, guarantee} |
+
+## Known Deferred Edges
+
+- {Edge case intentionally excluded from v1 with rationale}
+```
+
+**Tier 1 use cases** add these sections:
+
+```markdown
+## Minimal Guarantee (on failure)
+
+{What the system guarantees even if the use case fails —
+ e.g., "No data corrupted, audit log records the attempt"}
+
+## Business Rules
+
+| Rule ID | Rule | Parameters |
+|---------|------|-----------|
+| BR-{MODULE}-{NNN} | {Specific rule} | {Thresholds, limits, constraints} |
 ```
 
 Guidelines:
-- 3-9 steps in main success scenario — write at user-intention level, not UI-action level
-- Every step that can fail gets an extension
-- Extensions branch from specific step numbers (2a, 3a, not "if fails")
+- 3-9 steps per phase — write at user-intention level, not UI-action level
+- Every step that can fail gets a failure path entry
+- Use the table format for scenario steps (not numbered prose) — it's scannable and supports detail columns
+- Reference other UCs for flows that continue across use cases
+
+**Step 5.3 — Reference Use Cases in PRD:**
+
+Add a use case index section to the PRD that links to the standalone files:
+
+```markdown
+## Use Cases
+
+Use cases are documented as standalone files in `docs/use-cases/`.
+
+| UC ID | Title | Depth | Actor | Status |
+|-------|-------|-------|-------|--------|
+| [UC-{MODULE}-001](../use-cases/UC-{MODULE}-001-{slug}.md) | {title} | Tier 1 | {actor} | Draft |
+```
+
+**Step 5.4 — Optional: Traceability Index (COMPREHENSIVE, 5+ use cases):**
+
+For projects with 5+ use cases, create a traceability index that maps scenarios to implementation evidence:
+
+Save to: `${PROJECT_ROOT}/docs/use-cases/traceability-index.md`
+
+```markdown
+# Traceability Index
+
+> Scenario-level index of supported use cases.
+> Tracks: which scenarios are implemented, where documented, what automated evidence exists.
+
+| Scenario ID | Scenario Name | Depth Tier | Status | Primary Doc | Test Evidence | Open Gaps |
+|-------------|--------------|------------|--------|-------------|---------------|-----------|
+| UC-{MODULE}-001 | {title} | Tier 1 | {status} | [link] | {test files} | {gaps} |
+```
+
+This is a living document — update it as use cases move from Draft → Implemented.
 
 ---
 
@@ -445,6 +569,33 @@ Priority decisions shape what gets built first. Getting them wrong means buildin
 
 ---
 
+### Phase 8b: Integration Points (COMPREHENSIVE only)
+
+**For platform services that other systems consume.** If this feature exposes APIs, events, or data that downstream systems depend on, document the integration surface at the PRD level. This prevents the common failure mode where integration requirements are discovered during implementation rather than planning.
+
+```markdown
+## Integration Points
+
+### Consumed Services
+| Service | Purpose | Failure Impact |
+|---------|---------|---------------|
+| {Upstream service} | {What this feature needs from it} | {What happens if unavailable} |
+
+### Exposed Services
+| Interface | Consumers | Contract Stability |
+|-----------|-----------|-------------------|
+| {API/Event/Data this feature provides} | {Who depends on it} | {Stable / Evolving / Experimental} |
+
+### Integration NFRs
+- {Latency requirements for cross-service calls}
+- {Retry/circuit-breaker expectations}
+- {Data consistency guarantees across service boundaries}
+```
+
+This section feeds directly into the technical design's API surface and the plan's dependency graph. Mark Contract Stability clearly — "Stable" means downstream consumers can rely on it without coordination; "Evolving" means breaking changes require coordination.
+
+---
+
 ### Phase 9: Domain Validation (COMPREHENSIVE only)
 
 Verify discovery requirements are fully covered:
@@ -455,13 +606,14 @@ Verify discovery requirements are fully covered:
 - [ ] Security criteria present on all security-sensitive stories?
 - [ ] Compliance criteria present where regulations apply?
 - [ ] All integration points from discovery have corresponding NFRs?
-- [ ] All actors from discovery have at least one use case?
+- [ ] All actors from discovery have at least one use case (in docs/use-cases/)?
+- [ ] All use case files cross-reference back to the PRD?
 
 ### Coverage Matrix
-| Discovery Req | Mapped FR | Status |
-|--------------|-----------|--------|
-| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME} | Covered |
-| DR-{MODULE}-{NAME} | — | Gap (deferred to v2) |
+| Discovery Req | Mapped FR | Use Case | Status |
+|--------------|-----------|----------|--------|
+| DR-{MODULE}-{NAME} | FR-{MODULE}-{NAME} | UC-{MODULE}-{NNN} | Covered |
+| DR-{MODULE}-{NAME} | — | — | Gap (deferred to v2) |
 ```
 
 ---
@@ -502,6 +654,24 @@ After self-review, ask the user these targeted questions:
 > 1. "Which acceptance criteria are you LEAST confident about? Those are where edge cases usually hide."
 > 2. "Are there any assumptions I listed that might not hold?"
 > 3. "Is there anything in the Won't Have list that you're uncomfortable deferring?"
+
+---
+
+### Phase 10b: Document Approval (COMPREHENSIVE only)
+
+For COMPREHENSIVE PRDs with multiple stakeholders, add a formal approval section. This creates an auditable record of who signed off and prevents the "I thought you approved it" problem.
+
+```markdown
+## Document Approval
+
+| Role | Name | Status | Date |
+|------|------|--------|------|
+| Product Owner | {name} | Approved / Pending | {date} |
+| Tech Lead | {name} | Approved / Pending | {date} |
+| Domain Expert | {name} | Approved / Pending | {date} |
+
+**Approval means:** Requirements are correct and complete enough to begin technical design. It does NOT mean requirements are frozen — the Document History table tracks subsequent changes.
+```
 
 ---
 
@@ -550,10 +720,15 @@ As a {role}, I want {action}, so that {benefit}.
 
 ## PRD Output
 
-Save to: `${PROJECT_ROOT}/docs/prd/{feature}/prd.md`
+Save to:
+- `${PROJECT_ROOT}/docs/prd/{feature}/prd.md` — the PRD itself
+- `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md` — standalone use cases (COMPREHENSIVE only)
+- `${PROJECT_ROOT}/docs/use-cases/traceability-index.md` — optional traceability index (COMPREHENSIVE, 5+ UCs)
 
-The final document follows the phase order:
-Problem → Personas → Assumptions & Constraints → Use Cases → FRs → NFRs → Prioritisation → Validation
+The PRD follows the phase order:
+Document History → Problem → Personas → Assumptions & Constraints → Use Case Index → FRs → NFRs → Prioritisation → Validation
+
+Use cases are standalone files referenced by the PRD, not embedded in it. This keeps the PRD focused on requirements while use cases serve as detailed scenario walkthroughs that design, plan, and review skills can reference independently.
 
 ---
 
@@ -600,7 +775,26 @@ When exiting, update PRD metadata: Status, Next Step, Completion Date.
 
 **Arbitrary NFR Targets** — Setting performance or scalability targets without rationale. "P95 < 200ms" means nothing without knowing the current baseline and why that number matters. Every target traces to a real need.
 
+**Monolith PRD** — Embedding use cases, detailed scenarios, and gap analysis inline in the PRD. A 134KB PRD is unreadable and unmaintainable. Use cases are standalone files. The PRD references them by link and index table. Each artifact should be reviewable on its own.
+
+**Undocumented Evolution** — Making significant changes to the PRD without recording what changed and why. The Document History table exists for this — update it after each adversarial review round, scope change, or user feedback incorporation.
+
 ---
 
-*Skill Version: 3.1*
+## Living Document Convention
+
+PRDs may outlive the sprint they were written in. When architecture changes or new learnings invalidate parts of the PRD, **add a Legacy Update notice** rather than silently rewriting history:
+
+```markdown
+> **Legacy Update ({date}):** {Section X} was revised because {reason}.
+> Original requirement was {old}; updated to {new} based on {evidence}.
+```
+
+This preserves the decision trail — anyone reading the PRD can see what changed and why, which is critical for long-lived features that evolve across multiple releases.
+
+---
+
+*Skill Version: 3.3*
+*v3.3: Open Questions upgraded to resolution tracking table with Status/Decision/Owner columns. Table of Contents for COMPREHENSIVE PRDs (10+ sections). Integration Points section for platform services consumed by other systems. Document Approval section for COMPREHENSIVE mode. Legacy Update notice convention for long-lived PRDs.*
+*v3.2: Document History table for auditable PRD evolution. Use cases extracted as standalone files in `docs/use-cases/` (COMPREHENSIVE mode) — prevents monolith PRDs. Cockburn format replaced with table-based scenario format matching identity project patterns. Depth tiers (1/2/3) for use cases. Optional traceability index for 5+ use cases. Glossary import from discovery. Monolith PRD and Undocumented Evolution anti-patterns added.*
 *v3.1: Collaborative model diagram, personas before assumptions, duration/length targets, edge case prioritization on Must Haves, consolidated 5 review themes, BRIEF skip markers, kill criteria check, NFR rationale tracing, arbitrary NFR targets anti-pattern*

@@ -58,6 +58,7 @@ Phase 4: Synthesis & Brief
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 mkdir -p "${PROJECT_ROOT}/docs/discovery/{feature}"
+touch "${PROJECT_ROOT}/docs/discovery/{feature}/glossary.md"
 ```
 
 **Import upstream artifacts:**
@@ -83,13 +84,44 @@ Import research findings by tag:
 
 If no brainstorm exists, ask user for: feature name, problem statement, chosen approach, key constraints.
 
-**Start the glossary** — create a running glossary of domain terms from the brainstorm. Update it throughout all phases as new terms emerge.
+**Start the glossary** — create the glossary file at `docs/discovery/{feature}/glossary.md` with initial terms from the brainstorm. Update it throughout all phases as new terms emerge. The glossary is a standalone file (not a section in the brief) so downstream skills (PRD, technical-design) can import and extend it.
 
 ```markdown
-## Glossary (living document — update throughout discovery)
+# Glossary — {Feature Name}
+
+> Defines terms that have specific or overloaded meanings in this feature.
+> Updated throughout discovery. Inherited by PRD and technical design.
+
+## {Ambiguous Term}
+
+| Meaning | Context | Example |
+|---------|---------|---------|
+| {meaning 1} | {when this meaning applies} | {concrete example} |
+| {meaning 2} | {when this meaning applies} | {concrete example} |
+
+When unqualified, "{term}" means {default meaning} in this project.
+
+## Key Entities
+
+| Entity | What It Represents | Not To Be Confused With |
+|--------|--------------------|------------------------|
+| {entity} | {definition} | {common confusion} |
+
+## Abbreviations
+
+| Abbreviation | Full Form |
+|-------------|-----------|
+| {abbrev} | {expansion} |
+```
+
+For simple features with few terms, a flat table is fine:
+
+```markdown
+# Glossary — {Feature Name}
+
 | Term | Definition |
 |------|-----------|
-| {term from brainstorm} | {what it means in this feature's context} |
+| {term} | {what it means in this feature's context} |
 ```
 
 ---
@@ -384,7 +416,7 @@ For each discovered requirement:
 
 **Step 4.3 — Finalize Glossary:**
 
-Review and finalize the glossary that's been building throughout discovery. This becomes the ubiquitous language for PRD and technical design.
+Review and finalize `docs/discovery/{feature}/glossary.md`. Ensure every ambiguous term discovered during Phases 1-3 is captured with context-specific meanings. For terms with multiple meanings (like "client" meaning OIDC client vs. business customer vs. HTTP client library), use the disambiguation table format. This file becomes the ubiquitous language inherited by PRD and technical design.
 
 **Step 4.4 — Discovery Readiness Checklist:**
 
@@ -430,7 +462,9 @@ Items marked with ← are things the agent cannot self-verify — they require e
 
 ### Discovery Brief Output
 
-Save to: `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
+Save to:
+- `${PROJECT_ROOT}/docs/discovery/{feature}/discovery-brief.md`
+- `${PROJECT_ROOT}/docs/discovery/{feature}/glossary.md`
 
 ```markdown
 # Discovery Brief: {Feature Name}
@@ -495,7 +529,8 @@ DR-{MODULE}-{NAME}: ...
 Total discovered: {count}
 
 ## Glossary
-| Term | Definition |
+
+See [glossary.md](glossary.md) for full term disambiguation.
 
 ## Open Questions
 - {items for PRD to resolve}
@@ -554,5 +589,6 @@ Ready for next step:
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.2*
+*v3.2: Glossary extracted as standalone file (`glossary.md`) alongside brief — enables inheritance by PRD and technical-design. Glossary template supports disambiguation tables (multiple meanings per term) modelled on identity project's glossary. Brief references glossary via link instead of embedding.*
 *v3.1: Duration target, pre-mortem moved to Phase 1, glossary started early, domain depth prioritization, grounded checklist questions, focused STRIDE analysis, split Phase 3/3b, partial workflow option, kill criteria check in synthesis, readiness items requiring user confirmation flagged, generic questions anti-pattern added*

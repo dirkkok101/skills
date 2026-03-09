@@ -275,6 +275,70 @@ Return findings in this format:
 
 **Record all output_file paths for Phase 3.**
 
+#### Alignment Audit Agent (COMPREHENSIVE, when 2+ upstream docs exist)
+
+When design, plan, AND PRD all exist, launch an additional alignment audit agent that performs systematic cross-document verification. This produces a permanent audit document (not just review findings).
+
+**Alignment Audit Agent Prompt:**
+```
+Perform a systematic cross-document alignment audit for {feature}.
+
+Documents to audit:
+- PRD: ${PROJECT_ROOT}/docs/prd/{feature}/prd.md
+- Design: ${PROJECT_ROOT}/docs/designs/{feature}/design.md
+- Plan overview: ${PROJECT_ROOT}/docs/plans/{feature}/overview.md
+- Sub-plans: ${PROJECT_ROOT}/docs/plans/{feature}/*.md
+
+Read ALL documents. Perform 4 parallel audits:
+
+1. **PRD vs Design** — Do design decisions honour all PRD requirements?
+   Are NFRs addressed? Are Must-Have FRs all designed?
+2. **Design vs Plan** — Does the plan decomposition cover all design
+   components? Do sub-plan pseudocode patterns match design specs?
+3. **Plan vs Patterns** — Do sub-plan pattern references match actual
+   codebase patterns? Are there undocumented deviations?
+4. **Internal Consistency** — Naming consistency across all docs? Enum
+   values match? Entity fields in plan match design ERD?
+
+For each issue found:
+- Classify: Critical (blocks implementation) / Medium (causes confusion) / Low (cosmetic)
+- Specify exact locations in both documents
+- Provide concrete fix
+
+Write the result to ${PROJECT_ROOT}/docs/reference/alignment-audit.md using
+the Write tool. Create the directory if needed.
+
+Use this structure:
+
+---
+# Documentation Alignment Audit: {Feature Name}
+
+> **Date:** {date}
+> **Scope:** PRD ↔ Design ↔ Plan cross-alignment
+> **Method:** Four parallel audits
+
+## Executive Summary
+
+The documents are **{substantially aligned / partially aligned / misaligned}**.
+{N} critical issues, {N} medium issues, {N} low issues.
+Critical themes: {1-sentence each}
+
+## Critical Issues ({N})
+
+### C1. {Issue title}
+| Location | {doc1 section} vs {doc2 section} |
+|----------|---|
+| **Impact** | {what goes wrong if not fixed} |
+| **Fix** | {concrete resolution} |
+
+## Medium Issues ({N})
+{Same format, abbreviated}
+
+## Low Issues ({N})
+{One-line each}
+---
+```
+
 ---
 
 ### Phase 3: Consolidate Findings
@@ -463,5 +527,6 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.2*
+*v3.2: Alignment audit agent for COMPREHENSIVE mode — produces permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification. Modelled on AMPS actions project's alignment audit (found 11 critical, ~30 medium, ~25 low issues across ~30 files).*
 *v3.1: Duration targets, BRIEF mode skips consolidation agent, agent failure/timeout recovery with health check, kill criteria added to plan-intent and prd-compliance agent prompts, self-review step before committing fixes, removed duplicate Quality Standards section, structured PAUSE response options, removed Phase 7 learning identification (handled by execute re-entry and compound), commit format deferred to CLAUDE.md, anti-patterns explain WHY*

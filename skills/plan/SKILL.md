@@ -111,6 +111,8 @@ Use **horizontal layering** only for genuine shared prerequisites that multiple 
 
 **STANDARD+ mode:** If the technical design includes a Work Decomposition section, import it as the starting point. Restructure into vertical slices if it was decomposed horizontally.
 
+**Align with design's feature decomposition:** If the design uses feature-first decomposition (`docs/designs/{feature}/features/{sub-feature}/`), sub-plans should mirror this structure. Each design feature area typically maps to one sub-plan (e.g., `features/applications/` → `02-application-feature.md`). This alignment ensures sub-plans can directly reference their feature's api-surface.md, test-plan.md, and ui-mockup.md without ambiguity.
+
 **BRIEF mode:** Decompose directly from brainstorm boundaries and PRD:
 - Each Must-Have requirement becomes a task or part of a vertical slice
 - Group related requirements into coherent behaviour units
@@ -267,6 +269,8 @@ For each task, create `NN-{task-name}.md`:
 ```markdown
 # Sub-Plan: {Task Title}
 
+> Part of [{Feature Name} Plan](overview.md)
+
 ## Traceability
 - **Implements:** FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
 - **Design Reference:** `docs/designs/{feature}/{relevant-file}.md`
@@ -276,70 +280,82 @@ For each task, create `NN-{task-name}.md`:
 - [ ] {Previous task} completed
 - [ ] {Required infrastructure in place}
 
-## Intent
+## Objective
 
-### What to Build
-{High-level description of what this task delivers and why it matters
-in the overall plan. Reference the design doc for detailed specs.
-This should be 2-4 sentences, not a paragraph.}
+{2-4 sentences — what this task delivers and why it matters in the
+overall plan. Reference the design doc for detailed specs.}
 
-### Key Design Decisions
-{Summarise relevant decisions from the design's Alternatives section.
-"We chose X over Y because Z — see design.md for full analysis."
-Only include decisions that affect THIS task.}
+## Context
 
-### Patterns to Follow
-{Identify specific patterns from the existing codebase that this task should follow.
-Check project CLAUDE.md for pattern references — look for "pattern" or "example" sections.
-Be specific: name the file, class, or module that establishes the pattern, not just "follow existing patterns."
-Example: "Follow the CreateWidgetEndpoint pattern from src/Widgets/Features/CreateWidget.cs — same request/response structure, validation approach, and test layout."}
+{Situational context: what exists already, what this task builds on,
+what the executing agent needs to understand before starting.}
 
-## Scope
+## Tasks
 
-### In Scope
-- {Specific deliverable 1}
-- {Specific deliverable 2}
+### Task N: {Task Title}
 
-### Out of Scope
-- {What this task does NOT include — handled by other tasks}
+**Objective:** {One sentence — what this task accomplishes.}
 
-## Context to Load
-{Specific files the executing agent should read:}
-- `docs/designs/{feature}/{file}` — {what to learn from it}
-- `src/{project}/{folder}/` — {existing pattern to follow}
+**Approach:**
+{Brief prose description of the implementation strategy. Reference
+design decisions: "We chose X over Y because Z — see design.md."}
 
-## Acceptance Criteria
-{From the PRD's FR definitions — the Given/When/Then criteria
-that the executing agent must satisfy.}
+**Pseudocode:** (include when the design produced algorithmic detail)
+```
+{Pseudocode showing data flow, branching logic, and entity relationships.
+This is algorithmic intent — NOT compilable source code.
+Include: entity creation patterns, validation logic, mapper flows,
+command/query structure, endpoint wiring.
+Omit: imports, DI registration, boilerplate, exact method signatures.}
+```
 
-  Given {precondition}
-  When {action}
-  Then {expected result}
+**Contract Shapes:** (include when task defines or modifies contracts)
+```
+{DTO/request/response structure definitions showing fields and types.
+These come from the design's api-surface.md — reference, don't reinvent.}
+```
 
-  Given {error condition}
-  When {error action}
-  Then {error handling result}
+**Pattern Reference:**
+- {Specific file that establishes the pattern to follow}
+- {Location where the new code should live}
+- {Design doc section with full specs}
 
-## Verification
-- [ ] {Testable assertion 1}
-- [ ] {Testable assertion 2}
-- [ ] {Edge case assertion}
+**Success Criteria:**
+- {Testable assertion — what must be true when done}
+
+**Failure Criteria:** (include known pitfalls)
+- {What NOT to do — common mistakes, design constraints that must hold}
+
+---
+
+{Repeat for each task in this sub-plan}
+
+## Component Success Criteria
+
+- {Overall criteria for this sub-plan as a whole}
+
+## References
+
+- {Links to design docs, api-surface, test-plan, use cases}
 ```
 
 **What sub-plans contain:**
-- Intent (what and why)
+- Objective and context (what and why)
+- Implementation guidance: pseudocode, contract shapes, pattern references (design-level intent)
+- Failure criteria (what NOT to do — prevents re-deriving design constraints)
 - Scope boundaries (in/out)
 - Context references (what to read)
 - Acceptance criteria (what "done" means)
 - Design decision summaries (why this approach)
 
 **What sub-plans do NOT contain:**
-- Source code or implementation steps (that's the agent's job during /execute)
-- Commit messages or test commands (that's /beads territory)
+- Compilable source code (pseudocode is algorithmic intent, not code)
+- Commit messages or git workflow (that's /beads territory)
+- Specific file modification lists as checklists (that's /beads territory)
 - Duplicated design doc content (reference it, don't copy it)
-- Specific file modification lists (that's /beads territory)
+- Test commands or CI pipeline steps (that's /beads territory)
 
-The boundary: **plans say WHAT to build. Beads say HOW to execute it.** /beads reads these sub-plans and adds execution-level detail (specific files to modify, test commands, commit messages, failure criteria).
+The boundary: **plans describe WHAT to build with enough implementation guidance to prevent the executing agent from re-deriving design decisions. Beads add execution mechanics: file modification lists, commit messages, test commands, and session structure.** Pseudocode, contract shapes, and failure criteria are plan-level concerns because they encode design intent. Git workflow, file lists, and test commands are bead-level concerns because they encode execution mechanics.
 
 **Step 3.1 — Reconcile Overview:**
 
@@ -350,6 +366,121 @@ After writing all sub-plans, review whether the overview needs updating. Sub-pla
 - A task should be split — add new rows to Task Summary and Sub-Plans table
 
 Update the overview to reflect what sub-plans actually contain, so the overview remains the single source of truth for plan structure.
+
+---
+
+### Phase 3b: Companion Documents (COMPREHENSIVE only)
+
+For COMPREHENSIVE plans, produce these companion documents alongside the sub-plans. These are living documents — updated during implementation as tests are written and security findings are addressed.
+
+**Step 3b.1 — E2E Test Plan:**
+
+Save to: `${PROJECT_ROOT}/docs/plans/{feature}/e2e-test-plan.md`
+
+```markdown
+# End-to-End Test Plan: {Feature Name}
+
+> Acceptance-level validation for {feature} against the active architecture.
+
+## Scope
+
+{What this E2E plan validates — integrated behavior across which layers.}
+
+Out of scope for pass criteria:
+- {Explicitly excluded areas}
+
+## Environment
+
+- {Required infrastructure — databases, caches, external services}
+- {Test data setup requirements}
+
+## Smoke Checks
+
+- {Health endpoints, startup validation, seed data visibility}
+
+## Critical Path Scenarios
+
+### 1. {Primary workflow}
+1. {Step 1}
+2. {Step 2}
+...
+{Validate state changes, audit records, version increments}
+
+### 2. {Concurrency/isolation}
+### 3. {Error handling/recovery}
+### 4. {Cross-cutting concerns}
+```
+
+**Step 3b.2 — Security Hardening Checklist:**
+
+If the design's security analysis identified security requirements, operationalize them as a prioritized checklist. This turns security findings from the design/review into trackable implementation items.
+
+Save to: `${PROJECT_ROOT}/docs/plans/{feature}/security-hardening-checklist.md`
+
+```markdown
+# Security Hardening Checklist: {Feature Name}
+
+## Scope
+
+This checklist operationalizes security requirements from the design's
+security analysis and any adversarial review findings.
+
+## Priority 0 (Blocker)
+
+- [ ] {Critical security requirement — e.g., RLS migration parity}
+  - [ ] {Sub-item with specific verification}
+  - [ ] {Sub-item}
+
+## Priority 1 (High)
+
+- [ ] {High-priority security requirement}
+  - [ ] {Verification step}
+
+## Priority 2 (Medium)
+
+- [ ] {Medium-priority requirement}
+
+## Exit Criteria
+
+- [ ] All Priority 0 items complete and merged
+- [ ] All Priority 1 items complete and merged
+- [ ] Priority 2 items complete or explicitly deferred with owner and target date
+```
+
+Skip this document if the design's security analysis concluded "No significant security implications."
+
+**Step 3b.3 — Test Scenario Matrix:**
+
+Maps every use case to planned test classes and methods. This is a living document updated during implementation — initial version captures planned coverage, implementation fills in actual test evidence.
+
+Save to: `${PROJECT_ROOT}/docs/plans/{feature}/test-scenario-matrix.md`
+
+```markdown
+# Test Scenario Matrix
+
+> Maps every use case to implemented unit, integration, and architecture tests.
+> Living document — update when tests are added or modified.
+
+## Summary
+
+| Metric | Count |
+|--------|-------|
+| Test projects | {N} |
+| Use cases covered | {N}/{N} |
+| Planned test cases | {N} |
+
+## Use Case → Test Mapping
+
+### UC-{MODULE}-{NNN}: {Title}
+
+| Layer | Test Class | Tests | Count |
+|-------|-----------|-------|-------|
+| Unit | `{Validator}Tests` | {test method names} | {N} |
+| Integration | `{Lifecycle}Tests` | {test method names} | {N} |
+| **Total** | | | **{N}** |
+```
+
+Derive initial test mapping from the design's per-feature test plans. During implementation, update with actual test class names and method counts.
 
 ---
 
@@ -389,10 +520,11 @@ Run self-review BEFORE presenting to the user. The agent should catch its own is
 - [ ] A developer (or agent) could pick up any sub-plan and understand what to build?
 
 **Theme 6: Plan/Beads Boundary**
-- [ ] No sub-plan contains source code or implementation steps?
-- [ ] No sub-plan specifies exact files to modify (that's /beads)?
-- [ ] No sub-plan contains commit messages or test commands?
-- [ ] Sub-plans describe WHAT, beads will describe HOW?
+- [ ] Pseudocode is algorithmic intent, not compilable source code?
+- [ ] Contract shapes match design's api-surface definitions (not invented here)?
+- [ ] No sub-plan contains commit messages, git workflow, or test commands?
+- [ ] No sub-plan contains file modification checklists (that's /beads)?
+- [ ] Implementation guidance encodes design decisions, not execution mechanics?
 
 **Known limitation:** Self-review is performed by the same agent that wrote the plan. Mitigate by following themes as a checklist. Invite the user to spot-check the tasks they're least confident about.
 
@@ -458,12 +590,17 @@ T01 → T02 → T03
 
 ```
 ${PROJECT_ROOT}/docs/plans/{feature}/
-├── overview.md              # Decomposition, ordering, FR coverage, cross-cutting concerns
-├── 01-foundation.md         # Sub-plan (STANDARD+)
-├── 02-create-widget.md      # Sub-plan
-├── 03-list-widgets.md       # Sub-plan
-├── 04-integration.md        # Sub-plan
-└── ...
+├── overview.md                      # Decomposition, ordering, FR coverage, cross-cutting concerns
+├── 01-foundation.md                 # Sub-plan (STANDARD+)
+├── 02-create-widget.md              # Sub-plan
+├── 03-list-widgets.md               # Sub-plan
+├── 04-integration.md                # Sub-plan
+├── ...
+├── e2e-test-plan.md                 # COMPREHENSIVE: acceptance-level E2E scenarios
+├── security-hardening-checklist.md  # COMPREHENSIVE: operationalized security findings
+├── test-scenario-matrix.md          # COMPREHENSIVE: UC → test class mapping (living doc)
+└── diagrams/
+    └── dependency-graph.md          # Visual component relationships (if complex)
 ```
 
 ---
@@ -495,6 +632,10 @@ ${PROJECT_ROOT}/docs/plans/{feature}/
 
 **Copy-Paste Sub-Plans** — Duplicating design doc content into every sub-plan. Reference it instead. Duplication drifts and creates conflicting sources of truth. When the design changes, only one location should need updating.
 
+**Hollow Sub-Plans** — Sub-plans that say "implement the save endpoint" without pseudocode, contract shapes, or pattern references. If the design produced this detail, the sub-plan should carry it through. The executing agent shouldn't have to re-derive algorithmic intent from prose descriptions. The design did the thinking — the plan preserves it at the task level.
+
+**Misaligned Decomposition** — Sub-plans that don't mirror the design's feature decomposition. If the design has `features/applications/` and `features/role-templates/`, the plan should have `02-application-feature.md` and `04-role-template-feature.md` — not a different grouping that forces the agent to mentally map between decomposition schemes.
+
 ---
 
 ## Reference Files
@@ -504,5 +645,7 @@ For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.3*
+*v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*
+*v3.2: Plan/beads boundary shifted — sub-plans now include pseudocode (algorithmic intent), contract shapes, failure criteria, and pattern references. Sub-plan template restructured with Tasks/Objective/Approach/Pseudocode/Contract Shapes sections (modelled on identity project's plans). Feature decomposition alignment — sub-plans mirror design's feature structure. Updated self-review Theme 6 for new boundary. Hollow Sub-Plans and Misaligned Decomposition anti-patterns added.*
 *v3.1: Duration targets, kill criteria check before decomposition, prose-based artifact import (no hardcoded shell), self-review moved before user presentation (merged PAUSE 2+3), structured PAUSE response options, conditional issue tracker for uncovered FRs, overview reconciliation after sub-plans, plan/beads boundary check in self-review, concrete pattern guidance in sub-plans, anti-patterns explain WHY*

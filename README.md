@@ -2,25 +2,26 @@
 
 A complete feature development workflow for Claude Code with structured SDLC phases, scope-based routing, and requirement traceability.
 
-## Overview
+## Skills
 
 | Command | Purpose | Output |
 |---------|---------|--------|
+| `/workflow:init` | Initialize project docs structure and CLAUDE.md | `docs/` hierarchy + CLAUDE.md workflow section |
 | `/workflow:research` | Deep research before designing | `docs/research/{feature}/research-brief.md` |
 | `/workflow:brainstorm` | Problem framing, approaches, scope classification | `docs/brainstorm/{feature}/brainstorm.md` |
 | `/workflow:discovery` | Domain-aware requirements elicitation | `docs/discovery/{feature}/discovery-brief.md` |
 | `/workflow:prd` | Tiered product requirements document | `docs/prd/{feature}/prd.md` |
-| `/workflow:technical-design` | C4 architecture, API specs, data models | `docs/designs/{feature}/` |
-| `/workflow:diagnose` | Bug investigation with root cause analysis | Fix, beads, or design handoff |
-| `/workflow:plan` | Implementation plans (BRIEF or STANDARD mode) | `docs/plans/{feature}/overview.md` |
+| `/workflow:technical-design` | Architecture, API specs, data models | `docs/designs/{feature}/` |
+| `/workflow:plan` | Implementation plans with companion docs | `docs/plans/{feature}/overview.md` |
 | `/workflow:beads` | Intent-based work packages with FR traceability | Beads in `br` database |
 | `/workflow:execute` | Sub-agent implementation with upstream verification | Working code |
-| `/workflow:review` | Parallel agent review with PRD compliance | Findings and fixes |
+| `/workflow:review` | Parallel agent review with alignment audits | `docs/reviews/review-{timestamp}.md` |
 | `/workflow:compound` | Structured learning capture by phase/domain | `docs/learnings/{category}.md` |
+| `/workflow:diagnose` | Bug investigation with root cause analysis | Fix, beads, or design handoff |
 
 > **Note:** All commands use the `workflow:` namespace prefix because this is a marketplace plugin.
 
-## Workflow
+## Pipeline
 
 ```
 research ─> brainstorm ─> discovery ─> prd ─> technical-design ─> plan ─> beads ─> execute ─> review ─> compound
@@ -29,7 +30,7 @@ research ─> brainstorm ─> discovery ─> prd ─> technical-design ─> plan
 
 ### Scope-Based Routing
 
-Brainstorm classifies features using weighted complexity signals (auth/security ×2, others ×1):
+Brainstorm classifies features using weighted complexity signals (auth/security x2, others x1):
 
 | Scope | Weighted Score | Pipeline Path |
 |-------|---------------|---------------|
@@ -41,6 +42,7 @@ Brainstorm classifies features using weighted complexity signals (auth/security 
 
 | Scenario | Path |
 |----------|------|
+| **Full SDLC** | research → brainstorm → (scope-dependent path above) |
 | **Known requirements** | prd → technical-design → plan → beads → execute → review |
 | **Technical improvement** | brainstorm → technical-design → plan → beads → execute → review |
 | **Bug fix** | diagnose → fix / beads / brainstorm |
@@ -72,83 +74,16 @@ PRD FR-{feature}-{NAME}
           → review PRD-compliance agent
 ```
 
-## What's New in v2.0
+## Getting Started
 
-- **Discovery skill** — Domain-aware requirements elicitation for complex features, with checklists for identity/auth, data platform, mobile/EHS, and general SaaS
-- **Scope classifier** — Weighted signals automatically route features to the right pipeline depth
-- **FR traceability** — Requirements trace from PRD through beads to review, with stable descriptive IDs
-- **Upstream verification** — Execute verifies each bead against PRD acceptance criteria and design specs
-- **PRD-compliance review agent** — 9th review agent checks Must-Have FR coverage and scope compliance
-- **BRIEF plan mode** — Plan works without a design document for simple features
-- **Tiered PRD** — BRIEF (50-100 lines), STANDARD (200-300), COMPREHENSIVE (400-500 with Cockburn use cases)
-- **Domain references** — Shared checklists and patterns for identity-auth, capstone-data, guardian-mobile, general-saas
-
-## Workflow
-
-```
-┌──────────┐   ┌───────────┐   ┌─────┐   ┌──────────────────┐
-│ research │──▶│ brainstorm │──▶│ prd │──▶│ technical-design │
-│(optional)│   │ (6 phases) │   │     │   │   (.NET/C#)      │
-└──────────┘   └───────────┘   └─────┘   └──────────────────┘
-                                                   │
-                    ┌──────────────────────────────┘
-                    ▼
-              ┌──────┐   ┌───────┐   ┌─────────┐   ┌────────┐
-              │ plan │──▶│ beads │──▶│ execute │──▶│ review │
-              └──────┘   └───────┘   └─────────┘   └────────┘
-                                                        │
-                                                   ┌────┘
-                                                   ▼
-                                              ┌──────────┐
-                                              │ compound │
-                                              └──────────┘
-```
-
-### Entry Points by Complexity
-
-| Scenario | Path |
-|----------|------|
-| **Full SDLC** | research → brainstorm → prd → technical-design → plan → beads → execute → review → compound |
-| **Known requirements** | prd → technical-design → plan → beads → execute → review |
-| **Technical improvement** | brainstorm → technical-design → plan → beads → execute → review |
-| **Simple change** | brainstorm → plan → beads → execute → review |
-| **Bug fix** | diagnose → fix / beads / brainstorm |
-
-### Approval Gates
-
-Each phase requires explicit user approval before proceeding:
-
-| Phase | Exit Signal | Next Step |
-|-------|-------------|----------|
-| research | "research complete" | brainstorm or prd |
-| brainstorm | "start prd" / "start technical-design" / "start plan" | prd, technical-design, or plan |
-| prd | "prd approved" | technical-design |
-| technical-design | "design approved" | plan |
-| plan | "plan approved" | beads |
-| beads | "beads approved" | execute |
-| execute | "done" | review |
-| review | "changes approved" | compound |
-
-## Prerequisites
-
-This skill library assumes your Claude Code environment has global tooling configured via `~/.claude/CLAUDE.md` and `~/AGENTS.md`. These provide the tool instructions that skills reference conditionally (issue tracking, session search, knowledge base).
-
-**Required:** `br` (beads-rust), `rtk` (token optimization)
-**Recommended:** `bv` (beads-viewer), `cass` (session search), `qmd` (knowledge base)
-**Optional:** `agent-browser` (browser automation for UI work)
-
-See [`skills/_shared/prerequisites.md`](skills/_shared/prerequisites.md) for full details on each tool and how skills reference them.
-
-## Installation
-
-### Step 1: Install br (beads-rust) CLI
+### 1. Install br (beads-rust) CLI
 
 ```bash
 cargo install beads-rust
 br version
 ```
 
-### Step 2: Install the Plugin
+### 2. Install the Plugin
 
 ```bash
 # Add marketplace
@@ -158,40 +93,40 @@ br version
 /plugin install workflow@dirkkok-skills
 ```
 
-### Step 3: Set Up Your Project
+### 3. Initialize Your Project
 
 ```bash
-cd your-project
-br init
+/workflow:init my-project
 ```
 
-Copy template files:
+This creates the full `docs/` folder structure and adds workflow guidance to your project's CLAUDE.md. See [init skill](skills/init/SKILL.md) for details.
 
-```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/dirkkok101/skills/main/templates/CLAUDE.md
-curl -o AGENTS.md https://raw.githubusercontent.com/dirkkok101/skills/main/templates/AGENTS.md
-```
-
-### Project Structure After Setup
+### Project Structure After Init
 
 ```
 your-project/
-├── CLAUDE.md           # From templates/CLAUDE.md
-├── AGENTS.md           # From templates/AGENTS.md
+├── CLAUDE.md              # Workflow section appended by /init
 ├── .beads/
-│   └── beads.db        # Created by br init
-└── docs/               # Created by workflow skills
-    ├── research/       # /workflow:research
-    ├── brainstorm/     # /workflow:brainstorm
-    ├── discovery/      # /workflow:discovery (COMPREHENSIVE)
-    ├── prd/            # /workflow:prd
-    ├── designs/        # /workflow:technical-design
-    ├── plans/          # /workflow:plan
-    ├── reviews/        # /workflow:review
-    └── learnings/      # /workflow:compound
+│   └── beads.db           # Created by br init
+└── docs/
+    ├── research/          # /research output
+    ├── brainstorm/        # /brainstorm output
+    ├── discovery/         # /discovery output (COMPREHENSIVE)
+    ├── prd/               # /prd output
+    ├── use-cases/         # /prd standalone use cases
+    ├── designs/           # /technical-design output
+    ├── plans/             # /plan output
+    ├── learnings/         # /compound output
+    ├── reviews/           # /review reports
+    ├── reference/         # /review alignment audits
+    ├── features/          # /technical-design feature specs
+    ├── adr/               # Project-wide architecture decisions
+    ├── decisions/         # Feature-scoped decisions
+    ├── architecture/      # Existing architecture context
+    └── diagnosis/         # /diagnose output
 ```
 
-## Usage
+## Usage Examples
 
 ### Full SDLC (COMPREHENSIVE Feature)
 
@@ -200,7 +135,7 @@ your-project/
 → "research complete"
 
 /workflow:brainstorm I want to add user authentication
-→ Scope: COMPREHENSIVE (auth ×2 + multiple roles ×1 + regulatory ×2 = 5)
+→ Scope: COMPREHENSIVE (auth x2 + multiple roles x1 + regulatory x2 = 5)
 → "start discovery"
 
 /workflow:discovery user authentication
@@ -246,6 +181,35 @@ your-project/
 → /workflow:brainstorm (complex/systemic issues)
 ```
 
+## Key Concepts
+
+### Stable FR IDs
+
+Requirements use descriptive IDs (`FR-APP-REGISTER` not `FR-APP-001`) that survive when requirements are added or removed. These IDs chain through design → plan → beads → tests → code, so stability prevents cascade updates.
+
+### Glossary Inheritance
+
+Discovery seeds the glossary as a standalone file → PRD imports and extends it → Technical design inherits and adds implementation terms. This prevents terminology drift across artifacts.
+
+### Document History
+
+PRDs and designs include Document History tables that track what changed and why after each revision. Legacy Update notices mark sections that were revised due to architecture changes, preserving the decision trail.
+
+### Three-Layer Review
+
+Review uses context isolation: review agents produce raw findings → a consolidation agent deduplicates into a structured report → the main agent presents an executive summary. This prevents context window overflow while preserving detail.
+
+### Companion Docs (COMPREHENSIVE)
+
+Plans in COMPREHENSIVE mode produce companion documents alongside the implementation plan:
+- `e2e-test-plan.md` — acceptance-level E2E scenarios
+- `security-hardening-checklist.md` — operationalized security findings with priority tiers
+- `test-scenario-matrix.md` — UC → test class living mapping
+
+### Alignment Audit (COMPREHENSIVE)
+
+Review in COMPREHENSIVE mode with 2+ upstream docs produces a permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification.
+
 ## Domain References
 
 Skills load domain-specific checklists and patterns from shared references:
@@ -259,31 +223,23 @@ Skills load domain-specific checklists and patterns from shared references:
 
 Domain references are updated by `/workflow:compound` when domain-specific learnings are captured.
 
-## Updating the Plugin
+## Prerequisites
 
-### Check Your Version
+This skill library assumes your Claude Code environment has global tooling configured via `~/.claude/CLAUDE.md` and `~/AGENTS.md`. These provide the tool instructions that skills reference conditionally (issue tracking, session search, knowledge base).
 
-Run `/plugin` → **Installed** tab. You should see version **2.0.0** or higher.
+**Required:** `br` (beads-rust), `rtk` (token optimization)
+**Recommended:** `bv` (beads-viewer), `cass` (session search), `qmd` (knowledge base)
+**Optional:** `agent-browser` (browser automation for UI work)
 
-### Update to Latest
+See [`skills/_shared/prerequisites.md`](skills/_shared/prerequisites.md) for full details on each tool and how skills reference them.
 
-```bash
-claude plugin update workflow@dirkkok-skills
-```
+## Multi-Model Support
 
-### Enable Auto-Updates (Recommended)
+### Claude Code (Primary)
 
-1. Run `/plugin` → **Marketplaces** tab → `dirkkok-skills` → **Enable auto-update**
+Use the plugin as documented above.
 
-## OpenAI / Codex Integration
-
-This repository is model-agnostic. Claude Code plugin and marketplace workflow remain unchanged. OpenAI/Codex support is provided as an additive integration layer.
-
-### For Claude Code Users
-
-Continue using the plugin as documented above. No migration required.
-
-### For OpenAI/Codex Users
+### OpenAI / Codex
 
 1. Load `templates/OPENAI_AGENT.md` as your system/agent instruction file
 2. Register OpenAI function tools from `openai/tools.json`
@@ -293,24 +249,41 @@ Continue using the plugin as documented above. No migration required.
 node openai/validate-tools.mjs
 ```
 
-## Gemini CLI Integration
+### Gemini CLI
 
 1. Install: `gemini extensions install https://github.com/dirkkok101/skills`
 2. Copy templates: `templates/GEMINI.md` → `your-project/GEMINI.md`
 3. Gemini CLI automatically discovers and activates skills
+
+## Skill Versions
+
+| Skill | Version | Highlights |
+|-------|---------|-----------|
+| init | 1.1 | Eager folder creation, CLAUDE.md workflow section, idempotent |
+| research | 3.1 | Structured research briefs with source attribution |
+| brainstorm | 3.1 | Weighted scope classifier, kill criteria |
+| discovery | 3.2 | Standalone glossary file, disambiguation tables |
+| prd | 3.3 | Resolution-tracked open questions, standalone use cases, document approval |
+| technical-design | 3.3 | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
+| plan | 3.3 | Companion docs (E2E test plan, security checklist, test matrix) |
+| beads | 3.1 | Intent-based work packages |
+| execute | 3.1 | Sub-agent implementation with upstream verification |
+| review | 3.2 | Alignment audit agent, three-layer context isolation |
+| compound | 3.1 | Structured learning capture |
+| diagnose | 3.0 | Systematic root cause analysis |
 
 ## Philosophy
 
 - **Scope-Routed SDLC** — Weighted signals route features to the right pipeline depth
 - **Domain-Aware** — Shared checklists and patterns for identity, data, mobile, and SaaS domains
 - **Traceable** — Requirements trace from PRD through design, plan, beads, and review
-- **Documentation-First** — All phases produce permanent documentation
+- **Documentation-First** — All phases produce permanent documentation in `docs/`
 - **Intent Over Implementation** — Beads contain objectives, not source code
 - **Surgical Context** — Each bead specifies exactly which files to read
 - **Upstream Fidelity** — Execute and review verify implementation matches what was specified
 - **Continuous Learning** — `/workflow:compound` captures learnings by phase and domain
 - **Explicit Approval** — Each phase requires user approval before proceeding
-- **.NET/C# Native** — Technical design produces ASP.NET Core patterns
+- **Stack-Agnostic** — Skills work with any tech stack; your CLAUDE.md configures the specifics
 
 ## License
 

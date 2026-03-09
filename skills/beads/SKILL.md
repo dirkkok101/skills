@@ -94,9 +94,26 @@ Read the plan overview and sub-plans. For each task, capture:
 - Acceptance criteria (from sub-plan or PRD)
 - Scope boundaries (from sub-plan's in/out scope)
 
-**Step 1.2 — Decide Bead Granularity:**
+**Step 1.2 — Import Review Checkpoints:**
 
-Most plan tasks map 1:1 to beads. Split a task into multiple beads only when the task exceeds agent context capacity.
+Read the plan's Review Checkpoints section and the `── /simplify ──` rows in the Task Summary table. For each checkpoint, create a review bead that runs `/simplify` after the preceding implementation beads complete.
+
+Review beads are real work packages — they sit in the dependency chain between implementation beads. During /execute, the agent runs `/simplify` to review all code changed since the last checkpoint before continuing to the next group of tasks.
+
+```markdown
+## Review Checkpoint Mapping
+| Plan Checkpoint | After Bead | Review Bead | Focus |
+|----------------|-----------|-------------|-------|
+| After T02 (foundation) | bd-002 | bd-003 (review) | Pattern consistency, base abstractions |
+| After T05 (first feature) | bd-006 | bd-007 (review) | Endpoint patterns, test coverage |
+| Before polish | bd-010 | bd-011 (review) | Duplication, abstraction opportunities |
+```
+
+If the plan has no review checkpoints (older plans), apply the default rule: insert a review bead after every 4-5 implementation beads or at phase boundaries, whichever comes first.
+
+**Step 1.3 — Decide Implementation Bead Granularity:**
+
+Most plan tasks map 1:1 to implementation beads. Split a task into multiple beads only when the task exceeds agent context capacity.
 
 | Signal | Action |
 |--------|--------|
@@ -113,13 +130,15 @@ Most plan tasks map 1:1 to beads. Split a task into multiple beads only when the
 - **Too small:** Single trivial change with nothing meaningful to test
 - **Too large:** Multiple unrelated behaviours, 15+ files across different concerns
 
-**Step 1.3 — Map Dependencies:**
+**Step 1.4 — Map Dependencies:**
 
 Import dependencies from the plan's dependency graph. Beads inherit the ordering from the plan — don't re-derive it.
 
 If a plan task was split into multiple beads, order the sub-beads logically (typically: data model → business logic → integration → verification).
 
-**Step 1.4 — Identify Parallel Tracks:**
+Review beads depend on all implementation beads in their group and block the next group's implementation beads. This creates natural "gates" in the dependency chain.
+
+**Step 1.5 — Identify Parallel Tracks:**
 
 Mark beads that can execute in parallel (no dependency between them). This helps the executing agent (or user) optimise throughput.
 
@@ -210,11 +229,47 @@ Then {error handling result}
 - **Commit:** `{type}({scope}): {message}`
 ```
 
-**Step 2.3 — Apply Labels:**
+**Step 2.3 — Create Review Beads:**
 
-Categorise each bead by concern area (e.g., model, service, api, ui, test, integration, config). Labels help with parallel track identification and progress reporting.
+For each review checkpoint from Step 1.2, create a review bead. Review beads use a specific format — they run `/simplify` rather than implementing features:
 
-**Step 2.4 — Set Dependencies:**
+```markdown
+## Objective
+Code quality review checkpoint. Run /simplify to review all code changed
+since the last checkpoint for reuse opportunities, quality issues, and
+efficiency improvements.
+
+## Depends On
+- bd-{id}: {last implementation bead in this group}
+
+## Review Focus
+{From plan's Review Checkpoint section — e.g., "Pattern consistency with
+foundation. Verify base abstractions are solid before feature code builds
+on them."}
+
+## In Scope
+- All files changed by beads since last review checkpoint
+- Code quality: duplication, naming, abstraction opportunities
+- Pattern consistency with established codebase conventions
+- Test coverage adequacy
+
+## Out of Scope
+- New feature work (that's the next implementation bead)
+- Architecture changes (escalate to /plan if needed)
+
+## Verification
+- **Run:** `/simplify`
+- **Fix:** Apply any issues found by /simplify before proceeding
+- **Commit:** `refactor({scope}): simplify {what was improved}`
+```
+
+Label review beads with `review` tag to distinguish them from implementation beads.
+
+**Step 2.4 — Apply Labels:**
+
+Categorise each bead by concern area (e.g., model, service, api, ui, test, integration, config, review). Labels help with parallel track identification and progress reporting.
+
+**Step 2.5 — Set Dependencies:**
 
 Register dependencies between beads as specified in the plan's dependency graph. Verify:
 - No circular dependencies
@@ -292,9 +347,15 @@ After individual assessment, review the full bead set against these themes:
 - [ ] Context references point to files that exist?
 
 **Traceability:**
-- [ ] Every bead tags the FR(s) it implements?
+- [ ] Every implementation bead tags the FR(s) it implements?
 - [ ] FR coverage table has no Must-Have gaps?
 - [ ] Beads reference design decisions where relevant?
+
+**Review Checkpoints:**
+- [ ] Review beads exist at plan-specified checkpoint boundaries?
+- [ ] No more than 4-5 implementation beads between review beads?
+- [ ] Each review bead specifies a review focus (not just "run /simplify")?
+- [ ] Review beads correctly gate the next group (depend on prior group, block next)?
 
 **Step 3.5 — Record Assessment:**
 
@@ -347,8 +408,11 @@ All Must-Have FRs must be covered. Flag any gaps as blocking. If the project use
 | # | Title | Phase | Labels | Status |
 |---|-------|-------|--------|--------|
 | bd-{id} | {title} | 0: Foundation | model | Ready |
+| bd-{id} | {title} | 0: Foundation | config | Ready |
+| bd-{id} | /simplify review | checkpoint | review | Ready |
 | bd-{id} | {title} | 1: Core | service | Ready |
 | bd-{id} | {title} | 2: Feature | api, ui | Ready |
+| bd-{id} | /simplify review | checkpoint | review | Ready |
 
 ### Dependency Tree
 {Visual hierarchy of bead dependencies}
@@ -569,5 +633,6 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.2*
+*v3.2: Review beads — /simplify code review work packages at plan-specified checkpoints. Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Imports checkpoint boundaries from plan's Review Checkpoints section. Fallback rule for older plans without checkpoints. Review bead template with focus guidance. Cross-bead assessment includes checkpoint validation.*
 *v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

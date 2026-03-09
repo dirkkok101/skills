@@ -266,7 +266,7 @@ node openai/validate-tools.mjs
 | prd | 3.3 | Resolution-tracked open questions, standalone use cases, document approval |
 | technical-design | 3.3 | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
 | plan | 3.4 | Review checkpoints with /simplify, companion docs |
-| beads | 3.1 | Intent-based work packages |
+| beads | 3.2 | Review beads with /simplify at plan checkpoints |
 | execute | 3.1 | Sub-agent implementation with upstream verification |
 | review | 3.2 | Alignment audit agent, three-layer context isolation |
 | compound | 3.1 | Structured learning capture |

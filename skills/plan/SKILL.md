@@ -186,7 +186,7 @@ Verify: no circular dependencies. Every task has explicit "Depends on" and "Bloc
 
 **Step 1.7 — Place Review Checkpoints:**
 
-Insert `/simplify` review checkpoints at natural boundaries in the task sequence. These are points where the executing agent should pause implementation and run a code review pass before continuing. Catching a bad abstraction or quality issue after 2 tasks is a small fix; catching it after 12 tasks means reworking everything that built on it.
+Insert `/simplify` review checkpoints at natural boundaries in the task sequence. When /beads converts this plan into work packages, it creates actual `/simplify` review beads at these boundaries — real work packages that pause implementation to review code quality before continuing. Catching a bad abstraction after 2 tasks is a small fix; catching it after 12 tasks means reworking everything that built on it.
 
 **Where to place checkpoints:**
 
@@ -368,8 +368,8 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 
 ## Review Checkpoint
 
-{If this sub-plan ends a reviewable group, include:}
-> **Run `/simplify` after completing this sub-plan.** Review focus: {what to look for — e.g., "pattern consistency with T01 foundation", "abstraction opportunities across feature slices"}.
+{If this sub-plan ends a reviewable group, include this section. The /beads skill uses this to create a /simplify review bead after this task's bead:}
+> **/simplify review after this task.** Focus: {what to look for — e.g., "pattern consistency with T01 foundation", "abstraction opportunities across feature slices"}.
 
 {If no checkpoint after this sub-plan, omit this section.}
 

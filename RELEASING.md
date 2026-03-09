@@ -8,11 +8,11 @@ All of these must be updated when releasing:
 
 | File | Field | Example |
 |------|-------|---------|
-| `.claude-plugin/plugin.json` | `"version"` | `"3.1.0"` |
-| `.claude-plugin/marketplace.json` | `"metadata.version"` | `"3.1.0"` |
-| `docs-skills/.claude-plugin/plugin.json` | `"version"` | `"3.1.0"` |
-| `gemini-extension.json` | `"version"` | `"3.1.0"` |
-| `CHANGELOG.md` | New section header | `## [3.1.0] - YYYY-MM-DD` |
+| `.claude-plugin/plugin.json` | `"version"` | `"3.3.0"` |
+| `.claude-plugin/marketplace.json` | `"metadata.version"` | `"3.3.0"` |
+| `docs-skills/.claude-plugin/plugin.json` | `"version"` | `"3.3.0"` |
+| `gemini-extension.json` | `"version"` | `"3.3.0"` |
+| `CHANGELOG.md` | New section header | `## [3.3.0] - YYYY-MM-DD` |
 
 Individual skill versions are in each `skills/*/SKILL.md` footer line (`*Skill Version: X.Y*`). These track the skill's own revision history and may differ from the plugin version — update them when the skill content changes.
 
@@ -133,7 +133,7 @@ git ls-remote --tags origin | grep v{X.Y.Z}
 For urgent fixes that can't wait for a full release:
 
 1. Fix the issue on `main`
-2. Bump patch version (e.g., 3.1.0 → 3.1.1)
+2. Bump patch version (e.g., 3.3.0 → 3.3.1)
 3. Add a `### Fixed` entry to CHANGELOG.md under a new section
 4. Follow steps 6-7 above
 

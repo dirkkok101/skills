@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-03-09
+
+### Added
+- **init skill** — project scaffold that creates full `docs/` hierarchy (15 directories) and appends workflow guidance to CLAUDE.md. Idempotent, detects `.claude/CLAUDE.md` location, warns on missing tech stack.
+- **beads: /simplify review beads** — real work packages inserted at logical boundaries (phase transitions, feature slices) that run `/simplify` to catch quality issues during implementation
+- **plan: companion documents** (COMPREHENSIVE) — `e2e-test-plan.md`, `security-hardening-checklist.md`, `test-scenario-matrix.md`
+- **review: alignment audit agent** (COMPREHENSIVE) — permanent `docs/reference/alignment-audit.md` with PRD ↔ Design ↔ Plan ↔ Patterns cross-verification
+- **prd: integration points section** — documents consumed/exposed services for platform features
+- **prd: document approval section** (COMPREHENSIVE) — formal sign-off tracking
+- **technical-design: consolidated feature specs** — `docs/features/` for COMPREHENSIVE mode with 10+ UCs
+
+### Changed
+- **prd: open questions** upgraded from checklist to resolution tracking table (Status/Decision/Owner)
+- **prd: TOC** added for COMPREHENSIVE PRDs with 10+ sections
+- **technical-design: sibling design cross-refs** for multi-design projects
+- **technical-design: optional backend.md** per feature when 5+ commands/queries
+- **discovery: standalone glossary** extracted as separate file enabling downstream inheritance with disambiguation tables
+- **prd + technical-design: legacy update notices** convention for long-lived documents
+- **README** fully rewritten — deduplicated sections, added init skill, skill versions table, key concepts, stack-agnostic philosophy
+- **All skills** bumped to v3.3
+
+### Improvements derived from
+- nxgn.identity production docs (36 design files, 134KB PRD, 10 standalone use cases)
+- nxgn.actions production docs (151 files, 5 numbered designs, 17 sub-plans, 11 pattern docs)
+
 ## [3.1.0] - 2026-03-08
 
 ### Changed

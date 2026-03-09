@@ -94,22 +94,24 @@ Read the plan overview and sub-plans. For each task, capture:
 - Acceptance criteria (from sub-plan or PRD)
 - Scope boundaries (from sub-plan's in/out scope)
 
-**Step 1.2 — Import Review Checkpoints:**
+**Step 1.2 — Place Review Beads:**
 
-Read the plan's Review Checkpoints section and the `── /simplify ──` rows in the Task Summary table. For each checkpoint, create a review bead that runs `/simplify` after the preceding implementation beads complete.
+After mapping implementation beads, insert `/simplify` review beads at logical boundaries. Review beads are real work packages — they sit in the dependency chain between implementation groups. During /execute, the agent runs `/simplify` to review all code changed since the last review before continuing.
 
-Review beads are real work packages — they sit in the dependency chain between implementation beads. During /execute, the agent runs `/simplify` to review all code changed since the last checkpoint before continuing to the next group of tasks.
+**Where to place review beads:**
 
-```markdown
-## Review Checkpoint Mapping
-| Plan Checkpoint | After Bead | Review Bead | Focus |
-|----------------|-----------|-------------|-------|
-| After T02 (foundation) | bd-002 | bd-003 (review) | Pattern consistency, base abstractions |
-| After T05 (first feature) | bd-006 | bd-007 (review) | Endpoint patterns, test coverage |
-| Before polish | bd-010 | bd-011 (review) | Duplication, abstraction opportunities |
-```
+| Boundary | Why Review Here |
+|----------|----------------|
+| After foundation beads | Verify patterns before feature code builds on them |
+| After each vertical feature slice | Ensure the first feature sets good patterns for subsequent slices |
+| After high-risk beads | Confirm risky work is solid before depending on it |
+| Before polish beads | Last chance to simplify before edge cases add complexity |
 
-If the plan has no review checkpoints (older plans), apply the default rule: insert a review bead after every 4-5 implementation beads or at phase boundaries, whichever comes first.
+**Rules by scope:**
+- BRIEF: one review bead after the final implementation bead
+- STANDARD: 2-3 review beads at phase boundaries
+- COMPREHENSIVE: review bead after each phase + after each major feature slice
+- Never more than 4-5 implementation beads between review beads
 
 **Step 1.3 — Decide Implementation Bead Granularity:**
 
@@ -136,7 +138,7 @@ Import dependencies from the plan's dependency graph. Beads inherit the ordering
 
 If a plan task was split into multiple beads, order the sub-beads logically (typically: data model → business logic → integration → verification).
 
-Review beads depend on all implementation beads in their group and block the next group's implementation beads. This creates natural "gates" in the dependency chain.
+Review beads depend on the last implementation bead in their group and block the next group's first implementation bead. This creates natural quality gates in the dependency chain.
 
 **Step 1.5 — Identify Parallel Tracks:**
 
@@ -231,7 +233,7 @@ Then {error handling result}
 
 **Step 2.3 — Create Review Beads:**
 
-For each review checkpoint from Step 1.2, create a review bead. Review beads use a specific format — they run `/simplify` rather than implementing features:
+For each review boundary from Step 1.2, create a review bead. Review beads run `/simplify` rather than implementing features:
 
 ```markdown
 ## Objective
@@ -243,9 +245,8 @@ efficiency improvements.
 - bd-{id}: {last implementation bead in this group}
 
 ## Review Focus
-{From plan's Review Checkpoint section — e.g., "Pattern consistency with
-foundation. Verify base abstractions are solid before feature code builds
-on them."}
+{Specific to this boundary — e.g., "Pattern consistency with foundation.
+Verify base abstractions are solid before feature code builds on them."}
 
 ## In Scope
 - All files changed by beads since last review checkpoint
@@ -351,11 +352,11 @@ After individual assessment, review the full bead set against these themes:
 - [ ] FR coverage table has no Must-Have gaps?
 - [ ] Beads reference design decisions where relevant?
 
-**Review Checkpoints:**
-- [ ] Review beads exist at plan-specified checkpoint boundaries?
+**Review Beads:**
+- [ ] Review beads placed at phase boundaries and after feature slices?
 - [ ] No more than 4-5 implementation beads between review beads?
 - [ ] Each review bead specifies a review focus (not just "run /simplify")?
-- [ ] Review beads correctly gate the next group (depend on prior group, block next)?
+- [ ] Review beads correctly gate the next group (depend on prior, block next)?
 
 **Step 3.5 — Record Assessment:**
 
@@ -634,5 +635,5 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 ---
 
 *Skill Version: 3.2*
-*v3.2: Review beads — /simplify code review work packages at plan-specified checkpoints. Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Imports checkpoint boundaries from plan's Review Checkpoints section. Fallback rule for older plans without checkpoints. Review bead template with focus guidance. Cross-bead assessment includes checkpoint validation.*
+*v3.2: Review beads — /simplify code review work packages inserted at logical boundaries (phase transitions, feature slices, after high-risk work). Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Placement rules by scope tier. Review bead template with focus guidance. Cross-bead assessment validates review bead coverage.*
 *v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

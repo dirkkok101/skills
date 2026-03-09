@@ -265,7 +265,7 @@ node openai/validate-tools.mjs
 | discovery | 3.2 | Standalone glossary file, disambiguation tables |
 | prd | 3.3 | Resolution-tracked open questions, standalone use cases, document approval |
 | technical-design | 3.3 | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
-| plan | 3.4 | Review checkpoints with /simplify, companion docs |
+| plan | 3.3 | Companion docs (E2E test plan, security checklist, test matrix) |
 | beads | 3.2 | Review beads with /simplify at plan checkpoints |
 | execute | 3.1 | Sub-agent implementation with upstream verification |
 | review | 3.2 | Alignment audit agent, three-layer context isolation |

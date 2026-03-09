@@ -55,8 +55,8 @@ BRIEF mode produces a single file with 3-6 tasks. No sub-plan files — the over
 
 ```
 Phase 0: Import & Prerequisites
-Phase 1: Decomposition (with kill criteria check)
-  ── PAUSE 1: "Here's the decomposition. Right tasks? Right order?" ──
+Phase 1: Decomposition (with kill criteria + review checkpoints)
+  ── PAUSE 1: "Here's the decomposition. Right tasks? Right order? Right review points?" ──
 Phase 2: Overview Document
 Phase 3: Sub-Plans (STANDARD+)
 Phase 4: Self-Review (before presenting to user)
@@ -184,7 +184,27 @@ T03 and T04 can run in parallel after T01.
 
 Verify: no circular dependencies. Every task has explicit "Depends on" and "Blocks" relationships.
 
-**PAUSE 1:** Present the decomposition, FR coverage, and ordering to the user.
+**Step 1.7 — Place Review Checkpoints:**
+
+Insert `/simplify` review checkpoints at natural boundaries in the task sequence. These are points where the executing agent should pause implementation and run a code review pass before continuing. Catching a bad abstraction or quality issue after 2 tasks is a small fix; catching it after 12 tasks means reworking everything that built on it.
+
+**Where to place checkpoints:**
+
+| Boundary | Example | Why Review Here |
+|----------|---------|----------------|
+| After foundation tasks | After T01-T02 (schema + base setup) | Verify patterns before feature code builds on them |
+| After each vertical feature slice | After the "create widget" slice | Ensure the first feature sets good patterns for subsequent slices |
+| After high-risk tasks | After T04 (external integration) | Confirm the risky work is solid before depending on it |
+| Before polish phase | Before Phase 3 tasks | Last chance to simplify before edge cases add complexity |
+
+**Rules:**
+- BRIEF mode: one checkpoint after the final task (before marking complete)
+- STANDARD mode: 2-3 checkpoints at phase boundaries
+- COMPREHENSIVE mode: checkpoint after each phase + after each major feature slice
+- Never more than 4-5 tasks between checkpoints — if a group has more, split it
+- Mark each checkpoint in the Task Summary table with a `── /simplify ──` row
+
+**PAUSE 1:** Present the decomposition, FR coverage, review checkpoints, and ordering to the user.
 "Here's how I've broken down the work: {N} tasks across {N} phases. The critical path is {chain}. Does this decomposition look right? Any tasks missing or mis-ordered?"
 
 Response options:
@@ -222,8 +242,11 @@ Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
 | # | Task | Phase | Complexity | Risk | Depends On | Implements |
 |---|------|-------|-----------|------|------------|-----------|
 | T01 | {title} | 0: Foundation | S | Low | — | — |
-| T02 | {title} | 1: Core | M | High | T01 | FR-{NAME} |
-| T03 | {title} | 2: Feature | M | Low | T01 | FR-{NAME} |
+| T02 | {title} | 0: Foundation | S | Low | T01 | — |
+| | ── /simplify ── | | | | | |
+| T03 | {title} | 1: Core | M | High | T02 | FR-{NAME} |
+| T04 | {title} | 2: Feature | M | Low | T02 | FR-{NAME} |
+| | ── /simplify ── | | | | | |
 | ... | ... | ... | ... | ... | ... | ... |
 
 ## FR Coverage
@@ -245,6 +268,15 @@ Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
 |------|-----------|------------------|-----------|
 | T02 | Validation logic | Endpoint contract | — |
 | T05 | — | — | Widget creation flow |
+
+## Review Checkpoints
+| After Task | Reason | What to Review |
+|-----------|--------|---------------|
+| T02 | Foundation complete | Schema patterns, base abstractions, project structure |
+| T04 | First feature slice done | Endpoint patterns, validation approach, test coverage |
+| T07 | Before polish phase | Overall code quality, duplication, abstraction opportunities |
+
+Run `/simplify` at each checkpoint to review changed code for reuse, quality, and efficiency before continuing to the next group of tasks.
 
 ## Sub-Plans
 | # | File | Phase | Complexity |
@@ -334,6 +366,13 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 
 - {Overall criteria for this sub-plan as a whole}
 
+## Review Checkpoint
+
+{If this sub-plan ends a reviewable group, include:}
+> **Run `/simplify` after completing this sub-plan.** Review focus: {what to look for — e.g., "pattern consistency with T01 foundation", "abstraction opportunities across feature slices"}.
+
+{If no checkpoint after this sub-plan, omit this section.}
+
 ## References
 
 - {Links to design docs, api-surface, test-plan, use cases}
@@ -347,6 +386,7 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 - Context references (what to read)
 - Acceptance criteria (what "done" means)
 - Design decision summaries (why this approach)
+- Review checkpoint (if this sub-plan ends a reviewable group — triggers /simplify)
 
 **What sub-plans do NOT contain:**
 - Compilable source code (pseudocode is algorithmic intent, not code)
@@ -526,6 +566,13 @@ Run self-review BEFORE presenting to the user. The agent should catch its own is
 - [ ] No sub-plan contains file modification checklists (that's /beads)?
 - [ ] Implementation guidance encodes design decisions, not execution mechanics?
 
+**Theme 7: Review Checkpoints**
+- [ ] Review checkpoints placed at phase boundaries?
+- [ ] No more than 4-5 tasks between consecutive checkpoints?
+- [ ] First checkpoint after foundation tasks (validates patterns before feature code)?
+- [ ] Checkpoint after each major feature slice?
+- [ ] Each checkpoint specifies what to review (not just "run /simplify")?
+
 **Known limitation:** Self-review is performed by the same agent that wrote the plan. Mitigate by following themes as a checklist. Invite the user to spot-check the tasks they're least confident about.
 
 **PAUSE 2:** Present completed plan with summary.
@@ -578,7 +625,7 @@ For BRIEF mode, produce a single `overview.md`. Content comes from the same phas
 ...
 
 ## Dependency Order
-T01 → T02 → T03
+T01 → T02 → T03 → /simplify
 
 ---
 *Plan created: {date}*
@@ -645,7 +692,8 @@ For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: Review checkpoints — /simplify code review gates at logical boundaries (phase transitions, feature slice completion, pre-polish). Task Summary table includes checkpoint rows. Sub-plans carry review focus guidance. Self-review Theme 7 validates checkpoint placement. BRIEF mode includes single checkpoint after final task.*
 *v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*
 *v3.2: Plan/beads boundary shifted — sub-plans now include pseudocode (algorithmic intent), contract shapes, failure criteria, and pattern references. Sub-plan template restructured with Tasks/Objective/Approach/Pseudocode/Contract Shapes sections (modelled on identity project's plans). Feature decomposition alignment — sub-plans mirror design's feature structure. Updated self-review Theme 6 for new boundary. Hollow Sub-Plans and Misaligned Decomposition anti-patterns added.*
 *v3.1: Duration targets, kill criteria check before decomposition, prose-based artifact import (no hardcoded shell), self-review moved before user presentation (merged PAUSE 2+3), structured PAUSE response options, conditional issue tracker for uncovered FRs, overview reconciliation after sub-plans, plan/beads boundary check in self-review, concrete pattern guidance in sub-plans, anti-patterns explain WHY*

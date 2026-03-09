@@ -589,6 +589,6 @@ Ready for next step:
 
 ---
 
-*Skill Version: 3.2*
+*Skill Version: 3.3*
 *v3.2: Glossary extracted as standalone file (`glossary.md`) alongside brief — enables inheritance by PRD and technical-design. Glossary template supports disambiguation tables (multiple meanings per term) modelled on identity project's glossary. Brief references glossary via link instead of embedding.*
 *v3.1: Duration target, pre-mortem moved to Phase 1, glossary started early, domain depth prioritization, grounded checklist questions, focused STRIDE analysis, split Phase 3/3b, partial workflow option, kill criteria check in synthesis, readiness items requiring user confirmation flagged, generic questions anti-pattern added*

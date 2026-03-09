@@ -448,5 +448,5 @@ If abbreviated: "Root cause analysis abbreviated — user demonstrated deep doma
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.3*
 *v3.1: Self-review gates PAUSE 2, stress-test chosen approach, merged scope/routing into single PAUSE, 5 Whys abbreviation guidance, boundaries refined after approach selection, rejection rationale in output, scope override rule, kill criteria ownership, duration target, biggest risk per approach, conditional issue tracker search*

@@ -257,20 +257,22 @@ node openai/validate-tools.mjs
 
 ## Skill Versions
 
-| Skill | Version | Highlights |
-|-------|---------|-----------|
-| init | 1.1 | Eager folder creation, CLAUDE.md workflow section, idempotent |
-| research | 3.1 | Structured research briefs with source attribution |
-| brainstorm | 3.1 | Weighted scope classifier, kill criteria |
-| discovery | 3.2 | Standalone glossary file, disambiguation tables |
-| prd | 3.3 | Resolution-tracked open questions, standalone use cases, document approval |
-| technical-design | 3.3 | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
-| plan | 3.3 | Companion docs (E2E test plan, security checklist, test matrix) |
-| beads | 3.2 | Review beads with /simplify at plan checkpoints |
-| execute | 3.1 | Sub-agent implementation with upstream verification |
-| review | 3.2 | Alignment audit agent, three-layer context isolation |
-| compound | 3.1 | Structured learning capture |
-| diagnose | 3.0 | Systematic root cause analysis |
+All skills are at **v3.3**.
+
+| Skill | Highlights |
+|-------|-----------|
+| init | Eager folder creation, CLAUDE.md workflow section, idempotent |
+| research | Structured research briefs with source attribution |
+| brainstorm | Weighted scope classifier, kill criteria |
+| discovery | Standalone glossary file, disambiguation tables |
+| prd | Resolution-tracked open questions, standalone use cases, document approval |
+| technical-design | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
+| plan | Companion docs (E2E test plan, security checklist, test matrix) |
+| beads | Review beads with /simplify at logical boundaries |
+| execute | Sub-agent implementation with upstream verification |
+| review | Alignment audit agent, three-layer context isolation |
+| compound | Structured learning capture |
+| diagnose | Systematic root cause analysis |
 
 ## Philosophy
 

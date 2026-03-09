@@ -480,5 +480,5 @@ When all beads complete: **"Feature complete. Run /review to start code review."
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.3*
 *v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*

@@ -386,5 +386,5 @@ Example: "What pagination libraries exist for GraphQL?" → quick survey, presen
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.3*
 *v3.1: Search query construction guidance, PAUSE 1 conditional on STANDARD+, budget checkpoints (70/30 split), "Accept" option in build/buy/adopt, import user context instead of re-interviewing, recommendation and risks promoted in brief template, tightened confidence calibration (3+/2/1 sources), tag validation, "do not run" guidance, vague queries anti-pattern*

@@ -323,5 +323,5 @@ Options:
 
 ---
 
-*Skill Version: 3.1*
+*Skill Version: 3.3*
 *v3.1: Duration targets, collaborative model with PAUSE points, structured response options (single + bulk mode), format validation before saving, surfacing verification as dedicated phase with end-to-end chain check, generic agent memory path (not hardcoded), clarified one-entry-per-learning vs session-can-process-multiple, removed duplicate Quality Standards section, shell commands replaced with prose, anti-patterns explain WHY*

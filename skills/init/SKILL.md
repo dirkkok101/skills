@@ -303,6 +303,6 @@ The init skill is safe to run multiple times:
 
 ---
 
-*Skill Version: 1.1*
+*Skill Version: 3.3*
 *v1.1: Adversarial review fixes. Added 4 missing directories (reviews, adr, decisions, architecture). Fixed nested code fence rendering (pipeline uses indented block). Fixed BRIEF pipeline routing to match brainstorm skill (skips prd and technical-design). Added .claude/CLAUDE.md location detection. Improved idempotency to check both markers and handle corrupt state. Clarified COMPREHENSIVE-only directories in table descriptions.*
 *v1.0: Initial release. Eager folder creation, CLAUDE.md workflow section with markers, tech stack detection and warning, idempotent design.*

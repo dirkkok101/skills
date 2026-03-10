@@ -528,31 +528,39 @@ Before presenting requirements to the user, scan for these quality issues:
 
 **Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
 
-#### PAUSE 2: Validate requirements in batches (Batch Review — Pattern 3)
+#### PAUSE 2: Validate requirements one at a time (Guided Review — Pattern 5)
 
-Present requirements in batches of 3-4 (max 4 options per AskUserQuestion multi-select). For each batch:
+Review each functional requirement individually. For each FR:
 
-**Step 1 — Present full detail:** Show the batch as formatted markdown with full FR detail — user story, acceptance criteria, priority, and complexity for each requirement.
+**Step 1 — Present full detail:** Show the single requirement as formatted markdown with full FR detail — user story, acceptance criteria, priority, and complexity.
 
-**Step 2 — Ask which need revision:**
+**Step 2 — Ask for verdict:**
 
 ```
 AskUserQuestion:
-  question: "Which requirements need revision? (Unselected items are approved as-is)"
+  question: "Review this requirement."
   header: "FR Review"
-  multiSelect: true
+  multiSelect: false
   options:
-    - label: "FR-{MODULE}-{NAME-1}"
-      description: "{Title} — {Priority}, complexity {S/M/L}"
-    - label: "FR-{MODULE}-{NAME-2}"
-      description: "{Title} — {Priority}, complexity {S/M/L}"
-    - label: "FR-{MODULE}-{NAME-3}"
-      description: "{Title} — {Priority}, complexity {S/M/L}"
+    - label: "Approve"
+      description: "Requirement is good as-is. Move to the next one."
+    - label: "Revise"
+      description: "Needs changes — I'll provide notes."
+    - label: "Remove"
+      description: "Drop this requirement entirely."
+    - label: "Skip for now"
+      description: "Come back to this after reviewing the rest."
 ```
 
-**Step 3 — Follow up on flagged items:** For each requirement the user selected, ask what specifically needs changing. Use the user's notes from the "Other" field if provided, or ask a targeted follow-up.
+**Step 3 — Handle verdict:**
+- **Approve:** Record as approved, move to next FR.
+- **Revise:** Collect the user's notes (from "Other" field or follow-up), revise the requirement, re-present it, and re-ask.
+- **Remove:** Drop the FR from the document with a brief rationale note. Move to next FR.
+- **Skip for now:** Queue for a second pass after all other FRs are reviewed.
 
-Repeat Steps 1-3 until all batches are reviewed. This iterative approach surfaces better requirements than reviewing 20 stories at once.
+**Step 4 — Second pass:** After all FRs have been reviewed, re-present any skipped requirements and repeat Steps 1-3 for each.
+
+This per-requirement approach ensures focused review — the detail is immediately above the question, with no scrolling required.
 
 ---
 

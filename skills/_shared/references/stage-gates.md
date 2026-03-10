@@ -232,10 +232,10 @@ Then move to the next section (Personas, Assumptions, etc.).
 
 | Situation | Pattern |
 |-----------|---------|
-| 3-4 similar items to validate (FRs, tasks, beads) | **Batch Review** (Pattern 3) — multi-select to flag |
+| Items needing individual review (FRs, design decisions) | **Guided Review** (Pattern 5) — one at a time with approve/revise/remove |
 | Large document with distinct sections | **Guided Review** (Pattern 5) — walk through sequentially |
-| Short list needing deep review per item | **Guided Review** — one section at a time |
-| Long list needing quick triage | **Batch Review** — flag and move on |
+| Long list needing quick triage (tasks, beads, constraints) | **Batch Review** (Pattern 3) — multi-select to flag |
+| Homogeneous items where detail per item is minimal | **Batch Review** — flag and move on |
 
 **Why this matters:** Users miss things in long documents. By controlling the pace and focusing attention on one section at a time, the agent ensures every section gets genuine review. The user can "Skip for now" any section and return to it later, but they can't accidentally skip something by scrolling past it.
 

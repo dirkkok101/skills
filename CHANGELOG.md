@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-03-10
+
+### Added
+- **stage-gates.md** — shared reference (`skills/_shared/references/stage-gates.md`) defining 5 AskUserQuestion interaction patterns used across all workflow skills
+
+### Changed
+- **All workflow skills** upgraded to v3.4 with structured AskUserQuestion stage gates
+- **PAUSE points** replaced freeform prose with structured AskUserQuestion interactions using 5 patterns:
+  - **Decision Gate** — single-select approval/routing (Accept/Redirect/Clarify)
+  - **Comparison Gate** — single-select with preview panels for side-by-side approach comparison
+  - **Batch Review** — full markdown detail + multi-select to flag items needing revision
+  - **Combined Gate** — multiple independent questions in one call (e.g., completeness + routing)
+  - **Guided Review Workflow** — section-by-section walkthrough so users review everything without scroll fatigue
+- **Inline fallback** added to all skills for environments where AskUserQuestion is unavailable (Claude.ai, older Claude Code versions)
+- **beads PAUSE 1** added "Adjust mapping" option for minor changes without escalating to /plan
+- **execute** learnings batch overflow instruction for >4 items; "Compound" label renamed to "Document" for clarity
+- **review** Should Consider findings now presented as full markdown before cherry-pick multi-select
+
 ## [3.3.0] - 2026-03-09
 
 ### Added

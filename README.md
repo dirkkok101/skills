@@ -49,7 +49,15 @@ Brainstorm classifies features using weighted complexity signals (auth/security 
 
 ### Approval Gates
 
-Each phase requires explicit user approval before proceeding:
+Each phase pauses at structured stage gates using the `AskUserQuestion` tool, presenting clear options instead of freeform text. Five interaction patterns are used across all skills:
+
+| Pattern | Use Case |
+|---------|----------|
+| **Decision Gate** | Approval/routing choices (Accept, Redirect, Clarify) |
+| **Comparison Gate** | Side-by-side approach comparison with preview panels |
+| **Batch Review** | Full detail as markdown, then multi-select to flag items |
+| **Guided Review** | Section-by-section walkthrough — nothing gets missed |
+| **Combined Gate** | Multiple independent questions in one call |
 
 | Phase | Exit Signal | Next Step |
 |-------|-------------|----------|
@@ -62,6 +70,8 @@ Each phase requires explicit user approval before proceeding:
 | beads | "beads approved" | execute |
 | execute | "done" | review |
 | review | "changes approved" | compound |
+
+> **Fallback:** If `AskUserQuestion` is unavailable (Claude.ai, older Claude Code versions), skills fall back to presenting options as markdown text and waiting for freeform response.
 
 ### Traceability Chain
 
@@ -216,6 +226,7 @@ Skills load domain-specific checklists and patterns from shared references:
 
 | Domain | Reference File | Used By |
 |--------|---------------|---------|
+| Stage Gates | `_shared/references/stage-gates.md` | all workflow skills |
 | Identity/Auth | `_shared/references/identity-auth.md` | discovery, technical-design |
 | Data Platform (Capstone) | `_shared/references/capstone-data.md` | discovery, technical-design |
 | Mobile/EHS (Guardian) | `_shared/references/guardian-mobile.md` | discovery, technical-design |
@@ -257,22 +268,22 @@ node openai/validate-tools.mjs
 
 ## Skill Versions
 
-All skills are at **v3.3**.
+All skills are at **v3.4**.
 
 | Skill | Highlights |
 |-------|-----------|
 | init | Eager folder creation, CLAUDE.md workflow section, idempotent |
-| research | Structured research briefs with source attribution |
-| brainstorm | Weighted scope classifier, kill criteria |
-| discovery | Standalone glossary file, disambiguation tables |
-| prd | Resolution-tracked open questions, standalone use cases, document approval |
-| technical-design | Feature-first decomposition, sibling cross-refs, consolidated feature specs |
-| plan | Companion docs (E2E test plan, security checklist, test matrix) |
-| beads | Review beads with /simplify at logical boundaries |
-| execute | Sub-agent implementation with upstream verification |
-| review | Alignment audit agent, three-layer context isolation |
-| compound | Structured learning capture |
-| diagnose | Systematic root cause analysis |
+| research | Structured research briefs, Decision + Combined Gate stage gates |
+| brainstorm | Weighted scope classifier, Comparison Gate for approach selection |
+| discovery | Guided Review for actors/workflows, Batch Review for domain requirements |
+| prd | Guided Review for sections, Batch Review for FRs, Combined Gate for approval |
+| technical-design | Comparison Gate for decisions, Guided Review for architecture walkthrough |
+| plan | Batch Review for tasks, Decision Gates for coverage and ordering |
+| beads | Batch Review for mapping, adjustable granularity without /plan escalation |
+| execute | Decision Gates for blockers/push, Batch Review for learnings capture |
+| review | Decision Gate for findings triage, Batch Review for Should Consider cherry-pick |
+| compound | Decision/Batch Gate per mode, structured learning capture |
+| diagnose | 5 Decision Gates for investigation branching |
 
 ## Philosophy
 

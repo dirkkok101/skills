@@ -917,6 +917,8 @@ This preserves the decision trail — anyone reading the PRD can see what change
 ---
 
 *Skill Version: 3.4*
+*v3.4.1: PAUSE 2 switched from Batch Review (Pattern 3) to per-requirement Guided Review (Pattern 5) — each FR reviewed individually with Approve/Revise/Remove/Skip options.*
+
 *v3.4: Stage gates upgraded to use AskUserQuestion tool. PAUSE 1 uses Guided Review (Pattern 5) walking through Problem+Goals then Personas. PAUSE 2 uses Batch Review (Pattern 3) with multi-select for flagging FRs needing revision. PAUSE 3 uses Guided Review for MoSCoW priority validation with downgrade/upgrade flows. PAUSE 4 uses Combined Gate (Pattern 4) asking confidence, assumptions, and deferrals simultaneously.*
 *v3.3: Open Questions upgraded to resolution tracking table with Status/Decision/Owner columns. Table of Contents for COMPREHENSIVE PRDs (10+ sections). Integration Points section for platform services consumed by other systems. Document Approval section for COMPREHENSIVE mode. Legacy Update notice convention for long-lived PRDs.*
 *v3.2: Document History table for auditable PRD evolution. Use cases extracted as standalone files in `docs/use-cases/` (COMPREHENSIVE mode) — prevents monolith PRDs. Cockburn format replaced with table-based scenario format matching identity project patterns. Depth tiers (1/2/3) for use cases. Optional traceability index for 5+ use cases. Glossary import from discovery. Monolith PRD and Undocumented Evolution anti-patterns added.*

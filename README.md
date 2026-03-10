@@ -268,7 +268,7 @@ node openai/validate-tools.mjs
 
 ## Skill Versions
 
-All skills are at **v3.4**.
+All skills are at **v3.4**. PRD skill is at **v3.4.1**.
 
 | Skill | Highlights |
 |-------|-----------|
@@ -276,7 +276,7 @@ All skills are at **v3.4**.
 | research | Structured research briefs, Decision + Combined Gate stage gates |
 | brainstorm | Weighted scope classifier, Comparison Gate for approach selection |
 | discovery | Guided Review for actors/workflows, Batch Review for domain requirements |
-| prd | Guided Review for sections, Batch Review for FRs, Combined Gate for approval |
+| prd | Guided Review for sections + per-requirement FR review, Combined Gate for approval |
 | technical-design | Comparison Gate for decisions, Guided Review for architecture walkthrough |
 | plan | Batch Review for tasks, Decision Gates for coverage and ordering |
 | beads | Batch Review for mapping, adjustable granularity without /plan escalation |

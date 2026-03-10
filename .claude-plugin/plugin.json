@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "Complete feature development workflow with scope-based routing: init (project scaffold and CLAUDE.md setup), research (deep investigation), brainstorm (problem framing with scope classifier), discovery (domain-aware requirements for complex features), prd (tiered product requirements with resolution-tracked open questions), technical-design (feature-first architecture with sibling cross-refs), plan (implementation plans with companion docs), beads (intent-based tasks with /simplify review beads), execute (sub-agent implementation with upstream verification), review (parallel agent code review with alignment audits), compound (structured learning capture), diagnose (systematic root cause analysis). Requires br (beads-rust) CLI for task management.",
-  "version": "3.4.0",
+  "version": "3.4.1",
   "author": {
     "name": "Dirk Kok",
     "email": "dirkkok101@github.com"

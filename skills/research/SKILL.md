@@ -36,6 +36,10 @@ Run this skill when:
 - User says "research this first", "what options exist for..."
 - Before brainstorm when the problem space is unfamiliar
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 Do NOT run when:
 - The answer is likely in the existing codebase or project docs — check there first
 - The question is a simple fact check answerable from official docs in one search
@@ -124,8 +128,22 @@ Structure as 3-5 key questions:
 | Community discussions (SO, forums) | Gotchas and real-world experience | Medium |
 | Tutorial sites, aggregator blogs | Background understanding | Lower |
 
-**PAUSE 1 (STANDARD+ only):** Present research questions and scope to user.
-"Here are the research questions I'll investigate. Right scope? Any questions to add or remove?"
+**PAUSE 1 (STANDARD+ only):** Present research questions and scope as formatted markdown (from Steps 1.1-1.3 above).
+
+Then use AskUserQuestion (Decision Gate — Pattern 1):
+```
+AskUserQuestion:
+  question: "Are these the right research questions?"
+  header: "Scope"
+  multiSelect: false
+  options:
+    - label: "Looks good (Recommended)"
+      description: "Research questions and scope are correct. Proceed to investigation."
+    - label: "Add questions"
+      description: "I have additional questions to investigate."
+    - label: "Narrow scope"
+      description: "Some questions are out of scope or unnecessary."
+```
 
 BRIEF mode: skip this pause — the user asked a question, go answer it.
 
@@ -325,8 +343,35 @@ This is the most important section for downstream consumers — put it early.}
 *Feeds into: /brainstorm or /prd*
 ```
 
-**PAUSE 2:** Present the brief to the user.
-"Research complete. {N} key findings across {N} sources. The brief is at `docs/research/{feature}/research-brief.md`. Ready for next step?"
+**PAUSE 2:** Present the research brief summary as formatted markdown (executive summary, recommendation, key findings count, source count, and file path).
+
+Then use AskUserQuestion (Combined Gate — Pattern 4):
+```
+AskUserQuestion:
+  questions:
+    - question: "Do the research findings address your original questions?"
+      header: "Findings"
+      multiSelect: false
+      options:
+        - label: "Complete (Recommended)"
+          description: "All research questions are adequately answered."
+        - label: "Gaps remain"
+          description: "Some questions aren't fully answered."
+        - label: "Need deeper dive"
+          description: "Key areas need more investigation."
+    - question: "What should we do next?"
+      header: "Next step"
+      multiSelect: false
+      options:
+        - label: "Start brainstorm (Recommended)"
+          description: "Move to /brainstorm with research context."
+        - label: "Start PRD"
+          description: "Skip brainstorm, go straight to requirements."
+        - label: "More research"
+          description: "Return to Phase 2 for additional investigation."
+        - label: "Park"
+          description: "Save research brief for later."
+```
 
 ---
 
@@ -386,5 +431,6 @@ Example: "What pagination libraries exist for GraphQL?" → quick survey, presen
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for scope confirmation, Combined Gate for research completion (findings review + next step routing)*
 *v3.1: Search query construction guidance, PAUSE 1 conditional on STANDARD+, budget checkpoints (70/30 split), "Accept" option in build/buy/adopt, import user context instead of re-interviewing, recommendation and risks promoted in brief template, tightened confidence calibration (3+/2/1 sources), tag validation, "do not run" guidance, vague queries anti-pattern*

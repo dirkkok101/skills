@@ -40,6 +40,10 @@ Run this skill when:
 - User says "design the API", "what's the architecture", "create technical spec"
 - Before /plan for any medium-to-large change
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -173,13 +177,29 @@ If a kill criterion is violated or at serious risk, stop and escalate: "Kill cri
 requirements as given inputs. Do not re-argue what to build, only how.}
 ```
 
-**PAUSE 1:** Present constraints and assumptions to the user.
-"Here are the constraints and assumptions I've identified. Are these correct? Anything missing that would change the design approach?"
+**PAUSE 1:** Present constraints and assumptions for batch review.
 
-Response options:
-- **Accept** — constraints are correct, proceed to alternatives
-- **Modify** — correct or add constraints (specify which)
-- **Escalate** — constraints reveal a fundamental problem; return to PRD or brainstorm
+**Step 1:** Present all constraints and assumptions as formatted markdown with full detail — rationale, source (PRD, tech stack, team), and impact on design approach.
+
+**Step 2:** Use `AskUserQuestion` with **Batch Review** (Pattern 3) — multi-select to flag items needing correction. Unselected items are confirmed as-is. Max 4 options per batch; repeat if more constraints exist.
+
+```
+AskUserQuestion:
+  question: "Which constraints or assumptions need correction? (Unselected items are confirmed)"
+  header: "Constraints"
+  multiSelect: true
+  options:
+    - label: "{Constraint 1 short name}"
+      description: "{Brief summary — source, impact on design}"
+    - label: "{Constraint 2 short name}"
+      description: "{Brief summary — source, impact on design}"
+    - label: "{Assumption 1 short name}"
+      description: "{Brief summary — what it assumes, what breaks if wrong}"
+    - label: "{Assumption 2 short name}"
+      description: "{Brief summary — what it assumes, what breaks if wrong}"
+```
+
+For items flagged for correction, ask a follow-up or read the user's notes from "Other" to understand what needs changing. If corrections reveal a fundamental problem, escalate back to PRD or brainstorm.
 
 ---
 
@@ -272,16 +292,47 @@ Note: UI mockups are not selected here — they are generated per-feature in Pha
 
 Present checklist to user: "Based on the decisions above, I plan to generate: {list}. Any additions or removals?"
 
-**PAUSE 2:** Present all decisions with alternatives and recommendations.
-"Here are the key design decisions with alternatives. Which approach do you prefer for each? Any decisions I missed?"
+**PAUSE 2:** Present architectural alternatives using **Comparison Gate** (Pattern 2).
 
-Response options:
-- **Accept** — agree with all recommendations
-- **Choose** — select different approaches for specific decisions (specify which)
-- **Add** — identify missing decisions that need alternatives explored
-- **Escalate** — decisions reveal that the approach from brainstorm won't work; return upstream
+**Step 1:** Present the full comparison matrix as formatted markdown — all decisions, alternatives, pros/cons, and recommendations. This gives the user the complete picture before they choose.
 
-The user's choices here determine the entire detailed design that follows.
+**Step 2:** Use `AskUserQuestion` for each major decision point. Use `preview` fields to show each approach's details side-by-side. One question per decision area (the UI renders options on the left, preview content on the right).
+
+```
+AskUserQuestion:
+  question: "Which approach for {decision area}?"
+  header: "{area}"       # max 12 chars
+  multiSelect: false
+  options:
+    - label: "{Approach A} (Recommended)"
+      description: "{One-line summary}. {Complexity level}."
+      preview: |
+        ### {Approach A}
+        **Core idea:** {what this approach does}
+        **Pros:** {key advantages}
+        **Cons:** {key disadvantages}
+        **Complexity:** {Low | Medium | High}
+        **Biggest risk:** {primary risk}
+    - label: "{Approach B}"
+      description: "{One-line summary}. {Complexity level}."
+      preview: |
+        ### {Approach B}
+        **Core idea:** {what this approach does}
+        **Pros:** {key advantages}
+        **Cons:** {key disadvantages}
+        **Complexity:** {Low | Medium | High}
+        **Biggest risk:** {primary risk}
+    - label: "Do Less"
+      description: "{Minimal-change approach if viable}."
+      preview: |
+        ### Do Less
+        **Core idea:** {extend existing system}
+        **When right:** {conditions where this is sufficient}
+        **Pros:** {advantages}
+        **Cons:** {limitations}
+```
+
+Repeat for each major decision point. If decisions reveal that the brainstorm approach won't work, escalate upstream. The user's choices here determine the entire detailed design that follows.
 
 ---
 
@@ -351,13 +402,63 @@ If issues are found, fix them before presenting. This catches structural problem
 
 Output: `architecture.md`, `data-model.md`
 
-**PAUSE 3:** Present architecture diagrams and data model together.
-"Here's the system architecture and data model based on the decisions above. Does this look right before I detail the feature designs?"
+**PAUSE 3:** Walk through architecture and data model using **Guided Review** (Pattern 5).
 
-Response options:
-- **Accept** — architecture and data model are sound, proceed to feature design
-- **Modify** — adjust specific aspects (specify which)
-- **Rethink** — fundamental concerns; revisit Phase 2 decisions
+Instead of presenting everything at once, walk the user through each section sequentially so nothing gets missed.
+
+**Step 1 — System Architecture:** Present system architecture diagram(s) and component overview as formatted markdown.
+
+```
+AskUserQuestion:
+  question: "Does the system architecture look right? Components, boundaries, and connections."
+  header: "Architecture"
+  multiSelect: false
+  options:
+    - label: "Approved"
+      description: "System context, containers, and component boundaries are correct."
+    - label: "Needs revision"
+      description: "Something needs changing — I'll provide notes."
+    - label: "Skip for now"
+      description: "Come back to this section later."
+```
+
+If "Needs revision": collect notes, iterate on architecture before proceeding.
+
+**Step 2 — Data Model:** Present data model (entities, relationships, key fields) as formatted markdown.
+
+```
+AskUserQuestion:
+  question: "Does the data model support all required operations? Entities, relationships, constraints."
+  header: "Data Model"
+  multiSelect: false
+  options:
+    - label: "Approved"
+      description: "Entities, relationships, and constraints are correct."
+    - label: "Needs revision"
+      description: "Something needs changing — I'll provide notes."
+    - label: "Skip for now"
+      description: "Come back to this section later."
+```
+
+If "Needs revision": collect notes, iterate on data model before proceeding.
+
+**Step 3 — Key Interfaces/APIs:** Present key interfaces and API boundaries between components as formatted markdown.
+
+```
+AskUserQuestion:
+  question: "Are the key interfaces and API boundaries between components correct?"
+  header: "Interfaces"
+  multiSelect: false
+  options:
+    - label: "Approved"
+      description: "Interfaces and boundaries are well-defined. Proceed to feature design."
+    - label: "Needs revision"
+      description: "Something needs changing — I'll provide notes."
+    - label: "Skip for now"
+      description: "Come back to this section later."
+```
+
+If "Needs revision": collect notes, iterate. If any section was skipped, circle back before proceeding to Phase 4. If fundamental concerns arise, revisit Phase 2 decisions.
 
 ---
 
@@ -826,7 +927,9 @@ If the project uses an issue tracker, create tracked items for open questions th
 
 If there are no open questions, state "None — all design decisions resolved." This forces explicit acknowledgment rather than silently hoping everything is covered.
 
-**PAUSE 4:** Present completed design with summary.
+**PAUSE 4:** Present completed design with summary, then use **Decision Gate** (Pattern 1).
+
+Present the design summary as formatted markdown:
 
 ```markdown
 ## Technical Design Complete
@@ -839,13 +942,25 @@ If there are no open questions, state "None — all design decisions resolved." 
 **Key decisions:** {count} decisions with {total} alternatives explored
 **Test cases:** {total across all feature areas}
 **Self-review:** {N} rounds, stable
-
-Ready for review:
-1. "Accept" / "design approved" → Proceed to /plan
-2. "Modify {section}" → Iterate on specific section
-3. "Park" → Save for later
-4. "Abandon" → Document decision rationale
 ```
+
+Then use `AskUserQuestion`:
+
+```
+AskUserQuestion:
+  question: "Is the design complete and ready for planning?"
+  header: "Approval"
+  multiSelect: false
+  options:
+    - label: "Design approved (Recommended)"
+      description: "Architecture, data model, and feature specs are sound. Proceed to /plan."
+    - label: "Refine specific section"
+      description: "Most of the design is good but a specific section needs iteration."
+    - label: "Park for later"
+      description: "Save current state. Design can be resumed in a future session."
+```
+
+If "Refine specific section": ask which section needs work and iterate. If "Park for later": update design metadata with Status: Parked and Next Step note.
 
 ---
 
@@ -1018,6 +1133,7 @@ For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates at all four PAUSE points. PAUSE 1 uses Batch Review (Pattern 3) for constraints/assumptions. PAUSE 2 uses Comparison Gate (Pattern 2) with preview fields for architectural alternatives. PAUSE 3 uses Guided Review (Pattern 5) walking through architecture, data model, and interfaces sequentially. PAUSE 4 uses Decision Gate (Pattern 1) for final approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Sibling design cross-references in Phase 0 for multi-design projects. Optional separate backend.md per feature when 5+ commands/queries (4-doc variant). Consolidated feature specifications (`docs/features/`) for COMPREHENSIVE mode with 10+ UCs — coverage matrix tying UCs to endpoints, UI, plan tasks, and tests. Legacy Update notice convention for evolving docs. All patterns validated against AMPS actions project (151 files, 5 numbered designs).*
 *v3.2: Feature-first decomposition (3+ feature areas get per-feature api-surface, ui-mockup, test-plan docs). Co-located decisions/ and research/ directories. README.md index for designs with 5+ files. Glossary inheritance from discovery. Backend implementation guidance (command flow pseudocode, mapper logic, queries) merged into api-surface.md. Test plans as first-class per-feature documents with numbered test cases. Self-review log with specific issues/fixes per round. Revised "Implementation Spec" anti-pattern to distinguish algorithmic intent from line-by-line code. New anti-patterns: Monolith API Spec, Orphaned Research, Testing as Afterthought. Phase renumbering: old Phases 4+6 merged into new Phase 4 (Feature Design), UI mockups moved into per-feature docs, testing strategy replaced by per-feature test plans.*

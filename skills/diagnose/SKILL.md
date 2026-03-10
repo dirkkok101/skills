@@ -38,6 +38,10 @@ Do NOT use for:
 - Performance optimization → Different investigation pattern
 - Code quality improvements → `/review`
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Collaborative Model
@@ -141,13 +145,21 @@ If you cannot reproduce after 3 genuine attempts:
 **Recommended:** Ask user for more details, add logging, review for race conditions.
 ```
 
-**PAUSE (non-reproducible):** Present to user.
-"I couldn't reproduce this after {N} attempts. Here's what I tried: {summary}. Possible explanations: {list}."
+**PAUSE (non-reproducible):** Present the non-reproducible issue details (attempts made, environment info, possible explanations) as formatted markdown, then use AskUserQuestion:
 
-Response options:
-- **More details** — provide additional reproduction context
-- **Add logging** — instrument the code to capture the issue next time it occurs
-- **Park** — save findings, revisit when it recurs with more data
+```
+AskUserQuestion:
+  question: "I couldn't reproduce this issue. How should we proceed?"
+  header: "Reproduce"
+  multiSelect: false
+  options:
+    - label: "More details"
+      description: "I can provide additional reproduction context or environment info."
+    - label: "Add logging"
+      description: "Instrument the code to capture the issue when it recurs."
+    - label: "Park"
+      description: "Save findings and revisit when it happens again with more data."
+```
 
 ---
 
@@ -236,13 +248,21 @@ Can you reproduce with fewer steps, simpler input, or mocked dependencies? The m
 - Downstream: {what depends on this code}
 ```
 
-**PAUSE 1:** Present investigation results.
-"I've isolated the fault to {file}:{function}. Here's what I found: {evidence summary}. The issue is in {area}, which {matches/differs from} where you expected. Does this align with what you're seeing?"
+**PAUSE 1:** Present the evidence (code path, git history, test status, dependencies, isolation progress) as formatted markdown, then use AskUserQuestion:
 
-Response options:
-- **Accept** — isolation looks correct, proceed to root cause analysis
-- **Redirect** — the fault is elsewhere, investigate a different area
-- **More investigation** — need deeper analysis before concluding
+```
+AskUserQuestion:
+  question: "I've isolated the fault to {area}. Does this align with what you're seeing?"
+  header: "Isolation"
+  multiSelect: false
+  options:
+    - label: "Accept (Recommended)"
+      description: "Isolation looks correct. Proceed to root cause analysis."
+    - label: "Redirect"
+      description: "The fault is elsewhere — investigate a different area."
+    - label: "More investigation"
+      description: "Need deeper analysis before concluding."
+```
 
 ---
 
@@ -391,13 +411,21 @@ Before touching the buggy code, write a test that reproduces the bug. Run it —
 - Side effects: {any potential}
 ```
 
-**PAUSE 2a:** Present fix proposal.
-"Root cause: {summary}. The fix is {summary}. Risk is {level}. I've written a failing test that captures the bug. Shall I apply the fix?"
+**PAUSE 2a:** Present the proposed fix details (summary, changes table, risk level) as formatted markdown, then use AskUserQuestion:
 
-Response options:
-- **Accept** — apply the fix
-- **Modify** — adjust the approach
-- **Escalate** — this is more complex than it looks, create beads or escalate to design
+```
+AskUserQuestion:
+  question: "Apply this fix? A failing test has been written to capture the bug."
+  header: "Fix"
+  multiSelect: false
+  options:
+    - label: "Apply fix (Recommended)"
+      description: "Apply the code change and verify the test passes."
+    - label: "Modify approach"
+      description: "I want a different fix strategy."
+    - label: "Escalate"
+      description: "This is more complex than it looks — create beads or escalate to design."
+```
 
 **Step 5a.3 — Apply Fix (with approval):**
 
@@ -449,12 +477,21 @@ Create focused beads that reference the diagnostic context document. Each bead s
 
 If the project uses an issue tracker, create a parent issue linking the beads to the diagnosed bug.
 
-**PAUSE 2b:** "Diagnosis saved to `docs/diagnosis/{issue-slug}.md`. Created {N} beads."
+**PAUSE 2b:** Present the diagnostic context and created beads as formatted markdown, then use AskUserQuestion:
 
-Response options:
-- **Accept** — proceed to `/execute` to implement the fix
-- **Modify** — adjust bead scope or approach
-- **Compound** — capture a learning before executing
+```
+AskUserQuestion:
+  question: "Beads created for the fix. How should we proceed?"
+  header: "Beads"
+  multiSelect: false
+  options:
+    - label: "Execute (Recommended)"
+      description: "Run /execute to implement the fix beads."
+    - label: "Modify beads"
+      description: "Adjust bead scope or approach before executing."
+    - label: "Compound first"
+      description: "Capture a learning before executing."
+```
 
 ---
 
@@ -486,12 +523,21 @@ Save diagnostic context to `${PROJECT_ROOT}/docs/diagnosis/{issue-slug}.md`:
 
 If the project uses an issue tracker, create a tracked issue linking the diagnosis to the upcoming design work.
 
-**PAUSE 2c:** "This issue needs design work because {reasoning}. Diagnosis saved to `docs/diagnosis/{issue-slug}.md`."
+**PAUSE 2c:** Present the diagnostic context and reasoning as formatted markdown, then use AskUserQuestion:
 
-Response options:
-- **Accept** — proceed to `/brainstorm` with the diagnostic context
-- **Compound** — capture a learning before escalating
-- **Park** — save the diagnosis for later
+```
+AskUserQuestion:
+  question: "This issue needs design work. How should we proceed?"
+  header: "Escalate"
+  multiSelect: false
+  options:
+    - label: "Start brainstorm (Recommended)"
+      description: "Run /brainstorm with the diagnostic context."
+    - label: "Compound first"
+      description: "Capture a learning before escalating."
+    - label: "Park"
+      description: "Save diagnosis for later."
+```
 
 ---
 
@@ -528,5 +574,6 @@ Response options:
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates at all PAUSE points (Decision Gate pattern from stage-gates.md)*
 *v3.1: Duration targets, prose-based context gathering (no hardcoded setup commands), structured PAUSE response options at all decision points, non-reproducible path as explicit PAUSE, collaborative model shows three-path fork, proportionality theme in self-review, conditional issue tracker for bug tracking, all resolution paths offer /compound, commit format deferred to CLAUDE.md, safe git practices (no stash prescription), anti-patterns explain WHY*

@@ -34,6 +34,10 @@ Run this skill when:
 - User says "beads approved", "start implementation", "execute"
 - Ready beads exist in the issue tracker
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -303,6 +307,7 @@ If 3+ beads in a row require recovery or produce unexpected complexity, stop and
 
 **When stopping:**
 
+Present blocker details as formatted markdown:
 ```markdown
 ## Blocker Encountered
 
@@ -313,12 +318,23 @@ If 3+ beads in a row require recovery or produce unexpected complexity, stop and
 **Recovery Attempts:** {what was tried and why it failed}
 
 **What I Need:** {specific clarification or decision}
+```
 
-Options:
-- **Clarify** — provide the missing information, I'll resume this bead
-- **Skip** — skip this bead, continue with next ready bead
-- **Stop** — halt execution, commit and push current work
-- **Escalate** — return to /beads or /plan to revise
+Then use AskUserQuestion (Decision Gate — Pattern 1):
+```
+AskUserQuestion:
+  question: "Blocker encountered on {bead title}. How should we proceed?"
+  header: "Blocker"
+  multiSelect: false
+  options:
+    - label: "Clarify"
+      description: "I'll provide the missing information so you can resume."
+    - label: "Skip bead"
+      description: "Skip this bead and continue with the next ready bead."
+    - label: "Stop"
+      description: "Halt execution. Commit and push current work."
+    - label: "Escalate"
+      description: "Return to /beads or /plan to revise."
 ```
 
 After user provides resolution, apply the guidance and resume from the current bead.
@@ -370,7 +386,18 @@ Ready for code review. Run /review to start.
 
 **Step 4.5 — Push (with user confirmation):**
 
-Ask the user before pushing: "Feature complete. Ready to push to remote?"
+Use AskUserQuestion (Decision Gate — Pattern 1):
+```
+AskUserQuestion:
+  question: "Feature complete. Ready to push to remote?"
+  header: "Push"
+  multiSelect: false
+  options:
+    - label: "Push (Recommended)"
+      description: "Push all commits to remote."
+    - label: "Hold"
+      description: "Keep changes local for further review first."
+```
 
 ---
 
@@ -395,7 +422,7 @@ For each fix:
 2. Would it recur in similar features?
 3. Does it reveal a process, skill, or bead gap?
 
-If YES to any → present to user:
+If YES to any → present learnings as formatted markdown:
 
 ```markdown
 ## Review Fixes Complete
@@ -408,12 +435,41 @@ Fixed {N} issues from review.
 
 1. **{Topic}** ({type: Pattern_Discovery | Gotcha_Pitfall | Context_Gap | Process_Improvement})
    {1-sentence description}
-
-Options:
-- "Compound all" → Document all learnings via /compound
-- "Compound {N}" → Document specific learning
-- "Skip" → Continue without documenting
 ```
+
+Then use AskUserQuestion. For multiple learnings, use Batch Review (Pattern 3):
+```
+AskUserQuestion:
+  question: "Which learnings should we document?"
+  header: "Learnings"
+  multiSelect: true
+  options:
+    - label: "{topic 1}"
+      description: "{type} — {1-sentence description}"
+    - label: "{topic 2}"
+      description: "{type} — {1-sentence description}"
+    - label: "{topic 3}"
+      description: "{type} — {1-sentence description}"
+    - label: "{topic 4}"
+      description: "{type} — {1-sentence description}"
+```
+
+If more than 4 learnings identified, present in sequential batches of 4.
+
+For a single learning, use Decision Gate (Pattern 1):
+```
+AskUserQuestion:
+  question: "Document this learning?"
+  header: "Learnings"
+  multiSelect: false
+  options:
+    - label: "Document (Recommended)"
+      description: "Capture this learning via /compound for future sessions."
+    - label: "Skip"
+      description: "Continue without documenting."
+```
+
+Selected learnings are documented via /compound.
 
 ---
 
@@ -480,5 +536,6 @@ When all beads complete: **"Feature complete. Run /review to start code review."
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for blocker handling and push confirmation, Batch Review for review fix learnings*
 *v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*

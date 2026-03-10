@@ -38,6 +38,10 @@ Run this skill when:
 - User says "plan approved", "create beads", "beads for..."
 - Plan exists at `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -151,13 +155,60 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 - Tracks merge at: bd-007 (integration)
 ```
 
-**PAUSE 1:** Present the task-to-bead mapping to the user.
-"Here's how I've mapped plan tasks to beads: {N} beads across {N} phases. {N} can run in parallel. Does the granularity look right? Any tasks that should be split or merged?"
+**PAUSE 1:** Present the task-to-bead mapping for batch review.
 
-Response options:
-- **Accept** — mapping is correct, proceed to create beads
-- **Modify** — adjust granularity for specific tasks (specify which)
-- **Escalate** — mapping reveals the plan needs revision; return to /plan
+**Step 1:** Present the full mapping as formatted markdown:
+
+```markdown
+## Task-to-Bead Mapping
+
+**Feature:** {name}
+**Beads:** {N} across {M} phases | {P} can run in parallel
+
+| Plan Task | Bead | Phase | Labels | Parallel Track |
+|-----------|------|-------|--------|----------------|
+| T01: {task title} | bd-{id}: {bead title} | 0: Foundation | model | A |
+| T02: {task title} | bd-{id}: {bead title} | 0: Foundation | config | A |
+| — | bd-{id}: /simplify review | checkpoint | review | — |
+| T03: {task title} | bd-{id}: {bead title} | 1: Core | service | B |
+| T04: {task title} | bd-{id}: {bead title} | 1: Core | api | B |
+```
+
+**Step 2:** Use AskUserQuestion with multi-select to review beads in batches (max 4 per batch):
+
+```
+AskUserQuestion:
+  question: "Which beads need granularity adjustment? (Unselected beads are approved)"
+  header: "Bead mapping"
+  multiSelect: true
+  options:
+    - label: "bd-{id}: {bead title}"
+      description: "Plan task T01 → Phase 0: Foundation, labels: model"
+    - label: "bd-{id}: {bead title}"
+      description: "Plan task T02 → Phase 0: Foundation, labels: config"
+    - label: "bd-{id}: {bead title}"
+      description: "Plan task T03 → Phase 1: Core, labels: service"
+    - label: "bd-{id}: {bead title}"
+      description: "Plan task T04 → Phase 1: Core, labels: api"
+```
+
+Repeat for additional batches if more than 4 beads. For flagged beads, collect revision notes and adjust granularity.
+
+**Step 3:** After all batches reviewed, use AskUserQuestion decision gate:
+
+```
+AskUserQuestion:
+  question: "Is the overall bead mapping correct?"
+  header: "Mapping"
+  multiSelect: false
+  options:
+    - label: "Accept (Recommended)"
+      description: "Mapping is correct. Proceed to create beads."
+    - label: "Adjust mapping"
+      description: "Minor changes needed to specific bead granularity or grouping."
+    - label: "Escalate"
+      description: "Mapping reveals plan needs revision. Return to /plan."
+```
 
 ---
 
@@ -394,17 +445,17 @@ After individual assessment, review the full bead set against these themes:
 
 All Must-Have FRs must be covered. Flag any gaps as blocking. If the project uses an issue tracker, offer to create tracked items for gaps.
 
-**PAUSE 2:** Present the full bead set with readiness assessment and FR coverage.
+**PAUSE 2:** Guided review of the full bead set.
+
+**Step 1:** Present Beads Created table as formatted markdown:
 
 ```markdown
-## Beads Summary
+## Beads Created
 
 **Feature:** {name}
 **Epic:** {epic-id}
 **Beads:** {N} intent-based work packages
-**Parallel tracks:** {N} beads can run in parallel
-
-### Beads Created
+**Parallel tracks:** {P} beads can run in parallel
 
 | # | Title | Phase | Labels | Status |
 |---|-------|-------|--------|--------|
@@ -420,27 +471,50 @@ All Must-Have FRs must be covered. Flag any gaps as blocking. If the project use
 
 ### Parallel Tracks
 {From Phase 1.4}
+```
 
+**Step 2:** Present Self-Assessment Summary and Resolutions Applied:
+
+```markdown
 ### Self-Assessment Summary
 | Category | Count |
 |----------|-------|
 | Ready | {N} |
-| Resolved | {N} (details in assessment) |
+| Resolved | {N} (details below) |
 | Split | {N} into {M} sub-beads |
 
+### Resolutions Applied
+**bd-{id}:** {What was resolved and how}
+**bd-{id}:** {Split into bd-{id}a, bd-{id}b — reason}
+```
+
+**Step 3:** Present FR Coverage table:
+
+```markdown
 ### FR Coverage
-{Table from Step 4}
+| FR | Bead(s) | Status |
+|----|---------|--------|
+| FR-{MODULE}-{NAME} (Must) | bd-{id} | Covered |
+| FR-{MODULE}-{NAME} (Must) | bd-{id}, bd-{id} | Covered |
+| FR-{MODULE}-{NAME} (Should) | — | Deferred |
+```
 
----
+**Step 4:** Use AskUserQuestion decision gate:
 
-All beads assessed as Ready.
-
-Options:
-1. "Accept" / "beads approved" → Proceed to /execute
-2. "Adjust bd-{id}" → Modify specific bead
-3. "Reassess" → Re-run self-assessment gate
-4. "Back to plan" → Revise plan first
-5. "Park" → Save for later
+```
+AskUserQuestion:
+  question: "All beads assessed as Ready. Approve for /execute?"
+  header: "Beads"
+  multiSelect: false
+  options:
+    - label: "Beads approved (Recommended)"
+      description: "All beads are ready. Proceed to /execute."
+    - label: "Adjust specific bead"
+      description: "Modify a specific bead — I'll specify which one."
+    - label: "Reassess"
+      description: "Re-run the self-assessment gate on all beads."
+    - label: "Back to plan"
+      description: "Plan needs revision before beads can proceed."
 ```
 
 ---
@@ -634,6 +708,7 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates — PAUSE 1 uses batch review (Pattern 3) for bead mapping with multi-select granularity adjustment. PAUSE 2 uses guided review workflow (Pattern 5) walking through beads created, self-assessment, and FR coverage before a decision gate. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.2: Review beads — /simplify code review work packages inserted at logical boundaries (phase transitions, feature slices, after high-risk work). Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Placement rules by scope tier. Review bead template with focus guidance. Cross-bead assessment validates review bead coverage.*
 *v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

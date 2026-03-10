@@ -37,6 +37,11 @@ Run this skill when:
 
 ---
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+
+---
+
 ## Collaborative Model
 
 ```
@@ -130,8 +135,35 @@ Ask: **"Walk me through how someone would use this."**
 - How will they discover this feature?
 - What does success look like for them?
 
-**PAUSE 1:** Present the root problem and user journey.
-"Based on our discussion, the root problem is {X}, not {original request}. The user journey is {Y}. Does this framing feel right?"
+**PAUSE 1:** Present the root problem and user journey as formatted markdown:
+
+```markdown
+## Problem Framing
+
+**Surface request:** {what the user originally asked for}
+**Root problem:** {the underlying issue discovered through 5 Whys}
+
+### User Journey
+{How users currently experience this pain, their workaround, and what success looks like}
+```
+
+Then use a **Decision Gate** (Pattern 1) to confirm:
+
+```
+AskUserQuestion:
+  question: "Does this problem framing feel right?"
+  header: "Problem"
+  multiSelect: false
+  options:
+    - label: "Accept (Recommended)"
+      description: "Root problem and user journey are correct. Proceed to Phase 2."
+    - label: "Redirect"
+      description: "This is a symptom, not the root cause. Iterate on problem definition."
+    - label: "Clarify"
+      description: "Need more context before confirming."
+```
+
+If AskUserQuestion is unavailable, fall back to presenting the above as prose and waiting for freeform response.
 
 ---
 
@@ -293,7 +325,9 @@ Score:
 
 BRIEF scope means the brainstorm document contains enough information for /plan to work directly — no PRD or design doc needed.
 
-**PAUSE 2:** Present approaches, scope classification, and routing together.
+**PAUSE 2:** This is a two-step gate: approach selection, then routing.
+
+**Step 1 — Present brainstorm summary** as formatted markdown:
 
 ```markdown
 ## Brainstorm Summary
@@ -304,9 +338,53 @@ BRIEF scope means the brainstorm document contains enough information for /plan 
 ### Approaches
 {Comparison matrix from Phase 3}
 
-**Which approach resonates?** We can iterate before committing.
+### Scope Classification
+**Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
+**Signals:** {list of detected signals}
+```
 
-### Stress Test (for chosen approach)
+**Step 2 — Approach selection** using a **Comparison Gate** (Pattern 2). Each option gets a preview with its details:
+
+```
+AskUserQuestion:
+  question: "Which approach should we take?"
+  header: "Approach"
+  multiSelect: false
+  options:
+    - label: "Approach A: {Name}"
+      description: "{Core idea}. {Complexity} complexity."
+      preview: |
+        ### Approach A: {Name}
+        **Core idea:** {1 sentence}
+        **How it works:** {2-3 sentences}
+        **Pros:** {benefits}
+        **Cons:** {drawbacks}
+        **Complexity:** {Low/Medium/High}
+        **Biggest risk:** {what could make this fail}
+    - label: "Approach B: {Name}"
+      description: "{Core idea}. {Complexity} complexity."
+      preview: |
+        ### Approach B: {Name}
+        **Core idea:** {1 sentence}
+        **How it works:** {2-3 sentences}
+        **Pros:** {benefits}
+        **Cons:** {drawbacks}
+        **Complexity:** {Low/Medium/High}
+        **Biggest risk:** {what could make this fail}
+    - label: "Do Less"
+      description: "{Minimal change option}. Low complexity."
+      preview: |
+        ### Approach C: Do Less
+        **Core idea:** {minimal or no change}
+        **When this is right:** {conditions where this is the best answer}
+        **Pros:** {benefits}
+        **Cons:** {drawbacks}
+```
+
+If AskUserQuestion is unavailable, fall back to presenting approaches as prose and waiting for freeform response.
+
+**Step 3 — Stress test the chosen approach:**
+
 Once the user picks, challenge the selection:
 - "What's the biggest risk with this approach?"
 - "What would make this fail?"
@@ -316,17 +394,28 @@ If the user picks the highest-risk option, explicitly flag the risks.
 If the chosen approach exceeds the complexity budget, surface this:
 "This approach exceeds the draft complexity budget. Expand the budget or pick a simpler approach?"
 
-### After Selection
-**Selected Approach:** {name}
-**Scope:** {BRIEF | STANDARD | COMPREHENSIVE}
+**Step 4 — Routing decision** using a **Decision Gate** (Pattern 1). The recommended option matches the scope classification:
 
-What's next?
-1. "start discovery" → /discovery (COMPREHENSIVE default — deep requirements)
-2. "start prd" → /prd (STANDARD default — structured requirements)
-3. "start plan" → /plan (BRIEF default — plan directly from brainstorm)
-4. "refine" → continue iterating
-5. "park" / "abandon"
 ```
+AskUserQuestion:
+  question: "What should we do next?"
+  header: "Next step"
+  multiSelect: false
+  options:
+    - label: "Start discovery (Recommended for COMPREHENSIVE)"
+      description: "Deep requirements gathering. Best for complex features with many unknowns."
+    - label: "Start PRD (Recommended for STANDARD)"
+      description: "Structured requirements. Best for features with moderate complexity."
+    - label: "Start plan (Recommended for BRIEF)"
+      description: "Plan directly from brainstorm. Best for well-understood, small features."
+    - label: "Refine"
+      description: "Continue iterating on approaches or boundaries."
+```
+
+Mark the option matching the scope classification as "(Recommended)" and remove the "(Recommended for ...)" suffixes from the others. For example, if scope is STANDARD:
+- "Start PRD (Recommended)" / "Start discovery" / "Start plan" / "Refine"
+
+If AskUserQuestion is unavailable, fall back to presenting routing options as a numbered list and waiting for freeform response.
 
 **Step 5.2 — Refine Boundaries Against Chosen Approach:**
 
@@ -448,5 +537,6 @@ If abbreviated: "Root cause analysis abbreviated — user demonstrated deep doma
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates — PAUSE 1 uses Decision Gate for problem framing, PAUSE 2 uses Comparison Gate for approach selection + Decision Gate for routing, with fallback to prose when AskUserQuestion unavailable*
 *v3.1: Self-review gates PAUSE 2, stress-test chosen approach, merged scope/routing into single PAUSE, 5 Whys abbreviation guidance, boundaries refined after approach selection, rejection rationale in output, scope override rule, kill criteria ownership, duration target, biggest risk per approach, conditional issue tracker search*

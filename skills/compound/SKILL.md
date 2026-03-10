@@ -34,6 +34,10 @@ Run this skill when:
 - After discovering a pattern, gotcha, or best practice
 - When /execute or /review identifies learnings to document
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Collaborative Model
@@ -147,6 +151,8 @@ For each learning that passes threshold:
 **PAUSE 1:** Present classified learnings to the user.
 
 **Single mode:**
+
+Present the learning details as formatted markdown:
 ```markdown
 ## Learning Identified
 
@@ -156,14 +162,26 @@ For each learning that passes threshold:
 
 **What to Do:** {imperative statement}
 **Context:** {1-2 sentences}
+```
 
-Options:
-- **Accept** — save this learning as classified
-- **Modify** — change category, scope, or wording
-- **Skip** — doesn't pass threshold after all
+Then use AskUserQuestion (Decision Gate — Pattern 1):
+```
+AskUserQuestion:
+  question: "Save this learning?"
+  header: "Learning"
+  multiSelect: false
+  options:
+    - label: "Accept (Recommended)"
+      description: "Save this learning as classified."
+    - label: "Modify"
+      description: "Change category, scope, or wording."
+    - label: "Skip"
+      description: "Doesn't pass threshold after all."
 ```
 
 **Bulk mode:**
+
+Present all learnings as formatted markdown:
 ```markdown
 ## Learnings from Review
 
@@ -175,13 +193,26 @@ Options:
 | 2 | {title} | {category} | {phase} | {scope} | {N}/3 |
 
 Filtered out: {list of candidates that didn't pass threshold and why}
-
-Options:
-- **Accept all** — save all {M} learnings
-- **Accept {numbers}** — save specific learnings (e.g., "1, 3")
-- **Modify {number}** — change a specific learning
-- **Skip all** — none worth documenting
 ```
+
+Then use AskUserQuestion (Batch Review — Pattern 3), up to 4 learnings per batch:
+```
+AskUserQuestion:
+  question: "Which learnings should we save? (Unselected items are skipped)"
+  header: "Learnings"
+  multiSelect: true
+  options:
+    - label: "{learning 1 title}"
+      description: "{category} — {phase} — {scope}"
+    - label: "{learning 2 title}"
+      description: "{category} — {phase} — {scope}"
+    - label: "{learning 3 title}"
+      description: "{category} — {phase} — {scope}"
+    - label: "{learning 4 title}"
+      description: "{category} — {phase} — {scope}"
+```
+
+If more than 4 learnings, present in sequential batches.
 
 ---
 
@@ -285,16 +316,28 @@ If any link in the chain is broken, fix it now — don't leave a learning orphan
 
 **PAUSE 2:** Confirm completion.
 
+Present confirmation as formatted markdown:
 ```markdown
 ## Learning Captured
 
 **Saved:** {file path}
 **Surfacing verified:** {Yes — referenced from CLAUDE.md / No — needs reference added}
 **Reference updates:** {any files updated}
+```
 
-Options:
-- **"More"** — capture another learning
-- **"Done"** — session complete
+Then use AskUserQuestion (Decision Gate — Pattern 1):
+```
+AskUserQuestion:
+  question: "Learning captured. What next?"
+  header: "Next"
+  multiSelect: false
+  options:
+    - label: "Done (Recommended)"
+      description: "Session complete."
+    - label: "More"
+      description: "Capture another learning."
+    - label: "Update reference"
+      description: "Also update a shared reference file with this learning."
 ```
 
 ---
@@ -323,5 +366,6 @@ Options:
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for single learning and completion, Batch Review for bulk learnings*
 *v3.1: Duration targets, collaborative model with PAUSE points, structured response options (single + bulk mode), format validation before saving, surfacing verification as dedicated phase with end-to-end chain check, generic agent memory path (not hardcoded), clarified one-entry-per-learning vs session-can-process-multiple, removed duplicate Quality Standards section, shell commands replaced with prose, anti-patterns explain WHY*

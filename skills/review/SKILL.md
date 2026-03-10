@@ -35,6 +35,10 @@ Do NOT use for:
 - Quick spot checks on a single file (just read it directly)
 - Pre-implementation design review (use `/brainstorm` or `/technical-design`)
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -442,16 +446,44 @@ Present the executive summary from Step 3.3. Do NOT read the full findings file 
 {Executive summary from Step 3.3}
 
 Full report: `docs/reviews/review-{timestamp}.md`
-
----
-
-Options:
-- **"All"** — Implement all Must Fix + Should Consider
-- **"Must-fix only"** — Only implement Must Fix items
-- **"{numbers}"** — Implement specific items (e.g., "1, 3, 5")
-- **"Approved"** — Accept changes as-is, no fixes needed
-- **"Another round"** — Run review agents again
 ```
+
+Then use a **Decision Gate** (Pattern 1) to collect the user's decision:
+
+```
+AskUserQuestion:
+  question: "How should we handle the review findings?"
+  header: "Findings"
+  multiSelect: false
+  options:
+    - label: "Fix all (Recommended)"
+      description: "Implement all Must Fix + Should Consider items"
+    - label: "Must-fix only"
+      description: "Only implement Must Fix (criticality 8-10) items"
+    - label: "Approved as-is"
+      description: "Accept changes without fixes. No issues need addressing."
+    - label: "Another round"
+      description: "Run review agents again for a fresh perspective"
+```
+
+If the user selects "Fix all" or "Must-fix only", proceed to Phase 5.
+
+If the user wants to cherry-pick from Should Consider items, first read the "Should Consider" section from `docs/reviews/review-{timestamp}.md` and present each finding as formatted markdown (file:line, issue, suggestion, confidence) in batches of up to 4. Then use a follow-up **Batch Review** (Pattern 3) multi-select for each batch:
+
+```
+AskUserQuestion:
+  question: "Which Should Consider items should we fix? (Unselected items are skipped)"
+  header: "Items"
+  multiSelect: true
+  options:
+    - label: "{finding #} — {short description}"
+      description: "{file:line} — {suggestion}"
+    - label: "{finding #} — {short description}"
+      description: "{file:line} — {suggestion}"
+    ...up to 4 items per batch
+```
+
+If more than 4 Should Consider items exist, present them in sequential batches of 4. Unselected items in each batch are skipped.
 
 ---
 
@@ -476,6 +508,8 @@ If the user selects items from the "Should Consider" section, read the relevant 
 
 ### Phase 6: Review Cycle Decision
 
+Present the fixes implemented summary as formatted markdown:
+
 ```markdown
 ## Fixes Implemented
 
@@ -484,13 +518,22 @@ If the user selects items from the "Should Consider" section, read the relevant 
 
 **Tests:** All passing
 **Build:** Succeeds
+```
 
----
+Then use a **Decision Gate** (Pattern 1) to collect the user's decision:
 
-Options:
-- **"Another round"** — Run review agents again on new changes
-- **"Approved"** — Review complete, proceed to /compound for learnings
-- **Specific concerns** — Address particular areas
+```
+AskUserQuestion:
+  question: "Fixes applied and tests passing. What next?"
+  header: "Review cycle"
+  multiSelect: false
+  options:
+    - label: "Approved (Recommended)"
+      description: "Review complete. Proceed to /compound for learnings."
+    - label: "Another round"
+      description: "Run review agents again on the new changes."
+    - label: "Specific concerns"
+      description: "I have particular areas I want re-examined."
 ```
 
 In COMPREHENSIVE mode, automatically run another round after fixes (up to 3 rounds total or until no Must Fix findings remain).
@@ -527,6 +570,7 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates at Phase 4 (findings decision) and Phase 6 (review cycle decision) using Decision Gate (Pattern 1) and Batch Review (Pattern 3) patterns from `_shared/references/stage-gates.md`.*
 *v3.2: Alignment audit agent for COMPREHENSIVE mode — produces permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification. Modelled on AMPS actions project's alignment audit (found 11 critical, ~30 medium, ~25 low issues across ~30 files).*
 *v3.1: Duration targets, BRIEF mode skips consolidation agent, agent failure/timeout recovery with health check, kill criteria added to plan-intent and prd-compliance agent prompts, self-review step before committing fixes, removed duplicate Quality Standards section, structured PAUSE response options, removed Phase 7 learning identification (handled by execute re-entry and compound), commit format deferred to CLAUDE.md, anti-patterns explain WHY*

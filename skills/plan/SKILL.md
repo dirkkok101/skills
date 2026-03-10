@@ -37,6 +37,10 @@ Run this skill when:
 - A design document exists at `${PROJECT_ROOT}/docs/designs/{feature}/`
 - For BRIEF scope: brainstorm + PRD exist (no design doc needed)
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -184,13 +188,61 @@ T03 and T04 can run in parallel after T01.
 
 Verify: no circular dependencies. Every task has explicit "Depends on" and "Blocks" relationships.
 
-**PAUSE 1:** Present the decomposition, FR coverage, and ordering to the user.
-"Here's how I've broken down the work: {N} tasks across {N} phases. The critical path is {chain}. Does this decomposition look right? Any tasks missing or mis-ordered?"
+**PAUSE 1:** Guided Review Workflow (Pattern 5 from stage-gates.md) — walk the user through the decomposition section by section.
 
-Response options:
-- **Accept** — decomposition is correct, proceed to write overview and sub-plans
-- **Modify** — adjust tasks, sizing, or ordering (specify which)
-- **Escalate** — decomposition reveals the design is incomplete or scope is wrong; return upstream
+**Step 1:** Present the Task Summary table as formatted markdown (from Step 1.2/1.3 output).
+
+**Step 2:** AskUserQuestion — Batch Review (Pattern 3) for task validation:
+
+```
+AskUserQuestion:
+  question: "Which tasks need adjustment? (Unselected tasks are approved)"
+  header: "Tasks"
+  multiSelect: true
+  options:    # Up to 4 tasks per batch
+    - label: "T01: {title}"
+      description: "Phase 0: Foundation — Complexity S"
+    - label: "T02: {title}"
+      description: "Phase 1: Core — Complexity M"
+    - label: "T03: {title}"
+      description: "Phase 2: Feature — Complexity M"
+    - label: "T04: {title}"
+      description: "Phase 2: Feature — Complexity S"
+```
+
+Repeat with additional batches if there are more than 4 tasks. For any tasks flagged for adjustment, collect the user's notes and iterate before continuing.
+
+**Step 3:** Present the FR Coverage table (from Step 1.4), then:
+
+```
+AskUserQuestion:
+  question: "Is FR coverage complete?"
+  header: "FR Coverage"
+  multiSelect: false
+  options:
+    - label: "Complete (Recommended)"
+      description: "All Must-Have FRs are covered by at least one task."
+    - label: "Has gaps"
+      description: "Some Must-Have FRs are missing task coverage."
+    - label: "Need to adjust"
+      description: "Task-to-FR mapping needs changes."
+```
+
+**Step 4:** Present the Dependency Graph and Critical Path (from Step 1.6), then:
+
+```
+AskUserQuestion:
+  question: "Does the ordering and critical path look right?"
+  header: "Ordering"
+  multiSelect: false
+  options:
+    - label: "Correct (Recommended)"
+      description: "Task ordering and critical path are right. Proceed to write overview and sub-plans."
+    - label: "Reorder"
+      description: "Some tasks should come earlier or later."
+    - label: "Escalate"
+      description: "Decomposition reveals the design is incomplete. Return upstream."
+```
 
 ---
 
@@ -528,7 +580,9 @@ Run self-review BEFORE presenting to the user. The agent should catch its own is
 
 **Known limitation:** Self-review is performed by the same agent that wrote the plan. Mitigate by following themes as a checklist. Invite the user to spot-check the tasks they're least confident about.
 
-**PAUSE 2:** Present completed plan with summary.
+**PAUSE 2:** Decision Gate (Pattern 1 from stage-gates.md) — present the plan summary and ask for approval.
+
+Present the plan summary as formatted markdown:
 
 ```markdown
 ## Implementation Plan Complete
@@ -539,13 +593,24 @@ Run self-review BEFORE presenting to the user. The agent should catch its own is
 **Critical path:** {task chain} ({N} tasks)
 **FR coverage:** {N}/{N} Must-Haves covered
 **Risk items:** {N} tasks flagged as high-risk (addressed in Phase 1)
+```
 
-Ready for review:
-1. "Accept" / "plan approved" → Proceed to /beads
-2. "Modify {task}" → Iterate on specific task
-3. "Reorder" → Change task sequencing
-4. "Park" → Save for later
-5. "Abandon" → Document decision rationale
+Then:
+
+```
+AskUserQuestion:
+  question: "Is the implementation plan ready for /beads?"
+  header: "Plan"
+  multiSelect: false
+  options:
+    - label: "Plan approved (Recommended)"
+      description: "Decomposition, ordering, and coverage are correct. Proceed to /beads."
+    - label: "Modify tasks"
+      description: "Specific tasks need changes — I'll specify which."
+    - label: "Reorder"
+      description: "Task sequencing needs adjustment."
+    - label: "Park"
+      description: "Save the plan for later."
 ```
 
 ---
@@ -645,7 +710,8 @@ For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: AskUserQuestion stage gates. PAUSE 1 uses Guided Review Workflow (Pattern 5) with Batch Review for task validation, Decision Gate for FR coverage, and Decision Gate for ordering. PAUSE 2 uses Decision Gate (Pattern 1) for plan approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*
 *v3.2: Plan/beads boundary shifted — sub-plans now include pseudocode (algorithmic intent), contract shapes, failure criteria, and pattern references. Sub-plan template restructured with Tasks/Objective/Approach/Pseudocode/Contract Shapes sections (modelled on identity project's plans). Feature decomposition alignment — sub-plans mirror design's feature structure. Updated self-review Theme 6 for new boundary. Hollow Sub-Plans and Misaligned Decomposition anti-patterns added.*
 *v3.1: Duration targets, kill criteria check before decomposition, prose-based artifact import (no hardcoded shell), self-review moved before user presentation (merged PAUSE 2+3), structured PAUSE response options, conditional issue tracker for uncovered FRs, overview reconciliation after sub-plans, plan/beads boundary check in self-review, concrete pattern guidance in sub-plans, anti-patterns explain WHY*

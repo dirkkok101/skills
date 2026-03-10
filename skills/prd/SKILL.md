@@ -36,6 +36,10 @@ Run this skill when:
 - After discovery completion for complex features
 - Starting a feature that needs formal requirements documentation
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Mode Selection
@@ -237,11 +241,43 @@ For each persona (2-4 max):
 
 Import actor list from discovery brief if available. Personas inform assumptions and constraints in Phase 4 — a "non-technical" persona constrains UI complexity, a "developer" persona may allow CLI-only interfaces.
 
-#### PAUSE 1: Validate problem, personas, and context
+#### PAUSE 1: Validate problem, personas, and context (Guided Review — Pattern 5)
 
-Present the problem statement, goals, non-goals, and personas together. Ask:
+**Step 1 — Problem + Goals + Non-Goals:** Present the problem statement, goals, and non-goals as formatted markdown, then:
 
-> "Does this accurately describe the problem? Do the personas match real users? Are the goals measurable and realistic? Anything missing from non-goals?"
+```
+AskUserQuestion:
+  question: "Does the problem statement accurately describe the pain? Are goals measurable and non-goals clear?"
+  header: "Problem"
+  multiSelect: false
+  options:
+    - label: "Approved"
+      description: "Problem framing, goals, and non-goals are correct."
+    - label: "Needs revision"
+      description: "Something needs changing — I'll provide notes."
+    - label: "Skip for now"
+      description: "Come back to this section later."
+```
+
+If "Needs revision": collect notes, iterate on the section, then re-present and re-ask.
+
+**Step 2 — Personas:** Present personas as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Do these personas match real users? Are their pain points and success criteria accurate?"
+  header: "Personas"
+  multiSelect: false
+  options:
+    - label: "Approved"
+      description: "Personas reflect real users and their needs."
+    - label: "Needs revision"
+      description: "Something needs changing — I'll provide notes."
+    - label: "Skip for now"
+      description: "Come back to this section later."
+```
+
+If "Needs revision": collect notes, iterate, re-present and re-ask.
 
 Do not proceed until the user confirms the problem framing and personas are right. Everything downstream depends on this.
 
@@ -492,16 +528,31 @@ Before presenting requirements to the user, scan for these quality issues:
 
 **Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
 
-#### PAUSE 2: Validate requirements in batches
+#### PAUSE 2: Validate requirements in batches (Batch Review — Pattern 3)
 
-Present requirements in groups of 3-5, not all at once. For each batch:
+Present requirements in batches of 3-4 (max 4 options per AskUserQuestion multi-select). For each batch:
 
-> "Here are the next requirements. For each one:
-> - Does the 'so that' reflect a real benefit?
-> - Are the acceptance criteria specific enough to test?
-> - What edge cases am I missing?"
+**Step 1 — Present full detail:** Show the batch as formatted markdown with full FR detail — user story, acceptance criteria, priority, and complexity for each requirement.
 
-This iterative approach surfaces better requirements than reviewing 20 stories at once.
+**Step 2 — Ask which need revision:**
+
+```
+AskUserQuestion:
+  question: "Which requirements need revision? (Unselected items are approved as-is)"
+  header: "FR Review"
+  multiSelect: true
+  options:
+    - label: "FR-{MODULE}-{NAME-1}"
+      description: "{Title} — {Priority}, complexity {S/M/L}"
+    - label: "FR-{MODULE}-{NAME-2}"
+      description: "{Title} — {Priority}, complexity {S/M/L}"
+    - label: "FR-{MODULE}-{NAME-3}"
+      description: "{Title} — {Priority}, complexity {S/M/L}"
+```
+
+**Step 3 — Follow up on flagged items:** For each requirement the user selected, ask what specifically needs changing. Use the user's notes from the "Other" field if provided, or ask a targeted follow-up.
+
+Repeat Steps 1-3 until all batches are reviewed. This iterative approach surfaces better requirements than reviewing 20 stories at once.
 
 ---
 
@@ -561,9 +612,41 @@ Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms 
        +──> FR-CONFIGURE          FR-NOTIFY
 ```
 
-#### PAUSE 3: Validate priorities
+#### PAUSE 3: Validate priorities (Guided Review — Pattern 5)
 
-> "Is the Must Have list truly minimal? Could any Must Haves be Should Haves? Are there Should Haves that are actually essential?"
+**Step 1 — Review Must Haves:** Present the Must Have list as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Which Must Have items could actually be Should Have? (Select items to downgrade)"
+  header: "Priorities"
+  multiSelect: true
+  options:
+    - label: "FR-{MODULE}-{NAME-1}"
+      description: "{Title}"
+    - label: "FR-{MODULE}-{NAME-2}"
+      description: "{Title}"
+    - label: "FR-{MODULE}-{NAME-3}"
+      description: "{Title}"
+```
+
+For selected items, move them to Should Have. If no items selected, Must Haves are confirmed as-is.
+
+**Step 2 — Review Should Haves:** Present the Should Have list as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Should any of these be upgraded to Must Have? (Select items to upgrade)"
+  header: "Upgrades"
+  multiSelect: true
+  options:
+    - label: "FR-{MODULE}-{NAME-1}"
+      description: "{Title}"
+    - label: "FR-{MODULE}-{NAME-2}"
+      description: "{Title}"
+```
+
+For selected items, move them to Must Have.
 
 Priority decisions shape what gets built first. Getting them wrong means building the wrong thing.
 
@@ -647,13 +730,44 @@ After thematic review, do a final scan for:
 - Missing error paths in acceptance criteria
 - NFR targets without rationale tracing to problem/metrics
 
-#### PAUSE 4: User validation questions
+#### PAUSE 4: User validation questions (Combined Gate — Pattern 4)
 
-After self-review, ask the user these targeted questions:
+After self-review, ask all three validation questions simultaneously:
 
-> 1. "Which acceptance criteria are you LEAST confident about? Those are where edge cases usually hide."
-> 2. "Are there any assumptions I listed that might not hold?"
-> 3. "Is there anything in the Won't Have list that you're uncomfortable deferring?"
+```
+AskUserQuestion:
+  questions:
+    - question: "Which acceptance criteria are you LEAST confident about?"
+      header: "Confidence"
+      multiSelect: true
+      options:
+        - label: "FR-{MODULE}-{NAME-1}"
+          description: "{Title} — most complex/risky FR"
+        - label: "FR-{MODULE}-{NAME-2}"
+          description: "{Title} — most complex/risky FR"
+        - label: "FR-{MODULE}-{NAME-3}"
+          description: "{Title} — most complex/risky FR"
+    - question: "Are there assumptions that might not hold?"
+      header: "Assumptions"
+      multiSelect: false
+      options:
+        - label: "All assumptions valid (Recommended)"
+          description: "No concerns about the documented assumptions."
+        - label: "Some are risky"
+          description: "One or more assumptions may not hold — I'll provide notes."
+        - label: "Need to investigate"
+          description: "We should validate specific assumptions before proceeding."
+    - question: "Anything in Won't Have you're uncomfortable deferring?"
+      header: "Deferrals"
+      multiSelect: false
+      options:
+        - label: "All fine (Recommended)"
+          description: "Won't Have items are correctly scoped out."
+        - label: "Some should be reconsidered"
+          description: "One or more Won't Have items may need to move into scope."
+```
+
+Select 3-4 of the most complex or risky FRs for the Confidence question options. For flagged items, dig deeper into specific concerns before finalizing.
 
 ---
 
@@ -794,7 +908,8 @@ This preserves the decision trail — anyone reading the PRD can see what change
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: Stage gates upgraded to use AskUserQuestion tool. PAUSE 1 uses Guided Review (Pattern 5) walking through Problem+Goals then Personas. PAUSE 2 uses Batch Review (Pattern 3) with multi-select for flagging FRs needing revision. PAUSE 3 uses Guided Review for MoSCoW priority validation with downgrade/upgrade flows. PAUSE 4 uses Combined Gate (Pattern 4) asking confidence, assumptions, and deferrals simultaneously.*
 *v3.3: Open Questions upgraded to resolution tracking table with Status/Decision/Owner columns. Table of Contents for COMPREHENSIVE PRDs (10+ sections). Integration Points section for platform services consumed by other systems. Document Approval section for COMPREHENSIVE mode. Legacy Update notice convention for long-lived PRDs.*
 *v3.2: Document History table for auditable PRD evolution. Use cases extracted as standalone files in `docs/use-cases/` (COMPREHENSIVE mode) — prevents monolith PRDs. Cockburn format replaced with table-based scenario format matching identity project patterns. Depth tiers (1/2/3) for use cases. Optional traceability index for 5+ use cases. Glossary import from discovery. Monolith PRD and Undocumented Evolution anti-patterns added.*
 *v3.1: Collaborative model diagram, personas before assumptions, duration/length targets, edge case prioritization on Must Haves, consolidated 5 review themes, BRIEF skip markers, kill criteria check, NFR rationale tracing, arbitrary NFR targets anti-pattern*

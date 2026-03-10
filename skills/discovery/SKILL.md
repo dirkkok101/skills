@@ -35,6 +35,10 @@ Do NOT run when:
 - Brainstorm scope classifier says BRIEF
 - Pure technical refactor with no new requirements
 
+## Stage Gate Reference
+For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+
 ---
 
 ## Collaborative Model
@@ -208,8 +212,61 @@ Ask the user NOW, before domain requirements: **"Imagine this feature shipped an
 
 Capture responses as early risks. These shape which domain areas to investigate deeply in Phase 2 — a pre-mortem answer about "users couldn't figure out the UI" means UI/UX needs deep investigation, while "the integration was unreliable" means integrations need depth.
 
-**PAUSE 1:** Present actors, workflows, gaps, and pre-mortem risks.
-"Here are the actors and workflows I've mapped, plus 3 failure risks from the pre-mortem. Are all actors accounted for? Do the workflows match reality? Do the risks resonate?"
+**PAUSE 1:** Guided Review Workflow (Pattern 5) — walk the user through actors, workflows, and risks in three focused steps.
+
+**Step 1 — Actors:** Present the Actor table and JTBD statements as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Are all actors accounted for? Any roles or systems missing?"
+  header: "Actors"
+  multiSelect: false
+  options:
+    - label: "Complete (Recommended)"
+      description: "All human roles, systems, and automated actors are mapped."
+    - label: "Missing actors"
+      description: "I'll specify who's missing."
+    - label: "Revise roles"
+      description: "Some actors need different responsibilities or types."
+```
+
+If "Missing actors" or "Revise roles": collect details, update the actor table, and re-present.
+
+**Step 2 — Workflows:** Present Current-State and Desired-State workflows plus Gap Analysis as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Do the workflows match reality?"
+  header: "Workflows"
+  multiSelect: false
+  options:
+    - label: "Accurate (Recommended)"
+      description: "Current-state and desired-state workflows are correct."
+    - label: "Needs correction"
+      description: "Workflows have errors — I'll explain what's wrong."
+    - label: "Partial"
+      description: "Some steps are missing or wrong."
+```
+
+If "Needs correction" or "Partial": collect details, update workflows, and re-present.
+
+**Step 3 — Risks:** Present Pre-mortem risks and Gap Analysis as formatted markdown, then:
+
+```
+AskUserQuestion:
+  question: "Do the pre-mortem risks resonate? Anything else that could cause failure?"
+  header: "Risks"
+  multiSelect: false
+  options:
+    - label: "Risks captured (Recommended)"
+      description: "The failure scenarios and gaps are complete."
+    - label: "Add risks"
+      description: "I have additional failure scenarios."
+    - label: "Reprioritize"
+      description: "The risks are right but the priorities need adjusting."
+```
+
+If "Add risks" or "Reprioritize": collect details, update risk register, and re-present.
 
 ---
 
@@ -304,8 +361,35 @@ DR-{MODULE}-{DESCRIPTIVE-NAME}: ...
 - **Indirect** — analogous features, competitor analysis, expert opinion
 - **Assumption** — needs validation (flag for PRD)
 
-**PAUSE 2:** Present domain requirements summary.
-"Discovered {N} requirements across {N} domain areas. {N} Must Have, {N} Should Have, {N} Deferred. Does the scope look right?"
+**PAUSE 2:** Batch Review (Pattern 3) — review domain requirements area by area.
+
+For each domain area that has requirements, present the full detail (DR IDs, descriptions, business rules, constraints, edge cases, evidence) as formatted markdown, then ask via multi-select:
+
+```
+AskUserQuestion:
+  question: "Which {domain area} requirements need revision? (Unselected are approved)"
+  header: "{Area}"       # max 12 chars
+  multiSelect: true
+  options:
+    - label: "DR-{MODULE}-{NAME-1}"
+      description: "{title} — {priority}"
+    - label: "DR-{MODULE}-{NAME-2}"
+      description: "{title} — {priority}"
+    - label: "DR-{MODULE}-{NAME-3}"
+      description: "{title} — {priority}"
+    # Up to 4 DRs per batch. If more, use multiple sequential AskUserQuestion calls.
+```
+
+For items flagged for revision, ask follow-up questions or read the user's "Other" notes to understand what needs changing. Iterate until approved.
+
+After all domain areas reviewed, present the summary counts:
+
+```markdown
+| Domain Area | Must Have | Should Have | Deferred | Excluded |
+|-------------|----------|------------|----------|----------|
+| {area}      | {count}  | {count}    | {count}  | {count}  |
+| Total       | {total}  | {total}    | {total}  | {total}  |
+```
 
 ---
 
@@ -540,7 +624,9 @@ See [glossary.md](glossary.md) for full term disambiguation.
 *Next step: /prd*
 ```
 
-**PAUSE 3:** Present summary and route.
+**PAUSE 3:** Combined Gate (Pattern 4) — review completeness and decide next step.
+
+Present the discovery summary as formatted markdown:
 
 ```markdown
 ## Discovery Complete
@@ -551,11 +637,33 @@ See [glossary.md](glossary.md) for full term disambiguation.
 **Feasibility flags:** {N} need spikes, {N} need research
 **Kill criteria:** {all clear / {N} triggered — see above}
 **Open questions:** {N} for PRD to resolve
+```
 
-Ready for next step:
-1. "start prd" → /prd (default — feeds discovery into PRD)
-2. "refine" → continue iterating discovery
-3. "park" / "abandon"
+Then ask two questions in a single AskUserQuestion call:
+
+```
+AskUserQuestion:
+  questions:
+    - question: "Is discovery complete?"
+      header: "Completeness"
+      multiSelect: false
+      options:
+        - label: "Complete (Recommended)"
+          description: "All actors, workflows, and domain requirements are captured."
+        - label: "Missing areas"
+          description: "Some domain areas need deeper investigation."
+        - label: "Scope issues"
+          description: "Requirements exceed brainstorm boundaries."
+    - question: "What should we do next?"
+      header: "Next step"
+      multiSelect: false
+      options:
+        - label: "Start PRD (Recommended)"
+          description: "Discovery is sufficient. Proceed to /prd."
+        - label: "Go deeper"
+          description: "Investigate additional areas before moving to PRD."
+        - label: "Park"
+          description: "Save discovery findings for later."
 ```
 
 ---
@@ -589,6 +697,8 @@ Ready for next step:
 
 ---
 
-*Skill Version: 3.3*
+*Skill Version: 3.4*
+*v3.4: PAUSE points replaced with AskUserQuestion stage gates — PAUSE 1 uses Guided Review (Pattern 5) for actors/workflows/risks, PAUSE 2 uses Batch Review (Pattern 3) for domain requirements, PAUSE 3 uses Combined Gate (Pattern 4) for completeness + routing.*
+*v3.3: Stage gate reference added.*
 *v3.2: Glossary extracted as standalone file (`glossary.md`) alongside brief — enables inheritance by PRD and technical-design. Glossary template supports disambiguation tables (multiple meanings per term) modelled on identity project's glossary. Brief references glossary via link instead of embedding.*
 *v3.1: Duration target, pre-mortem moved to Phase 1, glossary started early, domain depth prioritization, grounded checklist questions, focused STRIDE analysis, split Phase 3/3b, partial workflow option, kill criteria check in synthesis, readiness items requiring user confirmation flagged, generic questions anti-pattern added*

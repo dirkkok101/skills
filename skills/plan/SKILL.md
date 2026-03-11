@@ -38,7 +38,7 @@ Run this skill when:
 - For BRIEF scope: brainstorm + PRD exist (no design doc needed)
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -51,7 +51,7 @@ If `AskUserQuestion` is unavailable, fall back to presenting options as markdown
 | **STANDARD** | Design document | STANDARD scope, typical feature | `overview.md` + sub-plan files |
 | **COMPREHENSIVE** | Design document | COMPREHENSIVE scope, multi-service | `overview.md` + sub-plans + risk register + cross-cutting concerns doc |
 
-BRIEF mode produces a single file with 3-6 tasks. No sub-plan files — the overview IS the plan.
+BRIEF mode produces a single file with 3-6 tasks. No sub-plan files — the overview IS the plan. BRIEF skips: Phase 3 (sub-plans), Phase 3b (companion docs), and the Dependency Graph/Critical Path sections from Phase 1.
 
 ---
 
@@ -63,6 +63,7 @@ Phase 1: Decomposition (with kill criteria check)
   ── PAUSE 1: "Here's the decomposition. Right tasks? Right order?" ──
 Phase 2: Overview Document
 Phase 3: Sub-Plans (STANDARD+)
+Phase 3b: Companion Documents (COMPREHENSIVE only)
 Phase 4: Self-Review (before presenting to user)
   ── PAUSE 2: "Plan complete. Approve for /beads?" ──
 ```
@@ -78,6 +79,10 @@ Import upstream artifacts into the planning workspace:
 - **PRD** — `docs/prd/{feature}/prd.md` (requirement traceability — every Must-Have FR must be covered)
 - **Work decomposition from design** — the "Work Decomposition" section of `docs/designs/{feature}/design.md` is the starting point for Phase 1
 - **Brainstorm** — `docs/brainstorm/{feature}/brainstorm.md` (scope classification, kill criteria)
+- **Use cases** — `docs/prd/{feature}/use-cases/` and `docs/use-cases/` (for BDD scenario references in sub-plans)
+- **Browser E2E plans** — `docs/browser-e2e-plans/` (if exists, for COMPREHENSIVE companion docs)
+- **ADRs** — `docs/adr/` (architecture decision records informing decomposition choices)
+- **Patterns** — `docs/patterns/` (established patterns for pattern references in sub-plans)
 - **Learnings** — `docs/learnings/` (relevant compound learnings from past features)
 
 Create the output directory: `docs/plans/{feature}/`
@@ -706,11 +711,12 @@ ${PROJECT_ROOT}/docs/plans/{feature}/
 ## Reference Files
 
 For project-specific patterns: check project CLAUDE.md for pattern reference files
-For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
+For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Prerequisites expanded with use cases, browser E2E plans, ADRs, and patterns paths. Phase 3b added to collaborative model. BRIEF skip list made explicit. ASCII conventions path corrected.*
 *v3.4: AskUserQuestion stage gates. PAUSE 1 uses Guided Review Workflow (Pattern 5) with Batch Review for task validation, Decision Gate for FR coverage, and Decision Gate for ordering. PAUSE 2 uses Decision Gate (Pattern 1) for plan approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*
 *v3.2: Plan/beads boundary shifted — sub-plans now include pseudocode (algorithmic intent), contract shapes, failure criteria, and pattern references. Sub-plan template restructured with Tasks/Objective/Approach/Pseudocode/Contract Shapes sections (modelled on identity project's plans). Feature decomposition alignment — sub-plans mirror design's feature structure. Updated self-review Theme 6 for new boundary. Hollow Sub-Plans and Misaligned Decomposition anti-patterns added.*

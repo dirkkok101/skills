@@ -39,7 +39,7 @@ Run this skill when:
 - Plan exists at `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -71,6 +71,7 @@ Phase 3: Self-Assessment Gate (per-bead readiness + cross-bead review)
 Import upstream artifacts into the beads workspace:
 - **Plan overview** (primary input) — `docs/plans/{feature}/overview.md` (task summary, dependency graph, FR coverage)
 - **Sub-plans** (STANDARD+ mode) — `docs/plans/{feature}/NN-*.md` (per-task intent, scope, acceptance criteria)
+- **Design docs** — `docs/designs/{feature}/` (architecture, API surfaces, test plans — for context references in beads)
 - **PRD** — `docs/prd/{feature}/prd.md` (FR references and acceptance criteria)
 - **Learnings** — `docs/learnings/` (relevant compound learnings from past features)
 
@@ -470,7 +471,7 @@ All Must-Have FRs must be covered. Flag any gaps as blocking. If the project use
 {Visual hierarchy of bead dependencies}
 
 ### Parallel Tracks
-{From Phase 1.4}
+{From Step 1.5}
 ```
 
 **Step 2:** Present Self-Assessment Summary and Resolutions Applied:
@@ -605,7 +606,7 @@ has completed the verification process.
 ## Context to Load
 - **Read:** `src/models/account.{ext}` — understand existing status flag pattern
 - **Pattern:** `IsActive` property — follow same structure and defaults
-- **Reference:** `docs/plans/account-verification/01-models.md` — design rationale
+- **Reference:** `docs/designs/account-verification/design.md` — design rationale
 
 ## Approach
 Add boolean property following the pattern established by IsActive.
@@ -708,7 +709,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Prerequisites expanded with design docs. Parallel Tracks cross-ref corrected (Step 1.5). Good Bead example references design doc instead of plan. PAUSE step labels scoped to avoid collision.*
 *v3.4: AskUserQuestion stage gates — PAUSE 1 uses batch review (Pattern 3) for bead mapping with multi-select granularity adjustment. PAUSE 2 uses guided review workflow (Pattern 5) walking through beads created, self-assessment, and FR coverage before a decision gate. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.2: Review beads — /simplify code review work packages inserted at logical boundaries (phase transitions, feature slices, after high-risk work). Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Placement rules by scope tier. Review bead template with focus guidance. Cross-bead assessment validates review bead coverage.*
 *v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

@@ -41,7 +41,7 @@ Run this skill when:
 - Before /plan for any medium-to-large change
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -69,12 +69,12 @@ Phase 0: Import & Understand
 Phase 1: Constraints, Assumptions & Kill Criteria Check
   ── PAUSE 1: "Are these constraints correct? Anything missing?" ──
 Phase 2: Key Decisions & Alternatives
-  ── Diagram Selection (informed by decisions) ──
   ── PAUSE 2: "Here are the options. Which approach for each?" ──
+  ── Diagram Selection (informed by confirmed decisions) ──
 Phase 3: System Architecture + Data Model
   ── Architecture Self-Review (catch structural issues early) ──
   ── PAUSE 3: "Architecture and data model — does this look right?" ──
-Phase 4: Feature Design (per-feature api-surface, ui-mockup, test-plan)
+Phase 4: Feature Design (per-feature api-surface, ui-mockup, test-plan, browser-e2e-plan)
 Phase 5: Cross-Cutting Diagrams (sequences, workflows, data flows)
 Phase 6: Security & Privacy (if applicable)
 Phase 7: Operational Design (informed by security decisions)
@@ -93,15 +93,20 @@ Phase 9: Assembly & Self-Review
 
 Import upstream artifacts into the design workspace:
 - **PRD** — `docs/prd/{feature}/prd.md` (requirements, acceptance criteria, NFRs)
+- **Use cases** — `docs/prd/{feature}/use-cases/` (feature-scoped scenario flows, failure paths, business rules) and `docs/use-cases/` (cross-module use cases that span features). Read the PRD's use case index table to identify which UCs exist and their depth tiers. **Tier 1 UCs are critical** — their scenario flows, failure paths, and business rules directly inform API design, error handling, and test plans.
 - **Discovery brief** — `docs/discovery/{feature}/discovery-brief.md` (domain analysis, risk assessment)
 - **Brainstorm output** — `docs/brainstorm/{feature}/brainstorm.md` (chosen approach, scope, kill criteria)
 - **Discovery glossary** — `docs/discovery/{feature}/glossary.md` (term disambiguation)
-- **Existing architecture docs** — `docs/architecture/` (current system context)
+- **Architecture docs** — `docs/architecture/` (system context, service topology, infrastructure constraints). These describe the world the design must fit into.
+- **Project patterns** — `docs/patterns/` (established patterns, conventions, and reusable approaches adopted by the project). Scan for patterns relevant to this feature's domain — data access patterns, API conventions, UI component patterns, testing patterns. The design should follow existing patterns unless there's a documented reason to diverge.
+- **ADRs** — `docs/adr/` (prior architectural decisions). Read ADR titles and scan any that relate to this feature's domain. Existing ADRs are **constraints** — the design must respect prior decisions unless it explicitly proposes superseding one (which requires a new ADR).
 - **Learnings** — `docs/learnings/` (relevant compound learnings from past work)
 
 Create the output directory: `docs/designs/{feature}/`
 
 Do not re-interview the user for context that exists in these artifacts. Import it, reference it, build on it.
+
+**Design from first principles, not existing implementation.** The design's inputs are the PRD, upstream artifacts (brainstorm, discovery, use cases), and project knowledge (architecture docs, patterns, ADRs, learnings). Do NOT read existing source code to inform the design — an existing implementation may be wrong, poorly structured, or anchoring. The design should emerge from requirements and established project patterns, evaluated with best current knowledge. If a prior design exists in `docs/designs/{feature}/`, treat it as superseded — produce a fresh design from the upstream artifacts. The only exception is reading codebase files explicitly referenced in `docs/patterns/` or `docs/architecture/` as canonical examples of a project pattern.
 
 **Step 0.2 — Inherit Glossary:**
 
@@ -207,9 +212,29 @@ For items flagged for correction, ask a follow-up or read the user's notes from 
 
 **This is the most important phase.** Explore the design space before committing. The research shows that writing alternatives first forces you to consider the full solution space rather than anchoring on the first idea.
 
+**Step 2.0 — Check Existing ADRs and Patterns:**
+
+Before identifying new decisions, review what's already decided:
+
+1. Scan `docs/adr/` for ADRs related to this feature's domain (data access, API conventions, auth, integration, etc.)
+2. Scan `docs/patterns/` for established patterns that apply to this feature area
+3. List relevant prior decisions and patterns as **constraints** on the current design:
+
+```markdown
+## Prior Decisions & Established Patterns
+
+| Source | Title | Implication for This Design |
+|--------|-------|-----------------------------|
+| ADR-{NNNN} | {title} | {How it constrains this design} |
+| Pattern: {name} | {summary} | {How this design should follow it} |
+```
+
+If a design decision would conflict with an existing ADR or pattern, flag it explicitly — the alternative must include a proposal to supersede the ADR (with a new ADR) or document why the pattern doesn't apply here.
+
 **Step 2.1 — Identify Decisions:**
 
-List every significant decision this design requires:
+List every significant decision this design requires. Exclude decisions already settled by ADRs or patterns from Step 2.0 — those are constraints, not open questions.
+
 - Architecture approach (monolith vs. service, sync vs. async)
 - Data storage (SQL vs. NoSQL, schema design approach)
 - API style (REST, GraphQL, gRPC, event-driven)
@@ -259,39 +284,6 @@ precedent across the project? [feature / project-wide]"
 
 Feature-scoped decision records are lightweight — context, research/comparison, decision, consequences. They answer "why did we do it this way?" when someone reads the design 6 months later.
 
-**Step 2.4 — Diagram Selection (STANDARD + COMPREHENSIVE):**
-
-Now that decisions are made, select which diagrams to generate based on the chosen approaches:
-
-```
-ALWAYS GENERATE (STANDARD+):
-  [x] C4 Level 1 — System Context
-  [x] C4 Level 2 — Container Diagram
-
-CONDITIONAL — check each:
-  [ ] C4 Level 3 (Component):
-      IF feature modifies internal structure of an existing container
-  [ ] Sequence Diagrams:
-      IF multi-component interaction (2+ services involved)
-      → one per critical flow (command, query, error recovery)
-  [ ] Data Model / ER Diagram:
-      IF feature adds or changes database entities
-  [ ] Data Flow Diagram:
-      IF feature moves data across system boundaries
-      IF security threat model is needed (STRIDE input)
-  [ ] Workflow / Process Map:
-      IF feature has business process with decisions or approvals
-  [ ] Deployment Diagram:
-      ONLY IF infrastructure changes are required
-
-NEVER GENERATE:
-  [ ] C4 Level 4 (Code) — use IDE for this
-```
-
-Note: UI mockups are not selected here — they are generated per-feature in Phase 4 for any feature area that has a user interface.
-
-Present checklist to user: "Based on the decisions above, I plan to generate: {list}. Any additions or removals?"
-
 **PAUSE 2:** Present architectural alternatives using **Comparison Gate** (Pattern 2).
 
 **Step 1:** Present the full comparison matrix as formatted markdown — all decisions, alternatives, pros/cons, and recommendations. This gives the user the complete picture before they choose.
@@ -333,6 +325,39 @@ AskUserQuestion:
 ```
 
 Repeat for each major decision point. If decisions reveal that the brainstorm approach won't work, escalate upstream. The user's choices here determine the entire detailed design that follows.
+
+**Step 2.4 — Diagram Selection (STANDARD + COMPREHENSIVE):**
+
+Now that decisions are confirmed, select which diagrams to generate based on the chosen approaches:
+
+```
+ALWAYS GENERATE (STANDARD+):
+  [x] C4 Level 1 — System Context
+  [x] C4 Level 2 — Container Diagram
+
+CONDITIONAL — check each:
+  [ ] C4 Level 3 (Component):
+      IF feature modifies internal structure of an existing container
+  [ ] Sequence Diagrams:
+      IF multi-component interaction (2+ services involved)
+      → one per critical flow (command, query, error recovery)
+  [ ] Data Model / ER Diagram:
+      IF feature adds or changes database entities
+  [ ] Data Flow Diagram:
+      IF feature moves data across system boundaries
+      IF security threat model is needed (STRIDE input)
+  [ ] Workflow / Process Map:
+      IF feature has business process with decisions or approvals
+  [ ] Deployment Diagram:
+      ONLY IF infrastructure changes are required
+
+NEVER GENERATE:
+  [ ] C4 Level 4 (Code) — use IDE for this
+```
+
+Note: UI mockups are not selected here — they are generated per-feature in Phase 4 for any feature area that has a user interface.
+
+Present checklist to user: "Based on the confirmed decisions above, I plan to generate: {list}. Any additions or removals?"
 
 ---
 
@@ -474,7 +499,7 @@ Identify distinct feature areas from the PRD's FR groupings (Epics) and the data
 
 | Feature Area Count | Structure |
 |--------------------|-----------|
-| 1-2 feature areas | Flat files: `api-surface.md`, `ui-mockups.md`, `test-plan.md` |
+| 1-2 feature areas | Flat files: `api-surface.md`, `ui-mockup.md`, `test-plan.md` |
 | 3+ feature areas | Per-feature: `features/{sub-feature}/api-surface.md`, `ui-mockup.md`, `test-plan.md` |
 
 Feature areas are NOT arbitrary decomposition — they should align with how the codebase will be structured (e.g., `Features/Applications/`, `Features/Clients/`, `Features/RoleTemplates/`).
@@ -484,6 +509,15 @@ Feature areas are NOT arbitrary decomposition — they should align with how the
 **Step 4.2 — API Surface & Implementation (per feature area):**
 
 For each feature area, produce `api-surface.md` (or `features/{sub-feature}/api-surface.md` when decomposed). This document serves the developer implementing the feature end-to-end: endpoints, contracts, backend flow, and queries.
+
+**Use case integration (COMPREHENSIVE mode):** Before designing endpoints, read the use cases mapped to this feature area. Use case artifacts inform the API surface in specific ways:
+- **Scenario flows** → endpoint sequence and orchestration (the UC steps reveal which API calls happen in what order)
+- **Failure paths** → error response codes and error detail contracts (each UC failure path becomes a specific error response)
+- **Business rules (BR-*)** → validation rules and protection rules (BR thresholds/limits become validator constraints)
+- **Postconditions** → response body design (what the caller needs to confirm the operation succeeded)
+- **Preconditions** → required request context (auth, tenant, prior state that must exist)
+
+Reference the source UC in the api-surface doc where design decisions derive from use case content.
 
 ```markdown
 # {Feature Area}: API Surface
@@ -499,6 +533,7 @@ For each feature area, produce `api-surface.md` (or `features/{sub-feature}/api-
 
 All endpoints require `{Policy}` policy.
 Maps to: FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
+Use cases: UC-{MODULE}-{NNN} (steps {X.X–X.X})
 
 ## Response Codes
 
@@ -508,6 +543,12 @@ Maps to: FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
 | Save (update) | 200 OK | `Save{Resource}Response { Id }` |
 | Get | 200 OK | `{Resource}DTO` |
 | Delete | 204 No Content | None |
+
+### Error Responses (from UC failure paths)
+
+| Error Scenario | Code | Detail | Source |
+|----------------|------|--------|--------|
+| {UC failure path description} | {400/409/422} | {Specific error message} | UC-{MODULE}-{NNN} |
 
 ## Contracts
 
@@ -519,7 +560,8 @@ Read-only fields (populated by mapper, ignored on save): {list}
 ## Validation Rules
 
 {Validator rules and where each is enforced (validator vs command).
-Note which validations are synchronous vs require DB lookup.}
+Note which validations are synchronous vs require DB lookup.
+Reference BR-* IDs from use case business rules where applicable.}
 
 ## Protection Rules (if applicable)
 
@@ -578,6 +620,8 @@ Features without a UI skip this document.
 
 For each feature area, produce `test-plan.md` (or `features/{sub-feature}/test-plan.md`). Test plans are first-class design documents, not an afterthought section in design.md.
 
+**Use case integration (COMPREHENSIVE mode):** Use cases are the primary source for test scenarios. Each UC scenario flow step that can succeed or fail generates at least one test case. Each UC failure path entry generates a negative test case. This ensures test coverage traces back to documented user goals, not just API surface.
+
 ```markdown
 # {Feature Area}: Test Plan
 
@@ -585,25 +629,83 @@ For each feature area, produce `test-plan.md` (or `features/{sub-feature}/test-p
 
 ### {Operation Name}
 
-| # | Test Case | Method | Expected |
-|---|-----------|--------|----------|
-| 1 | {Happy path scenario} | {HTTP method + route} | {Status code, body} |
-| 2 | {Validation failure} | {method} | {400, error detail} |
-| 3 | {Auth failure} | {method} | {401/403} |
-| 4 | {Business rule violation} | {method} | {400, specific error} |
-| 5 | {Edge case} | {method} | {expected behavior} |
+| # | Test Case | Method | Expected | Source |
+|---|-----------|--------|----------|--------|
+| 1 | {Happy path scenario} | {HTTP method + route} | {Status code, body} | UC-{MODULE}-{NNN} step {X.X} |
+| 2 | {Validation failure} | {method} | {400, error detail} | UC-{MODULE}-{NNN} failure path |
+| 3 | {Auth failure} | {method} | {401/403} | FR-{MODULE}-{NAME} |
+| 4 | {Business rule violation} | {method} | {400, specific error} | BR-{MODULE}-{NNN} |
+| 5 | {Edge case} | {method} | {expected behavior} | UC-{MODULE}-{NNN} deferred edge |
 
 ### {Next Operation}
 ...
 
 ## UI Tests (if applicable)
 
-| # | Test Case | Component | Expected |
-|---|-----------|-----------|----------|
-| N | {Scenario} | {ComponentName} | {Expected behavior} |
+| # | Test Case | Component | Expected | Source |
+|---|-----------|-----------|----------|--------|
+| N | {Scenario} | {ComponentName} | {Expected behavior} | UC-{MODULE}-{NNN} step {X.X} |
 ```
 
-Aim for 25-35 test cases per feature area covering: happy paths, validation failures, auth failures, business rule violations, edge cases (duplicates, boundaries, empty states, protection rules).
+Aim for 25-35 test cases per feature area covering: happy paths, validation failures, auth failures, business rule violations, edge cases (duplicates, boundaries, empty states, protection rules). In COMPREHENSIVE mode, verify that every Tier 1 UC scenario step and every failure path has at least one corresponding test case.
+
+**Step 4.5 — Browser E2E Test Plan (per feature area, if feature has UI):**
+
+For each feature area with a user interface, produce a browser E2E test plan. These are **journey-level tests** that validate complete user flows through the browser using [agent-browser](https://github.com/vercel-labs/agent-browser) — distinct from the API-level test plans in Step 4.4. They translate UC scenario flows into browser actions using the UI mockup's components.
+
+Save to: `${PROJECT_ROOT}/docs/browser-e2e-plans/{feature-name}.md`
+
+Features without a UI skip this document.
+
+**Inputs:**
+- **UC scenario flows** (COMPREHENSIVE) → step sequences and failure paths (what the user does). In STANDARD mode, derive scenarios from FRs and UI mockups instead.
+- **UI mockups** → component names, form fields, navigation structure (what to interact with)
+- **API surface** → expected responses and state changes (what to verify)
+- **Existing project docs** → check for `docs/browser-e2e-plans/selector-reference.md` and `docs/browser-e2e-plans/gotchas.md`. If they exist, use them as authoritative sources — reference them, don't duplicate their content.
+
+**Step 4.5.1 — Shared Docs (first feature only):**
+
+If `docs/browser-e2e-plans/selector-reference.md` doesn't exist yet, create it. This is a **shared document** across all feature E2E plans — the single source of truth for how to target the project's UI components in the browser. Organize by component library, then navigation, then feedback elements. For each component, document: the root selector, the inner interactive element (custom components are often not directly interactive — you must target the inner `input`, `button`, etc.), label-based selection for disambiguation, and error/validation selectors.
+
+If `docs/browser-e2e-plans/gotchas.md` doesn't exist yet, seed it with known interaction pitfalls discovered during UI mockup design. This is a **living document** — it grows as teams discover new pitfalls during test execution. Each gotcha follows the pattern: **Symptom** (what goes wrong), **Cause** (why — DOM structure, async rendering, framework behavior), **Solution** (specific workaround).
+
+Seed gotchas from these common categories that emerge from the UI mockup analysis:
+- **Async rendering** — grids, lazy-loaded sections. Wait for content selectors, not just container selectors.
+- **Custom component targeting** — wrapper components where the outer element is not interactive. Document which inner element to target.
+- **Hidden DOM elements** — parent-child route patterns where hidden content stays in DOM. Selector may match the wrong (hidden) element. Use index-based selection or visibility checks.
+- **Dropdown/overlay rendering** — dropdowns that append options to `<body>` rather than inside the component DOM tree.
+- **Modal animation timing** — confirmation dialogs with fade-in animations. Wait for visibility, not just DOM presence.
+- **Signal/reactive rendering** — framework effects that update DOM asynchronously after state changes. Wait for the expected DOM change, not a fixed timeout.
+- **Multiple instances** — same component rendered multiple times on one page (e.g., multiple grids, nested capture pages). Scope selectors by parent component.
+
+**Step 4.5.2 — Feature Test Plan:**
+
+Each feature test plan has five sections:
+
+1. **Preamble** — Base URL where the app runs, the full login flow as browser steps (navigation to login page, credential entry, intermediate steps like tenant selection or MFA, verification that auth succeeded), and the expected bootstrap state (seed data, configuration, running services).
+
+2. **Selector Reference** — For small modules (< 15 unique selectors), include an inline table. For larger modules or when a shared `selector-reference.md` exists, reference it and only list module-specific selectors.
+
+3. **Test Scenarios** — The core of the document. Group scenarios by page or flow area (Grid Page, New Form, Edit Form, Settings, Cross-Cutting UX). Each group maps to a UC or distinct user goal. Each scenario has:
+   - **Prerequisites** — auth state, seed data (show exact API requests if data must be created), starting page
+   - **Numbered steps** — at user-intention level with wait points after navigation or async actions
+   - **Screenshot markers** — `[Screenshot N]` at verification points, numbered sequentially across the entire plan
+   - **Visual assertions** — observable DOM state: what must be true, what must NOT be present. Specific selectors and expected text content, not vague "looks correct"
+
+4. **Test Data Cleanup** — API calls to delete every test entity created. List predictable slugs/names. Identify data that must NEVER be deleted (bootstrap/system data).
+
+5. **Screenshot Evidence Summary** — Table mapping screenshot numbers to test IDs and descriptions.
+
+**Patterns for writing scenarios:**
+
+- **Test ID convention:** `BT-{MODULE}-{NNN}` (Browser Test). Group by flow area with number gaps between groups (Grid: 001-009, New: 010-029, Edit: 030-039) to allow inserting tests without renumbering.
+- **User-intention level** — "Fill in the application name" not "type into the third input element". Selectors and agent-browser commands are execution hints alongside the step, not the step itself.
+- **One scenario per UC or UC phase** (COMPREHENSIVE) or **one scenario per FR group** (STANDARD) — keep scenarios independently runnable. Don't combine multiple user goals into one test.
+- **Verify postconditions explicitly** — don't just check that an action completed, verify the observable state the UC postconditions describe (new row in grid, updated status, navigation to detail page, persisted data after reload).
+- **Test both empty and populated states** separately — matching the UI mockup variants from Step 4.3.
+- **Wait strategies over fixed timeouts** — wait for specific selectors or text to appear. Async-rendered content (grids, lazy sections) needs explicit waits for content elements, not just container elements.
+- **Failure scenarios** derive from UC failure paths (COMPREHENSIVE) or FR error acceptance criteria (STANDARD) — each failure entry should have a corresponding browser E2E scenario testing the visible error behavior (inline validation, disabled buttons, error banners, blocked actions).
+- **Cleanup is mandatory** — every test entity created must be deletable. Never leave test data behind.
 
 ---
 
@@ -617,6 +719,8 @@ Generate for:
 - Each write flow (create, update, delete)
 - Primary read flow (list with filtering)
 - Primary error recovery flow
+
+**Use case integration (COMPREHENSIVE mode):** Derive sequence diagrams from Tier 1 UC scenario flows. The UC phase structure maps directly to diagram segments — each UC phase becomes a named section, and UC steps become messages between participants. UC failure paths become ALT blocks. Reference the source UC ID in the diagram title.
 
 Rules: 3-5 participants max, label messages with actual endpoint/method names, show request AND response, use ALT blocks for error paths, width under 100 characters.
 
@@ -785,6 +889,8 @@ Key design decisions:
 
 ## Use Cases
 
+Use case files: [feature-scoped](../prd/{feature}/use-cases/) | [cross-module](../use-cases/)
+
 | UC | Title | Actors | Plan Tasks | Endpoints |
 |----|-------|--------|------------|-----------|
 
@@ -804,6 +910,7 @@ Key design decisions:
 | Design | {link} | Architecture + diagrams |
 | PRD | {link} | Requirements source |
 | Plan | {link} | Implementation plan |
+| Browser E2E | {link to docs/browser-e2e-plans/{feature}.md} | End-to-end test scenarios |
 ```
 
 These specs consolidate information that already exists in design, PRD, and plan documents — they DON'T create new content. Their value is as an index that eliminates cross-document navigation during implementation.
@@ -875,12 +982,12 @@ If a research brief exists at `docs/research/{feature}/`, create symlinks or cro
 **Review Themes:**
 
 1. **Decisions Documented** — Every significant decision has alternatives? Trade-offs explicit?
-2. **Architecture Soundness** — Follows existing patterns? Consistent with project conventions?
-3. **Feature Completeness** — Every FR has an api-surface entry? Input/output types defined? Error codes specific? Test cases cover happy path, validation, auth, and edge cases?
+2. **Architecture Soundness** — Consistent with `docs/patterns/` and `docs/architecture/`? Respects all relevant ADRs from `docs/adr/`? Any divergence explicitly justified with a superseding ADR proposal?
+3. **Feature Completeness** — Every FR has an api-surface entry? Input/output types defined? Error codes specific? Test cases cover happy path, validation, auth, and edge cases? Features with UI have browser E2E plans with scenarios tracing to UC flows?
 4. **Data Model Integrity** — ER matches interface needs? Relationships correct? Migrations safe?
-5. **Diagram Accuracy** — Sequences match interfaces? Flows match use cases?
+5. **Diagram Accuracy** — Sequences match interfaces? Flows match use cases? (COMPREHENSIVE: each Tier 1 UC scenario flow has a corresponding sequence diagram?)
 6. **Operational Readiness** — Deployment strategy? Failure modes covered? Observability defined?
-7. **Traceability** — Every interface maps to FR? Every FR covered by at least one feature area?
+7. **Traceability** — Every interface maps to FR? Every FR covered by at least one feature area? (COMPREHENSIVE: every Tier 1 UC failure path mapped to an error response? Every BR-* mapped to a validation rule? Test cases trace back to UC steps and failure paths?)
 8. **Proportionality** — Detail depth matches irreversibility? Not over-designing internals?
 9. **Navigability** — Can someone find the right document in <30 seconds? README index accurate? Cross-references working?
 
@@ -990,7 +1097,7 @@ For BRIEF mode, produce a single `design.md` following this structure. Content c
 ## Design
 
 {Brief description with inline diagrams if helpful.
-Reference existing patterns from the codebase. — from Phase 3}
+Follow established patterns from docs/patterns/ and docs/architecture/. — from Phase 3}
 
 ## Interface Changes
 {New or modified endpoints/operations with inputs, outputs, errors — from Phase 4}
@@ -1019,7 +1126,7 @@ ${PROJECT_ROOT}/docs/designs/{feature}/
 ├── architecture.md      # C4 diagrams + data model (STANDARD+)
 ├── data-model.md        # ER diagram + entity definitions + migration (if applicable)
 ├── api-surface.md       # Endpoints, contracts, validation, backend flow
-├── ui-mockups.md        # Mockups with multiple states (if applicable)
+├── ui-mockup.md         # Mockups with multiple states (if applicable)
 ├── test-plan.md         # Numbered test cases
 ├── decisions/           # Feature-scoped decision records (as needed)
 │   └── {decision}.md
@@ -1109,6 +1216,10 @@ When exiting, update design metadata: Status, Next Step, Completion Date.
 
 **Testing as Afterthought** — Treating the testing strategy as a paragraph in design.md. Test plans are first-class design documents with numbered test cases per feature area. If you can't write specific test cases, the API surface and validation rules aren't detailed enough — fix the design, then the test plan follows naturally.
 
+**Implementation Anchoring** — Reading existing source code to "understand" how to design the feature, then producing a design that mirrors the current implementation. This defeats the purpose of design — especially on re-runs where the existing code may be wrong or poorly structured. Design from the PRD, upstream artifacts, and project knowledge (patterns, architecture, ADRs). The only codebase files you should read are those explicitly referenced in `docs/patterns/` or `docs/architecture/` as canonical examples of an established pattern.
+
+**Ignoring Prior ADRs** — Making decisions that contradict existing ADRs in `docs/adr/` without acknowledging the conflict. Prior ADRs are constraints. If this design needs to diverge, it must propose superseding the ADR with a new one — not silently make the opposite choice.
+
 ---
 
 ## Living Document Convention
@@ -1127,13 +1238,20 @@ This preserves the reasoning that led to the original design while directing rea
 
 ## Reference Files
 
-For project-specific patterns: check project CLAUDE.md for pattern reference files
-For domain-specific patterns: `_shared/references/{domain}.md`
-For ASCII diagram conventions: `_shared/references/ascii-conventions.md`
+**Project knowledge (read as design inputs):**
+- Project patterns: `docs/patterns/` (established conventions and reusable approaches)
+- Architecture context: `docs/architecture/` (system topology, service boundaries, infrastructure)
+- Prior decisions: `docs/adr/` (architectural decision records — constraints on the design)
+
+**Skill references (internal to the skill):**
+- Project-specific patterns: check project CLAUDE.md for pattern reference files
+- Domain-specific patterns: `_shared/references/{domain}.md`
+- ASCII diagram conventions: `_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: UC integration — Phase 0 imports use cases from `docs/prd/{feature}/use-cases/` and `docs/use-cases/`, Step 4.2 maps UC artifacts to API surface (scenario flows→endpoints, failure paths→errors, BR-*→validation), Step 4.4 adds Source column tracing tests to UCs, Phase 5.1 derives sequences from Tier 1 UC flows. ADR/pattern imports — Phase 0 imports `docs/patterns/`, `docs/adr/`, strengthened `docs/architecture/`; Step 2.0 checks prior ADRs/patterns as constraints before identifying new decisions. First-principles directive — design from upstream artifacts, not existing source code. Browser E2E test plans — Step 4.5 generates `docs/browser-e2e-plans/{feature}.md` with pattern-driven guidance, shared selector-reference and gotchas docs. STANDARD-mode fallback guidance for browser E2E when UCs don't exist. Step 2.4 Diagram Selection moved after PAUSE 2 (depends on confirmed decisions). BRIEF template fixed to reference `docs/patterns/` instead of "codebase". `ui-mockup.md` naming standardized. Phase 8b feature spec relative paths corrected. New anti-patterns: Implementation Anchoring, Ignoring Prior ADRs. Collaborative model updated to include browser-e2e-plan. Stage gate reference path corrected.*
 *v3.4: AskUserQuestion stage gates at all four PAUSE points. PAUSE 1 uses Batch Review (Pattern 3) for constraints/assumptions. PAUSE 2 uses Comparison Gate (Pattern 2) with preview fields for architectural alternatives. PAUSE 3 uses Guided Review (Pattern 5) walking through architecture, data model, and interfaces sequentially. PAUSE 4 uses Decision Gate (Pattern 1) for final approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Sibling design cross-references in Phase 0 for multi-design projects. Optional separate backend.md per feature when 5+ commands/queries (4-doc variant). Consolidated feature specifications (`docs/features/`) for COMPREHENSIVE mode with 10+ UCs — coverage matrix tying UCs to endpoints, UI, plan tasks, and tests. Legacy Update notice convention for evolving docs. All patterns validated against AMPS actions project (151 files, 5 numbered designs).*
 *v3.2: Feature-first decomposition (3+ feature areas get per-feature api-surface, ui-mockup, test-plan docs). Co-located decisions/ and research/ directories. README.md index for designs with 5+ files. Glossary inheritance from discovery. Backend implementation guidance (command flow pseudocode, mapper logic, queries) merged into api-surface.md. Test plans as first-class per-feature documents with numbered test cases. Self-review log with specific issues/fixes per round. Revised "Implementation Spec" anti-pattern to distinguish algorithmic intent from line-by-line code. New anti-patterns: Monolith API Spec, Orphaned Research, Testing as Afterthought. Phase renumbering: old Phases 4+6 merged into new Phase 4 (Feature Design), UI mockups moved into per-feature docs, testing strategy replaced by per-feature test plans.*

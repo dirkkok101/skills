@@ -35,7 +35,7 @@ Run this skill when:
 - Ready beads exist in the issue tracker
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -48,7 +48,22 @@ If `AskUserQuestion` is unavailable, fall back to presenting options as markdown
 | **STANDARD** | Typical feature | Execute all, self-review per bead, upstream verification, report at end |
 | **COMPREHENSIVE** | Multi-service, high-risk | Execute with per-bead user check-in for high-risk beads, full upstream verification |
 
-In COMPREHENSIVE mode, beads tagged as high-risk in the plan get a user check-in after implementation and before committing. All other beads execute autonomously.
+In COMPREHENSIVE mode, beads tagged as high-risk in the plan get a user check-in after implementation and before committing. Present the implementation summary and use AskUserQuestion (Decision Gate — Pattern 1) with options: "Approve & commit", "Modify", "Escalate". All other beads execute autonomously.
+
+---
+
+## Collaborative Model
+
+```
+Phase 1: Verify Baseline
+Phase 2: Execute Beads (loop until all complete)
+  ├─ Implementation beads: Orient → Load → Design → Implement → Verify → Commit → Reset
+  ├─ Review beads: Run /simplify on changed files → Fix issues → Commit → Reset
+  └─ (if blocker) PAUSE: "Blocker encountered. How to proceed?"
+Phase 3: Blocker Handling (as needed)
+Phase 4: Feature Completion
+  ── PAUSE: "Feature complete. Ready to push?" ──
+```
 
 ---
 
@@ -138,6 +153,8 @@ Track overall progress so you (and the user) can see what's been completed and w
 
 When multiple beads are ready simultaneously (no dependency between them), they can be executed in any order. Prefer: data model beads before service beads, service beads before integration beads. Execute each bead fully before starting the next.
 
+**Review beads:** When the next bead is a `/simplify` review bead (tagged `review`), execute it by running `/simplify` on all files changed since the last review checkpoint. Fix any issues found, commit with `refactor({scope}): simplify {what}`, then close the review bead and proceed to the next implementation bead.
+
 #### For Each Bead:
 
 **Step 2.1 — Claim Bead:**
@@ -218,11 +235,11 @@ If any item fails, fix the issue, re-run tests, then re-review.
 After self-review passes, verify against upstream artifacts:
 
 ```
-- [ ] Read bead's FR references (if present)
+- [ ] Read bead's FR references from PRD (`docs/prd/{feature}/prd.md`)
 - [ ] Verify each FR's acceptance criteria are satisfied
 - [ ] Check: do endpoints match API spec? (if API bead)
 - [ ] Check: do entities match data model spec? (if data bead)
-- [ ] If BDD scenarios exist for referenced UCs, run them
+- [ ] If BDD scenarios exist for referenced UCs (in `docs/prd/{feature}/use-cases/`), run them
 ```
 
 Skip this step for infrastructure-only beads with no FR references.
@@ -536,6 +553,7 @@ When all beads complete: **"Feature complete. Run /review to start code review."
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Collaborative model added. Review-bead handling for /simplify checkpoints. COMPREHENSIVE mode per-bead check-in implemented with AskUserQuestion. PRD path added to upstream verification. Use case path added for BDD scenarios.*
 *v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for blocker handling and push confirmation, Batch Review for review fix learnings*
 *v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*

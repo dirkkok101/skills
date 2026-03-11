@@ -118,12 +118,13 @@ mkdir -p "${PROJECT_ROOT}/docs/reference"
 mkdir -p "${PROJECT_ROOT}/docs/features"
 mkdir -p "${PROJECT_ROOT}/docs/reviews"
 mkdir -p "${PROJECT_ROOT}/docs/adr"
-mkdir -p "${PROJECT_ROOT}/docs/decisions"
 mkdir -p "${PROJECT_ROOT}/docs/architecture"
+mkdir -p "${PROJECT_ROOT}/docs/patterns"
+mkdir -p "${PROJECT_ROOT}/docs/browser-e2e-plans"
 mkdir -p "${PROJECT_ROOT}/docs/diagnosis"
 
 # Add .gitkeep to empty directories
-for dir in research brainstorm discovery prd use-cases designs plans learnings reference features reviews adr decisions architecture diagnosis; do
+for dir in research brainstorm discovery prd use-cases designs plans learnings reference features reviews adr architecture patterns browser-e2e-plans diagnosis; do
   touch "${PROJECT_ROOT}/docs/${dir}/.gitkeep"
 done
 ```
@@ -136,16 +137,17 @@ done
 | `docs/brainstorm/` | /brainstorm | Problem framing, approach selection, scope classification |
 | `docs/discovery/` | /discovery | Requirements elicitation, glossaries, domain analysis |
 | `docs/prd/` | /prd | Product requirements documents |
-| `docs/use-cases/` | /prd | Standalone use case files (COMPREHENSIVE mode) |
+| `docs/use-cases/` | /prd | Cross-module use cases that span features/aggregates (COMPREHENSIVE mode). Feature-scoped use cases go in `docs/prd/{feature}/use-cases/` instead. |
 | `docs/designs/` | /technical-design | Technical designs, architecture, API specs |
 | `docs/plans/` | /plan | Implementation plans, sub-plans, companion docs |
 | `docs/learnings/` | /compound | Pattern, gotcha, architecture, process learnings |
 | `docs/reference/` | /review | Alignment audits (COMPREHENSIVE mode with 2+ upstream docs) |
 | `docs/features/` | /technical-design | Consolidated feature specifications (COMPREHENSIVE, 10+ UCs) |
 | `docs/reviews/` | /review | Consolidated review reports |
-| `docs/adr/` | /technical-design | Project-wide architectural decision records |
-| `docs/decisions/` | /compound | Feature-scoped decisions and rationale |
+| `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architectural decision records |
 | `docs/architecture/` | (project) | Existing architecture context consumed by /technical-design |
+| `docs/patterns/` | (project) | Established conventions, reusable approaches, and canonical examples consumed by /technical-design, /plan, and /review |
+| `docs/browser-e2e-plans/` | /technical-design | Browser E2E test plans per feature — journey-level tests using agent-browser CLI |
 | `docs/diagnosis/` | /diagnose | Root cause analyses, diagnostic reports |
 
 Do NOT create files inside `docs/learnings/` — the /compound skill creates category files (`pattern.md`, `gotcha.md`, etc.) on first use based on what learnings actually emerge.
@@ -193,16 +195,17 @@ All project documentation lives in `docs/`:
 | `docs/brainstorm/` | /brainstorm | Problem framing, approach selection |
 | `docs/discovery/` | /discovery | Requirements elicitation, glossaries |
 | `docs/prd/` | /prd | Product requirements documents |
-| `docs/use-cases/` | /prd | Standalone use case files |
+| `docs/use-cases/` | /prd | Cross-module use cases spanning features/aggregates |
 | `docs/designs/` | /technical-design | Technical designs, API specs |
 | `docs/plans/` | /plan | Implementation plans, sub-plans |
 | `docs/learnings/` | /compound | Accumulated project learnings |
 | `docs/reviews/` | /review | Consolidated review reports |
 | `docs/reference/` | /review | Alignment audits (COMPREHENSIVE) |
 | `docs/features/` | /technical-design | Feature specifications (COMPREHENSIVE) |
-| `docs/adr/` | /technical-design | Project-wide architecture decisions |
-| `docs/decisions/` | /compound | Feature-scoped decisions |
+| `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architecture decisions |
 | `docs/architecture/` | (project) | Existing architecture context |
+| `docs/patterns/` | (project) | Established conventions and reusable approaches |
+| `docs/browser-e2e-plans/` | /technical-design | Browser E2E test plans per feature |
 | `docs/diagnosis/` | /diagnose | Root cause analysis reports |
 
 ### Conventions
@@ -259,10 +262,11 @@ docs/
 ├── reviews/         ← /review reports
 ├── reference/       ← /review alignment audits
 ├── features/        ← /technical-design feature specs
-├── adr/             ← project-wide architecture decisions
-├── decisions/       ← feature-scoped decisions
-├── architecture/    ← existing architecture context
-└── diagnosis/       ← /diagnose output
+├── adr/                  ← project-wide and feature-scoped architecture decisions
+├── architecture/         ← existing architecture context
+├── patterns/             ← established conventions and reusable approaches
+├── browser-e2e-plans/    ← browser E2E test plans per feature
+└── diagnosis/            ← /diagnose output
 
 CLAUDE.md: Workflow section added ✓
 ```
@@ -303,6 +307,7 @@ The init skill is safe to run multiple times:
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Removed docs/decisions/ (compound now uses docs/adr/). Updated docs/adr/ attribution to reflect both /technical-design and /compound. Added docs/patterns/ and docs/browser-e2e-plans/ to Phase 3 tree diagram. Updated docs/patterns/ description to include /plan and /review as consumers. Version scheme aligned with pipeline.*
 *v1.1: Adversarial review fixes. Added 4 missing directories (reviews, adr, decisions, architecture). Fixed nested code fence rendering (pipeline uses indented block). Fixed BRIEF pipeline routing to match brainstorm skill (skips prd and technical-design). Added .claude/CLAUDE.md location detection. Improved idempotency to check both markers and handle corrupt state. Clarified COMPREHENSIVE-only directories in table descriptions.*
 *v1.0: Initial release. Eager folder creation, CLAUDE.md workflow section with markers, tech stack detection and warning, idempotent design.*

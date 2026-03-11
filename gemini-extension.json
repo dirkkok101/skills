@@ -1,6 +1,6 @@
 {
   "name": "workflow-skills",
-  "version": "3.4.1",
+  "version": "3.5.0",
   "description": "Complete feature development workflow skills with scope-based routing: init, diagnose, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, and compound.",
   "author": "Dirk Kok",
   "license": "MIT",

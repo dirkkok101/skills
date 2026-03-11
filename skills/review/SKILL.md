@@ -36,7 +36,7 @@ Do NOT use for:
 - Pre-implementation design review (use `/brainstorm` or `/technical-design`)
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -101,15 +101,17 @@ Count changed files and assess scope. If the user hasn't specified a mode:
 **Step 1.3 — Locate Upstream Documents:**
 
 Check for the existence of upstream artifacts:
-- **Design doc** — `docs/designs/{feature}/design.md`
+- **Design doc** — `docs/designs/{feature}/design.md` (and feature subdirs `docs/designs/{feature}/features/*/`)
 - **Plan** — `docs/plans/{feature}/overview.md`
 - **PRD** — `docs/prd/{feature}/prd.md`
 - **Discovery brief** — `docs/discovery/{feature}/discovery-brief.md`
+- **Browser E2E plans** — `docs/browser-e2e-plans/` (if exists, note in agent prompts for test coverage assessment)
 
 Record which documents exist. Each enables a conditional review agent:
 - **Design found:** Include design-intent agent
 - **Plan found:** Include plan-intent agent
 - **PRD found:** Include prd-compliance agent
+- **Browser E2E plans found:** Add to pr-test-analyzer prompt for E2E coverage verification
 - **None found:** Proceed with core agents only
 
 ---
@@ -168,7 +170,7 @@ Return findings in this format:
 ```
 Review the following code changes against the design document.
 
-Design document: ${PROJECT_ROOT}/docs/designs/{feature}/design.md
+Design documents: ${PROJECT_ROOT}/docs/designs/{feature}/ (read design.md and all feature subdirs)
 
 Files changed:
 {list of files with line numbers}
@@ -207,6 +209,7 @@ Review the following code changes against the implementation plan.
 
 Plan overview: ${PROJECT_ROOT}/docs/plans/{feature}/overview.md
 Sub-plans directory: ${PROJECT_ROOT}/docs/plans/{feature}/
+Patterns directory: ${PROJECT_ROOT}/docs/patterns/ (if exists)
 
 Files changed:
 {list of files with line numbers}
@@ -216,7 +219,7 @@ Read the plan overview and all sub-plan files. Verify:
 1. **Component Completeness** — Every planned component has implementation. Flag missing.
 2. **Intent Followed** — Implementation logic matches the plan's intent. Flag divergent logic.
 3. **Failure Criteria** — Anti-patterns from sub-plans are absent. Flag violations.
-4. **Pattern References** — Implementation follows referenced patterns.
+4. **Pattern References** — Implementation follows referenced patterns from sub-plans and docs/patterns/.
 5. **Dependencies** — Component dependencies match the plan's dependency graph.
 6. **Success Criteria** — Observable outcomes are achievable by the implementation.
 7. **Kill Criteria** — Flag if implementation reveals kill criteria are triggered (e.g., scope exceeded, timeline blown).
@@ -362,7 +365,7 @@ You will receive notifications as each background agent finishes. Wait until all
 **Consolidation Agent Prompt:**
 ```
 Read the following review agent output files and produce a consolidated review.
-Write the result to docs/reviews/review-{timestamp}.md using the Write tool.
+Write the result to ${PROJECT_ROOT}/docs/reviews/review-{timestamp}.md using the Write tool.
 Create the directory if needed.
 
 Output files:
@@ -460,6 +463,8 @@ AskUserQuestion:
       description: "Implement all Must Fix + Should Consider items"
     - label: "Must-fix only"
       description: "Only implement Must Fix (criticality 8-10) items"
+    - label: "Cherry-pick"
+      description: "I'll select specific Should Consider items to fix."
     - label: "Approved as-is"
       description: "Accept changes without fixes. No issues need addressing."
     - label: "Another round"
@@ -570,7 +575,8 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.4*
-*v3.4: AskUserQuestion stage gates at Phase 4 (findings decision) and Phase 6 (review cycle decision) using Decision Gate (Pattern 1) and Batch Review (Pattern 3) patterns from `_shared/references/stage-gates.md`.*
+*Skill Version: 3.5*
+*v3.5: Design-intent agent scopes feature subdirs. Plan-intent agent receives patterns path. Consolidation agent uses ${PROJECT_ROOT} path. Browser E2E plans noted in upstream doc check and pr-test-analyzer. Cherry-pick option added to findings decision gate. Phase 4 cherry-pick workflow with Batch Review for Should Consider items.*
+*v3.4: AskUserQuestion stage gates at Phase 4 (findings decision) and Phase 6 (review cycle decision) using Decision Gate (Pattern 1) and Batch Review (Pattern 3) patterns from `../_shared/references/stage-gates.md`.*
 *v3.2: Alignment audit agent for COMPREHENSIVE mode — produces permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification. Modelled on AMPS actions project's alignment audit (found 11 critical, ~30 medium, ~25 low issues across ~30 files).*
 *v3.1: Duration targets, BRIEF mode skips consolidation agent, agent failure/timeout recovery with health check, kill criteria added to plan-intent and prd-compliance agent prompts, self-review step before committing fixes, removed duplicate Quality Standards section, structured PAUSE response options, removed Phase 7 learning identification (handled by execute re-entry and compound), commit format deferred to CLAUDE.md, anti-patterns explain WHY*

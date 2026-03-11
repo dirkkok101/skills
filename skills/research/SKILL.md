@@ -37,7 +37,7 @@ Run this skill when:
 - Before brainstorm when the problem space is unfamiliar
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 Do NOT run when:
@@ -75,17 +75,17 @@ Phase 4: Synthesis & Brief
 
 ## Prerequisites
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+**Step 0 — Check Internal Sources First:**
 
-# Check internal sources FIRST — web search only if these are insufficient
-# Existing codebase for similar patterns
-# Project docs and learnings
-ls "${PROJECT_ROOT}/docs/research/" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
+Before web research, check internal sources — the cheapest research is the research you don't have to do:
 
-If the answer is found in internal sources, present it directly — no web research needed. The cheapest research is the research you don't have to do.
+- **Prior research** — `docs/research/{feature}/` (check for existing research brief to build on, not duplicate)
+- **Learnings** — `docs/learnings/` (past gotchas, patterns, and context gaps relevant to this topic)
+- **ADRs** — `docs/adr/` (existing architecture decisions that constrain options — tag as [CONSTRAINT])
+- **Patterns** — `docs/patterns/` (established conventions that inform what's already solved — tag as [PRIOR-ART])
+- **Existing codebase** — similar features or patterns already in use
+
+If the answer is found in internal sources, present it directly — no web research needed.
 
 ---
 
@@ -123,6 +123,7 @@ Structure as 3-5 key questions:
 | Engineering blogs (Anthropic, Google, etc.) | Architecture and pattern research | High |
 | Existing codebase patterns | When extending current system | High |
 | Project docs and learnings | When prior decisions exist | High |
+| Existing ADRs and patterns (`docs/adr/`, `docs/patterns/`) | Before web research — surfaces constraints | High |
 | Academic papers, conference talks | Novel or complex problems | High |
 | GitHub repos (stars, activity, issues) | Library evaluation | Medium |
 | Community discussions (SO, forums) | Gotchas and real-world experience | Medium |
@@ -431,6 +432,7 @@ Example: "What pagination libraries exist for GraphQL?" → quick survey, presen
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Prerequisites modernized from bash scripts to prose-based artifact import. Internal source check expanded with docs/adr/ and docs/patterns/ (tag as [CONSTRAINT] and [PRIOR-ART]). Source planning table updated.*
 *v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for scope confirmation, Combined Gate for research completion (findings review + next step routing)*
 *v3.1: Search query construction guidance, PAUSE 1 conditional on STANDARD+, budget checkpoints (70/30 split), "Accept" option in build/buy/adopt, import user context instead of re-interviewing, recommendation and risks promoted in brief template, tightened confidence calibration (3+/2/1 sources), tag validation, "do not run" guidance, vague queries anti-pattern*

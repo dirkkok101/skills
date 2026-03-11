@@ -39,7 +39,7 @@ Do NOT use for:
 - Code quality improvements → `/review`
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -49,11 +49,11 @@ If `AskUserQuestion` is unavailable, fall back to presenting options as markdown
 ```
 Phase 0: Context Gathering
 Phase 1: Reproduce & Verify
-  ── (if non-reproducible) PAUSE: "Can't reproduce. More details?" ──
+  ── (if non-reproducible) PAUSE NR: "Can't reproduce. More details?" ──
 Phase 2: Investigation & Isolation
   ── PAUSE 1: "Isolated the fault. Here's what I found." ──
 Phase 3: Root Cause Analysis
-Phase 4: Triage Decision
+Phase 4: Triage Decision (with self-review)
   ── Self-review gates presentation ──
   ── Triage fork: ──
       ├─ 5a: Fix-in-Place (isolated, simple)
@@ -490,8 +490,10 @@ AskUserQuestion:
     - label: "Modify beads"
       description: "Adjust bead scope or approach before executing."
     - label: "Compound first"
-      description: "Capture a learning before executing."
+      description: "Capture a learning via /compound before executing."
 ```
+
+If user selects "Compound first", run `/compound` with the diagnostic context, then return to PAUSE 2b to proceed with "Execute".
 
 ---
 
@@ -532,12 +534,16 @@ AskUserQuestion:
   multiSelect: false
   options:
     - label: "Start brainstorm (Recommended)"
-      description: "Run /brainstorm with the diagnostic context."
+      description: "Run /brainstorm with diagnostic context from docs/diagnosis/{issue-slug}.md."
     - label: "Compound first"
-      description: "Capture a learning before escalating."
+      description: "Capture a learning via /compound before escalating."
     - label: "Park"
       description: "Save diagnosis for later."
 ```
+
+If user selects "Compound first", run `/compound` with the diagnostic context, then return to PAUSE 2c to proceed with "Start brainstorm".
+
+If user selects "Start brainstorm", pass the diagnostic context path to `/brainstorm`: "Starting brainstorm for {issue title}. Diagnostic context saved at `docs/diagnosis/{issue-slug}.md`."
 
 ---
 
@@ -574,6 +580,7 @@ AskUserQuestion:
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Non-reproducible PAUSE labeled (PAUSE NR). Phase 4 label clarified (with self-review). "Compound first" options include return-to-PAUSE flow. Brainstorm escalation passes diagnostic context path. All /compound references explicit.*
 *v3.4: AskUserQuestion stage gates at all PAUSE points (Decision Gate pattern from stage-gates.md)*
 *v3.1: Duration targets, prose-based context gathering (no hardcoded setup commands), structured PAUSE response options at all decision points, non-reproducible path as explicit PAUSE, collaborative model shows three-path fork, proportionality theme in self-review, conditional issue tracker for bug tracking, all resolution paths offer /compound, commit format deferred to CLAUDE.md, safe git practices (no stash prescription), anti-patterns explain WHY*

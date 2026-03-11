@@ -35,7 +35,7 @@ Run this skill when:
 - When /execute or /review identifies learnings to document
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -48,6 +48,7 @@ Phase 1: Identify & Classify Learnings
 Phase 2: Document & Save
 Phase 3: Surface & Verify
   ── PAUSE 2: "Learning saved. Surfacing confirmed." ──
+  (if "More") → Return to Phase 1
 ```
 
 For bulk processing (review findings), Phase 1 presents all candidate learnings at once. The user approves, rejects, or modifies each before Phase 2 processes approved ones.
@@ -107,7 +108,7 @@ Learnings have different scopes. The scope determines where the learning is stor
 |-------|---------------|---------|
 | **Project** (default) | `${PROJECT_ROOT}/docs/learnings/{category}.md` | Codebase-specific patterns, entity gotchas, service interactions |
 | **Global** | Agent's persistent memory location (configured per agent) | Language-level gotchas, tool usage patterns, general best practices |
-| **Feature** | Inline code comment or ADR in `docs/decisions/` | "This endpoint uses eventual consistency because..." |
+| **Feature** | Inline code comment or ADR in `docs/adr/` | "This endpoint uses eventual consistency because..." |
 
 **Decision tree:**
 1. Does it apply regardless of project or tech stack? → **Global**
@@ -126,12 +127,13 @@ Default to **project** scope. Promote to global only when the learning clearly t
 
 **Single learning mode:** Ask the user what they learned, or extract from the context of the current conversation.
 
-**Bulk mode (review findings):** Read the most recent review output from `docs/reviews/`. For each significant finding category, extract potential learnings:
+**Bulk mode (review findings):** Read the most recent review output from `docs/reviews/review-*.md` (select the file with the latest timestamp). For each significant finding category, extract potential learnings:
 - **Correctness** findings → `gotcha` or `pattern` learnings
 - **Security** findings → `gotcha` learnings
 - **Performance** findings → `pattern` or `architecture` learnings
 - **Upstream compliance** findings → `process` or `context-gap` learnings
 - **Test coverage** findings → `review-feedback` learnings
+- **Alignment audit** findings (from `docs/reference/alignment-audit.md`, if exists) → `process` or `context-gap` learnings
 
 If no review file exists, ask the user to describe findings or run /review first.
 
@@ -267,7 +269,7 @@ Referenced by brainstorm and discovery skills.
 
 **Global scope:** Append to the agent's persistent memory location. Keep it concise — global files are loaded every session and consume tokens.
 
-**Feature scope:** Add as an inline code comment at the relevant location, or create an ADR in `docs/decisions/`.
+**Feature scope:** Add as an inline code comment at the relevant location, or create an ADR in `docs/adr/`. Create the directory if it doesn't exist.
 
 ---
 
@@ -292,15 +294,18 @@ For coding standards (review-feedback category):
 
 **Step 3.2 — Reference Updates (if applicable):**
 
-If the learning improves a shared reference file (project conventions, patterns doc, etc.):
+If the learning improves a shared reference file (project conventions, patterns doc, etc.), present the suggestion as formatted markdown then use AskUserQuestion (Decision Gate — Pattern 1):
 
 ```
-"This learning about {topic} could improve {reference file}.
-
-Suggested addition:
-  {New pattern, gotcha, or convention}
-
-Update the reference? [yes / no]"
+AskUserQuestion:
+  question: "This learning about {topic} could improve {reference file}. Update it?"
+  header: "Reference"
+  multiSelect: false
+  options:
+    - label: "Update (Recommended)"
+      description: "Add the learning to {reference file}."
+    - label: "Skip"
+      description: "Keep the learning in docs/learnings/ only."
 ```
 
 If user approves, update the reference file directly.
@@ -366,6 +371,7 @@ AskUserQuestion:
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Bulk mode file selection clarified (select latest timestamp). Collaborative model shows "More" loop. Step 3.2 uses AskUserQuestion Decision Gate for reference updates. docs/decisions/ → docs/adr/ alignment. Alignment audit awareness for COMPREHENSIVE reviews.*
 *v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for single learning and completion, Batch Review for bulk learnings*
 *v3.1: Duration targets, collaborative model with PAUSE points, structured response options (single + bulk mode), format validation before saving, surfacing verification as dedicated phase with end-to-end chain check, generic agent memory path (not hardcoded), clarified one-entry-per-learning vs session-can-process-multiple, removed duplicate Quality Standards section, shell commands replaced with prose, anti-patterns explain WHY*

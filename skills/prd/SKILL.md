@@ -37,7 +37,7 @@ Run this skill when:
 - Starting a feature that needs formal requirements documentation
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -67,19 +67,20 @@ Phase 3: User Personas (STANDARD+)
   ── PAUSE 1: "Problem, personas, and assumptions right?" ──
 Phase 4: Assumptions, Constraints & Risks
 Phase 5: Use Cases (COMPREHENSIVE only)
+  ── PAUSE 2: "Review each use case individually." ──
 Phase 6: Functional Requirements
-  ── PAUSE 2: "Requirements in batches of 3-5. Edge cases?" ──
+  ── PAUSE 3: "Review each requirement individually." ──
 Phase 7: Non-Functional Requirements
 Phase 8: Prioritisation & Dependencies (STANDARD+)
-  ── PAUSE 3: "Priorities right? Must Haves truly minimal?" ──
+  ── PAUSE 4: "Priorities right? Must Haves truly minimal?" ──
 Phase 8b: Integration Points (COMPREHENSIVE only)
 Phase 9: Domain Validation (COMPREHENSIVE only)
 Phase 10: Self-Review & Approval
+  ── PAUSE 5: "Targeted validation questions." ──
 Phase 10b: Document Approval (COMPREHENSIVE only)
-  ── PAUSE 4: "Targeted validation questions." ──
 ```
 
-**BRIEF mode** skips: Personas (Phase 3), Use Cases (Phase 5), Prioritisation (Phase 8), Domain Validation (Phase 9). Uses the streamlined BRIEF template instead.
+**BRIEF mode** skips: Personas (Phase 3), Use Cases (Phase 5), Prioritisation (Phase 8), Integration Points (Phase 8b), Domain Validation (Phase 9), Document Approval (Phase 10b). Uses the streamlined BRIEF template instead.
 
 ---
 
@@ -339,7 +340,15 @@ Track unknowns throughout the PRD process. Update this section as questions surf
 
 **Use cases are standalone files**, not sections inside the PRD. This prevents the PRD from becoming a monolith (the identity project's 134KB PRD taught us this). Each use case is 3-15KB — manageable, reviewable, and referenceable by design and plan docs independently.
 
+**File location depends on scope:**
+- **Feature-scoped use cases** (most common) → `docs/prd/{feature}/use-cases/` — colocated with the PRD they belong to
+- **Cross-module use cases** (span multiple features/aggregates) → `docs/use-cases/` — shared common folder
+
 ```bash
+# Feature-scoped use cases (default)
+mkdir -p "${PROJECT_ROOT}/docs/prd/{feature}/use-cases"
+
+# Cross-module use cases (only when a UC spans multiple features)
 mkdir -p "${PROJECT_ROOT}/docs/use-cases"
 ```
 
@@ -360,7 +369,11 @@ Map personas and workflows from discovery to 5-10 use cases. Each use case repre
 
 **Step 5.2 — Write Each Use Case:**
 
-Save each to: `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
+Save each to:
+- **Feature-scoped:** `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
+- **Cross-module:** `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
+
+Default to feature-scoped. Only use the common folder when a use case genuinely spans multiple features or aggregate roots.
 
 ```markdown
 # UC-{MODULE}-{NNN}: {Goal as Active Verb Phrase}
@@ -433,18 +446,22 @@ Add a use case index section to the PRD that links to the standalone files:
 ```markdown
 ## Use Cases
 
-Use cases are documented as standalone files in `docs/use-cases/`.
+Feature-scoped use cases are in `docs/prd/{feature}/use-cases/`.
+Cross-module use cases are in `docs/use-cases/`.
 
-| UC ID | Title | Depth | Actor | Status |
-|-------|-------|-------|-------|--------|
-| [UC-{MODULE}-001](../use-cases/UC-{MODULE}-001-{slug}.md) | {title} | Tier 1 | {actor} | Draft |
+| UC ID | Title | Depth | Actor | Scope | Status |
+|-------|-------|-------|-------|-------|--------|
+| [UC-{MODULE}-001](use-cases/UC-{MODULE}-001-{slug}.md) | {title} | Tier 1 | {actor} | Feature | Draft |
+| [UC-{MODULE}-002](../../use-cases/UC-{MODULE}-002-{slug}.md) | {title} | Tier 2 | {actor} | Cross-module | Draft |
 ```
 
 **Step 5.4 — Optional: Traceability Index (COMPREHENSIVE, 5+ use cases):**
 
 For projects with 5+ use cases, create a traceability index that maps scenarios to implementation evidence:
 
-Save to: `${PROJECT_ROOT}/docs/use-cases/traceability-index.md`
+Save to: `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/traceability-index.md`
+
+For cross-module use cases, maintain a separate index at `${PROJECT_ROOT}/docs/use-cases/traceability-index.md`.
 
 ```markdown
 # Traceability Index
@@ -458,6 +475,40 @@ Save to: `${PROJECT_ROOT}/docs/use-cases/traceability-index.md`
 ```
 
 This is a living document — update it as use cases move from Draft → Implemented.
+
+#### PAUSE 2: Review each use case (Guided Review — Pattern 5)
+
+Review each use case individually with the user. For each UC:
+
+**Step 1 — Present full detail:** Show the use case summary as formatted markdown — UC ID, goal, actor, trigger, scenario flow overview, postconditions, and failure paths.
+
+**Step 2 — Ask for verdict:**
+
+```
+AskUserQuestion:
+  question: "Review this use case."
+  header: "UC Review"
+  multiSelect: false
+  options:
+    - label: "Approve"
+      description: "Use case is good as-is. Move to the next one."
+    - label: "Revise"
+      description: "Needs changes — I'll provide notes."
+    - label: "Remove"
+      description: "Drop this use case entirely."
+    - label: "Skip for now"
+      description: "Come back to this after reviewing the rest."
+```
+
+**Step 3 — Handle verdict:**
+- **Approve:** Mark as approved, move to next UC.
+- **Revise:** Collect the user's notes, revise the use case file, re-present it, and re-ask.
+- **Remove:** Delete the UC file and remove it from the index table. Move to next UC.
+- **Skip for now:** Queue for a second pass after all other UCs are reviewed.
+
+**Step 4 — Second pass:** After all UCs have been reviewed, re-present any skipped use cases and repeat Steps 1-3 for each.
+
+This per-use-case approach mirrors the FR review process (PAUSE 3) and ensures each scenario gets focused attention before downstream skills consume them.
 
 ---
 
@@ -528,7 +579,7 @@ Before presenting requirements to the user, scan for these quality issues:
 
 **Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
 
-#### PAUSE 2: Validate requirements one at a time (Guided Review — Pattern 5)
+#### PAUSE 3: Validate requirements one at a time (Guided Review — Pattern 5)
 
 Review each functional requirement individually. For each FR:
 
@@ -620,7 +671,7 @@ Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms 
        +──> FR-CONFIGURE          FR-NOTIFY
 ```
 
-#### PAUSE 3: Validate priorities (Guided Review — Pattern 5)
+#### PAUSE 4: Validate priorities (Guided Review — Pattern 5)
 
 **Step 1 — Review Must Haves:** Present the Must Have list as formatted markdown, then:
 
@@ -697,7 +748,7 @@ Verify discovery requirements are fully covered:
 - [ ] Security criteria present on all security-sensitive stories?
 - [ ] Compliance criteria present where regulations apply?
 - [ ] All integration points from discovery have corresponding NFRs?
-- [ ] All actors from discovery have at least one use case (in docs/use-cases/)?
+- [ ] All actors from discovery have at least one use case (in docs/prd/{feature}/use-cases/ or docs/use-cases/)?
 - [ ] All use case files cross-reference back to the PRD?
 
 ### Coverage Matrix
@@ -738,7 +789,7 @@ After thematic review, do a final scan for:
 - Missing error paths in acceptance criteria
 - NFR targets without rationale tracing to problem/metrics
 
-#### PAUSE 4: User validation questions (Combined Gate — Pattern 4)
+#### PAUSE 5: User validation questions (Combined Gate — Pattern 4)
 
 After self-review, ask all three validation questions simultaneously:
 
@@ -765,7 +816,7 @@ AskUserQuestion:
           description: "One or more assumptions may not hold — I'll provide notes."
         - label: "Need to investigate"
           description: "We should validate specific assumptions before proceeding."
-    - question: "Anything in Won't Have you're uncomfortable deferring?"
+    - question: "Anything in Won't Have you're uncomfortable deferring?"  # STANDARD+ only — skip in BRIEF (no prioritisation section)
       header: "Deferrals"
       multiSelect: false
       options:
@@ -799,7 +850,7 @@ For COMPREHENSIVE PRDs with multiple stakeholders, add a formal approval section
 
 ## BRIEF Mode Template
 
-For BRIEF scope, skip Phases 3, 5, 8, 9. Produce this streamlined one-page format:
+For BRIEF scope, skip Phases 3, 5, 8, 8b, 9, 10b. Produce this streamlined one-page format:
 
 ```markdown
 # PRD: {Feature Name} (Brief)
@@ -844,13 +895,14 @@ As a {role}, I want {action}, so that {benefit}.
 
 Save to:
 - `${PROJECT_ROOT}/docs/prd/{feature}/prd.md` — the PRD itself
-- `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md` — standalone use cases (COMPREHENSIVE only)
-- `${PROJECT_ROOT}/docs/use-cases/traceability-index.md` — optional traceability index (COMPREHENSIVE, 5+ UCs)
+- `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/UC-{MODULE}-{NNN}-{slug}.md` — feature-scoped use cases (COMPREHENSIVE only)
+- `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md` — cross-module use cases that span features/aggregates
+- `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/traceability-index.md` — optional traceability index (COMPREHENSIVE, 5+ UCs)
 
 The PRD follows the phase order:
 Document History → Problem → Personas → Assumptions & Constraints → Use Case Index → FRs → NFRs → Prioritisation → Validation
 
-Use cases are standalone files referenced by the PRD, not embedded in it. This keeps the PRD focused on requirements while use cases serve as detailed scenario walkthroughs that design, plan, and review skills can reference independently.
+Use cases are standalone files referenced by the PRD, not embedded in it. Feature-scoped use cases live alongside their PRD in `docs/prd/{feature}/use-cases/`; cross-module use cases that span multiple features or aggregate roots go in the shared `docs/use-cases/` folder. This keeps related artifacts colocated while the common folder signals cross-cutting concerns.
 
 ---
 
@@ -916,10 +968,11 @@ This preserves the decision trail — anyone reading the PRD can see what change
 
 ---
 
-*Skill Version: 3.4*
-*v3.4.1: PAUSE 2 switched from Batch Review (Pattern 3) to per-requirement Guided Review (Pattern 5) — each FR reviewed individually with Approve/Revise/Remove/Skip options.*
+*Skill Version: 3.5*
+*v3.5: Use case location restructured — feature-scoped UCs now live in `docs/prd/{feature}/use-cases/` (colocated with PRD), cross-module UCs in `docs/use-cases/`. PAUSE 2 added for per-use-case Guided Review (Approve/Revise/Remove/Skip). PAUSE numbering rationalized (sequential 1-5, removed "1b" label). BRIEF mode skip list completed (added Phase 8b, 10b). PAUSE 5 deferrals question guarded for STANDARD+ only. Stage gate reference path corrected.*
 
-*v3.4: Stage gates upgraded to use AskUserQuestion tool. PAUSE 1 uses Guided Review (Pattern 5) walking through Problem+Goals then Personas. PAUSE 2 uses Batch Review (Pattern 3) with multi-select for flagging FRs needing revision. PAUSE 3 uses Guided Review for MoSCoW priority validation with downgrade/upgrade flows. PAUSE 4 uses Combined Gate (Pattern 4) asking confidence, assumptions, and deferrals simultaneously.*
+*v3.4.1: FR review switched from Batch Review (Pattern 3) to per-requirement Guided Review (Pattern 5) — each FR reviewed individually with Approve/Revise/Remove/Skip options.*
+*v3.4: Stage gates upgraded to use AskUserQuestion tool. PAUSE 1 uses Guided Review (Pattern 5) walking through Problem+Goals then Personas. FR review uses per-requirement Guided Review (Pattern 5). Priority review uses Guided Review for MoSCoW validation with downgrade/upgrade flows. Final validation uses Combined Gate (Pattern 4) asking confidence, assumptions, and deferrals simultaneously.*
 *v3.3: Open Questions upgraded to resolution tracking table with Status/Decision/Owner columns. Table of Contents for COMPREHENSIVE PRDs (10+ sections). Integration Points section for platform services consumed by other systems. Document Approval section for COMPREHENSIVE mode. Legacy Update notice convention for long-lived PRDs.*
-*v3.2: Document History table for auditable PRD evolution. Use cases extracted as standalone files in `docs/use-cases/` (COMPREHENSIVE mode) — prevents monolith PRDs. Cockburn format replaced with table-based scenario format matching identity project patterns. Depth tiers (1/2/3) for use cases. Optional traceability index for 5+ use cases. Glossary import from discovery. Monolith PRD and Undocumented Evolution anti-patterns added.*
+*v3.2: Document History table for auditable PRD evolution. Use cases extracted as standalone files (COMPREHENSIVE mode) — prevents monolith PRDs. Cockburn format replaced with table-based scenario format matching identity project patterns. Depth tiers (1/2/3) for use cases. Optional traceability index for 5+ use cases. Glossary import from discovery. Monolith PRD and Undocumented Evolution anti-patterns added.*
 *v3.1: Collaborative model diagram, personas before assumptions, duration/length targets, edge case prioritization on Must Haves, consolidated 5 review themes, BRIEF skip markers, kill criteria check, NFR rationale tracing, arbitrary NFR targets anti-pattern*

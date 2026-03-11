@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-03-11
+
+### Changed
+- **All 12 workflow skills** upgraded to v3.5 — comprehensive cross-skill alignment review
+- **Prerequisites modernized** across brainstorm, research, and discovery — bash scripts (`cat`, `ls`, `mkdir -p`) replaced with prose-based artifact import matching the pattern established by technical-design and plan
+- **docs/adr/ and docs/patterns/** added as upstream artifact sources to brainstorm, research, and discovery prerequisites (tagged [CONSTRAINT] and [PRIOR-ART] respectively)
+- **Collaborative models** updated across multiple skills — brainstorm adds Phase 6 (Output), discovery adds Phase 5 (Output), execute gains a collaborative model (was missing entirely)
+- **prd** restructured: Phase 2 now handles FR authoring with per-requirement Guided Review (Pattern 5), Phase 3 handles cross-cutting concerns and synthesis, self-review added before PAUSE 3
+- **technical-design** restructured: feature-first decomposition (per-feature design docs), browser E2E test plans (`docs/browser-e2e-plans/`), project-wide ADRs (`docs/adr/`), patterns consumption (`docs/patterns/`), feature specs consolidation (`docs/features/`)
+- **plan** expanded: prerequisites import use cases, browser E2E plans, ADRs, and patterns; BRIEF skip list made explicit; ascii-conventions path corrected to `../_shared/`
+- **beads** improved: prerequisites add design docs; Parallel Tracks cross-ref fixed; Good Bead example references design doc
+- **execute** enhanced: review-bead handling for /simplify checkpoints; COMPREHENSIVE check-in with AskUserQuestion; PRD and UC paths added to upstream verification
+- **review** refined: design-intent agent scopes feature subdirs; plan-intent agent receives patterns path; consolidation agent uses `${PROJECT_ROOT}`; browser E2E plans noted in upstream check; cherry-pick option added to findings gate
+- **compound** aligned: bulk mode selects latest timestamp; collaborative model shows "More" loop; Step 3.2 uses Decision Gate; `docs/decisions/` → `docs/adr/`
+- **diagnose** improved: non-reproducible PAUSE labeled (PAUSE NR); Phase 4 clarified as "(with self-review)"; dead ends return to PAUSE; brainstorm escalation passes diagnostic context
+- **discovery** modernized: prerequisites prose-based with ADRs/patterns; collaborative model adds Output phase; exit signals table expanded
+- **init** updated: removed `docs/decisions/` (superseded by `docs/adr/`); updated `docs/adr/` attribution; `docs/patterns/` description expanded; Phase 3 tree diagram corrected
+- **Exit signals** tables expanded with "When to Recommend" column (discovery)
+- **BRIEF scope routing** clarified in brainstorm (explicit skip list)
+
 ## [3.4.1] - 2026-03-10
 
 ### Changed

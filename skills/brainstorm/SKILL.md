@@ -38,7 +38,8 @@ Run this skill when:
 ---
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
+If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
 
@@ -52,6 +53,7 @@ Phase 3: Generate & Compare Approaches
 Phase 4: Self-Review (gates presentation)
 Phase 5: Select, Classify & Route
   ── PAUSE 2: "Here are the options, scope, and routing. Which approach? Ready for next step?" ──
+Phase 6: Output (save brainstorm.md)
 ```
 
 The agent's stance should adapt to the user:
@@ -63,23 +65,19 @@ The agent's stance should adapt to the user:
 
 ## Prerequisites
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
+**Step 0 — Import Upstream Artifacts:**
 
-# Check for existing work
-ls "${PROJECT_ROOT}/docs/brainstorm/" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/designs/" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/plans/" 2>/dev/null
-ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
+Check for existing work before starting fresh:
 
-# If issue tracker available, check for existing issues
-# e.g., br search "{feature keywords}" 2>/dev/null
+- **Research brief** (if /research was run) — `docs/research/{feature}/research-brief.md` (findings tagged [CONSTRAINT], [OPTION], [RISK], [PRIOR-ART], [UNKNOWN])
+- **Existing brainstorm** — `docs/brainstorm/{feature}/brainstorm.md` (prior work on this feature)
+- **Existing designs** — `docs/designs/` (surface constraints for Phase 2 boundaries)
+- **Existing plans** — `docs/plans/` (note prior scope decisions)
+- **Learnings** — `docs/learnings/` (relevant gotchas, patterns, and context gaps from past features)
 
-# Check for research brief (if /research was run)
-ls "${PROJECT_ROOT}/docs/research/{feature}/" 2>/dev/null
-```
+If the project uses an issue tracker, search for existing issues related to the feature.
 
-If existing work found, ask: "Found existing {artifact}. Build on this or start fresh?"
+If existing work is found, ask: "Found existing {artifact}. Build on this or start fresh?"
 
 ---
 
@@ -221,13 +219,8 @@ If a kill criterion triggers, return to this brainstorm to reassess.
 
 This is a QUICK scan, not a deep dive. Deep investigation is /discovery's job.
 
-```bash
-# Past learnings
-grep -rl "{keywords}" "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-
-# Similar features in codebase (names and relevance only)
-# Surface-level check for obvious patterns and constraints
-```
+- Scan `docs/learnings/` for relevant past learnings (keywords related to this feature)
+- Check the codebase for similar features (names and relevance only — surface-level check for obvious patterns and constraints)
 
 **Step 3.2 — Create 2-3 Distinct Options:**
 
@@ -323,7 +316,7 @@ Score:
 | **STANDARD** | brainstorm → prd → technical-design → plan → beads → execute → review → compound |
 | **COMPREHENSIVE** | brainstorm → discovery → prd → technical-design → plan → beads → execute → review → compound |
 
-BRIEF scope means the brainstorm document contains enough information for /plan to work directly — no PRD or design doc needed.
+BRIEF scope means the brainstorm document contains enough information for /plan to work directly — no PRD or design doc needed. BRIEF does not change brainstorm's internal phases (all 6 run) — the difference is in routing: BRIEF skips /prd and /technical-design, so the brainstorm must be thorough enough for /plan to work without them.
 
 **PAUSE 2:** This is a two-step gate: approach selection, then routing.
 
@@ -537,6 +530,7 @@ If abbreviated: "Root cause analysis abbreviated — user demonstrated deep doma
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Stage gate fallback line added. Prerequisites modernized from bash scripts to prose-based artifact import (research brief, learnings, existing work). Collaborative model includes Phase 6 (Output). BRIEF scope routing clarified — all phases run, routing skips /prd and /technical-design.*
 *v3.4: AskUserQuestion stage gates — PAUSE 1 uses Decision Gate for problem framing, PAUSE 2 uses Comparison Gate for approach selection + Decision Gate for routing, with fallback to prose when AskUserQuestion unavailable*
 *v3.1: Self-review gates PAUSE 2, stress-test chosen approach, merged scope/routing into single PAUSE, 5 Whys abbreviation guidance, boundaries refined after approach selection, rejection rationale in output, scope override rule, kill criteria ownership, duration target, biggest risk per approach, conditional issue tracker search*

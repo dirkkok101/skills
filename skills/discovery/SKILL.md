@@ -36,7 +36,7 @@ Do NOT run when:
 - Pure technical refactor with no new requirements
 
 ## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `_shared/references/stage-gates.md`
+For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
 If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
@@ -53,30 +53,25 @@ Phase 3: Integration & UI Analysis
 Phase 3b: Security, Compliance, Feasibility & Risk
 Phase 4: Synthesis & Brief
   ── PAUSE 3: "Discovery complete. Ready for PRD?" ──
+Phase 5: Output (save discovery-brief.md + glossary.md)
 ```
 
 ---
 
 ## Prerequisites
 
-```bash
-PROJECT_ROOT=$(git rev-parse --show-toplevel)
-mkdir -p "${PROJECT_ROOT}/docs/discovery/{feature}"
-touch "${PROJECT_ROOT}/docs/discovery/{feature}/glossary.md"
-```
+**Step 0 — Import Upstream Artifacts:**
 
-**Import upstream artifacts:**
+Check for existing work before starting fresh:
 
-```bash
-# Brainstorm (primary input)
-cat "${PROJECT_ROOT}/docs/brainstorm/{feature}/brainstorm.md"
+- **Brainstorm** (primary input) — `docs/brainstorm/{feature}/brainstorm.md` (problem statement, chosen approach, boundaries, scope classification, kill criteria)
+- **Research brief** (if /research was run) — `docs/research/{feature}/research-brief.md` (findings tagged [CONSTRAINT], [OPTION], [RISK], [PRIOR-ART], [UNKNOWN])
+- **ADRs** — `docs/adr/` (existing architecture decisions that constrain discovery — tag as [CONSTRAINT])
+- **Patterns** — `docs/patterns/` (established conventions that inform what's already solved — tag as [PRIOR-ART])
+- **Learnings** — `docs/learnings/` (relevant gotchas, patterns, and context gaps from past features)
+- **Existing codebase** — similar features or patterns already in use
 
-# Research brief (if /research was run)
-cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
-
-# Past learnings
-ls "${PROJECT_ROOT}/docs/learnings/" 2>/dev/null
-```
+Create the output directory: `docs/discovery/{feature}/`
 
 Extract from brainstorm: problem statement, chosen approach, boundaries, scope classification, **kill criteria**.
 
@@ -686,18 +681,19 @@ AskUserQuestion:
 
 ## Exit Signals
 
-| Signal | Next Skill |
-|--------|-----------|
-| "start prd" | /prd (default — feeds discovery into PRD) |
-| "refine" | Continue iterating discovery |
-| "park" | Save for later |
-| "abandon" | Don't proceed |
+| Signal | Next Skill | When to Recommend |
+|--------|-----------|-------------------|
+| "start prd" | /prd | Default path after successful discovery |
+| "refine" | Continue iterating discovery | Missing domain areas or actors |
+| "park" | Save for later | Discovery blocked or deprioritized |
+| "abandon" | Don't proceed | Kill criteria triggered |
 
 **Exit message:** "Discovery complete. Run /prd to formalise requirements."
 
 ---
 
-*Skill Version: 3.4*
+*Skill Version: 3.5*
+*v3.5: Prerequisites modernized from bash scripts to prose-based artifact import. Added docs/adr/ (as [CONSTRAINT]) and docs/patterns/ (as [PRIOR-ART]) to upstream imports. Collaborative model adds Phase 5 (Output). Exit signals table expanded with "When to Recommend" column. Version scheme aligned with pipeline.*
 *v3.4: PAUSE points replaced with AskUserQuestion stage gates — PAUSE 1 uses Guided Review (Pattern 5) for actors/workflows/risks, PAUSE 2 uses Batch Review (Pattern 3) for domain requirements, PAUSE 3 uses Combined Gate (Pattern 4) for completeness + routing.*
 *v3.3: Stage gate reference added.*
 *v3.2: Glossary extracted as standalone file (`glossary.md`) alongside brief — enables inheritance by PRD and technical-design. Glossary template supports disambiguation tables (multiple meanings per term) modelled on identity project's glossary. Brief references glossary via link instead of embedding.*

@@ -79,6 +79,8 @@ If the project uses an issue tracker, search for existing issues related to the 
 
 If existing work is found, ask: "Found existing {artifact}. Build on this or start fresh?"
 
+Create the output directory: `docs/brainstorm/{feature}/`
+
 ---
 
 ## Critical Sequence

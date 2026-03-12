@@ -12,16 +12,18 @@ argument-hint: "[project name]"
 
 # Init: Project Scaffold for Workflow Skills
 
-**Philosophy:** Every project deserves a clear home for its documentation from day one. The init skill creates the folder structure that all downstream skills expect, configures CLAUDE.md with workflow guidance, and verifies the project is ready. Running init before any other skill prevents ad-hoc folder creation and ensures consistent documentation structure across all projects.
+**Philosophy:** Every project deserves a clear home for its documentation from day one. The init skill creates the foundational folder structure — project-level directories that exist before any feature — and configures CLAUDE.md with workflow guidance. Feature-specific directories (research, brainstorm, plans, reviews, etc.) are created on demand by each skill when it runs.
 
 **Target duration:** ~5 minutes.
 
 ## Why This Matters
 
-Without init, every skill creates its own folders on first use, leading to inconsistent structures and missing guidance. New team members (and new Claude sessions) don't know the workflow exists. Init solves this by:
-- **Creating the full folder structure eagerly** — no surprises when skills run later
+Without init, new team members (and new Claude sessions) don't know the workflow exists. Init solves this by:
+- **Creating foundational directories** — project-level folders that multiple skills consume (architecture, patterns, learnings, ADRs)
 - **Documenting the workflow in CLAUDE.md** — every session knows how to use the pipeline
 - **Verifying prerequisites** — catches missing tech stack documentation early
+
+Each skill creates its own output directories on demand (e.g., /research creates `docs/research/{feature}/`, /plan creates `docs/plans/`). Init only creates the shared foundations.
 
 ---
 
@@ -100,52 +102,48 @@ Do NOT create the tech stack section — the user knows their stack, the agent d
 
 ### Phase 1: Create Documentation Structure
 
-Create the full folder hierarchy. Every directory gets a `.gitkeep` so git tracks empty directories.
+Create the foundational directories — project-level folders that exist before any feature and are consumed by multiple skills. Every directory gets a `.gitkeep` so git tracks empty directories.
 
 ```bash
 PROJECT_ROOT=$(git rev-parse --show-toplevel)
 
-# Core documentation directories
-mkdir -p "${PROJECT_ROOT}/docs/research"
-mkdir -p "${PROJECT_ROOT}/docs/brainstorm"
-mkdir -p "${PROJECT_ROOT}/docs/discovery"
+# Foundational directories (created by init)
 mkdir -p "${PROJECT_ROOT}/docs/prd"
-mkdir -p "${PROJECT_ROOT}/docs/use-cases"
 mkdir -p "${PROJECT_ROOT}/docs/designs"
-mkdir -p "${PROJECT_ROOT}/docs/plans"
-mkdir -p "${PROJECT_ROOT}/docs/learnings"
-mkdir -p "${PROJECT_ROOT}/docs/reference"
-mkdir -p "${PROJECT_ROOT}/docs/reviews"
-mkdir -p "${PROJECT_ROOT}/docs/adr"
 mkdir -p "${PROJECT_ROOT}/docs/architecture"
 mkdir -p "${PROJECT_ROOT}/docs/patterns"
-mkdir -p "${PROJECT_ROOT}/docs/browser-e2e-plans"
-mkdir -p "${PROJECT_ROOT}/docs/diagnosis"
+mkdir -p "${PROJECT_ROOT}/docs/adr"
+mkdir -p "${PROJECT_ROOT}/docs/learnings"
 
 # Add .gitkeep to empty directories
-for dir in research brainstorm discovery prd use-cases designs plans learnings reference reviews adr architecture patterns browser-e2e-plans diagnosis; do
+for dir in prd designs architecture patterns adr learnings; do
   touch "${PROJECT_ROOT}/docs/${dir}/.gitkeep"
 done
 ```
 
-**Directory purposes:**
+**Directories created by init:**
+
+| Directory | Purpose |
+|-----------|---------|
+| `docs/prd/` | Product requirements documents |
+| `docs/designs/` | Technical designs, architecture, API specs |
+| `docs/architecture/` | Existing architecture context consumed by /technical-design |
+| `docs/patterns/` | Established conventions and reusable approaches consumed by /technical-design, /plan, and /review |
+| `docs/adr/` | Project-wide and feature-scoped architectural decision records |
+| `docs/learnings/` | Pattern, gotcha, architecture, process learnings consumed by all upstream skills |
+
+**Directories created on demand by each skill:**
 
 | Directory | Created By | Purpose |
 |-----------|-----------|---------|
-| `docs/research/` | /research | Research briefs, landscape surveys, competitive analysis |
-| `docs/brainstorm/` | /brainstorm | Problem framing, approach selection, scope classification |
-| `docs/discovery/` | /discovery | Requirements elicitation, glossaries, domain analysis |
-| `docs/prd/` | /prd | Product requirements documents |
-| `docs/use-cases/` | /prd | Cross-module use cases that span features/aggregates (COMPREHENSIVE mode). Feature-scoped use cases go in `docs/prd/{feature}/use-cases/` instead. |
-| `docs/designs/` | /technical-design | Technical designs, architecture, API specs |
-| `docs/plans/` | /plan | Implementation plans, sub-plans, companion docs |
-| `docs/learnings/` | /compound | Pattern, gotcha, architecture, process learnings |
-| `docs/reference/` | /review | Alignment audits (COMPREHENSIVE mode with 2+ upstream docs) |
+| `docs/research/{feature}/` | /research | Research briefs, landscape surveys |
+| `docs/brainstorm/{feature}/` | /brainstorm | Problem framing, approach selection |
+| `docs/discovery/{feature}/` | /discovery | Requirements elicitation, glossaries |
+| `docs/use-cases/` | /prd | Cross-module use cases (COMPREHENSIVE) |
+| `docs/plans/` | /plan | Implementation plans, sub-plans |
 | `docs/reviews/` | /review | Consolidated review reports |
-| `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architectural decision records |
-| `docs/architecture/` | (project) | Existing architecture context consumed by /technical-design |
-| `docs/patterns/` | (project) | Established conventions, reusable approaches, and canonical examples consumed by /technical-design, /plan, and /review |
-| `docs/browser-e2e-plans/` | /technical-design | Browser E2E test plans per feature — journey-level tests using agent-browser CLI |
+| `docs/reference/` | /review | Alignment audits (COMPREHENSIVE) |
+| `docs/browser-e2e-plans/` | /technical-design | Browser E2E test plans per feature |
 | `docs/diagnosis/` | /diagnose | Root cause analyses, diagnostic reports |
 
 Do NOT create files inside `docs/learnings/` — the /compound skill creates category files (`pattern.md`, `gotcha.md`, etc.) on first use based on what learnings actually emerge.
@@ -185,23 +183,30 @@ Not every feature needs every step:
 
 ### Documentation Structure
 
-All project documentation lives in `docs/`:
+Project documentation lives in `docs/`. Init creates foundational directories; each skill creates additional directories on demand.
+
+**Foundations (created by /init):**
+
+| Directory | What Goes Here |
+|-----------|---------------|
+| `docs/prd/` | Product requirements documents |
+| `docs/designs/` | Technical designs, API specs |
+| `docs/architecture/` | Existing architecture context |
+| `docs/patterns/` | Established conventions and reusable approaches |
+| `docs/adr/` | Architecture decisions (/technical-design, /compound) |
+| `docs/learnings/` | Accumulated project learnings (/compound) |
+
+**Created on demand by skills:**
 
 | Directory | Skill | What Goes Here |
 |-----------|-------|---------------|
 | `docs/research/` | /research | Research briefs, landscape surveys |
 | `docs/brainstorm/` | /brainstorm | Problem framing, approach selection |
 | `docs/discovery/` | /discovery | Requirements elicitation, glossaries |
-| `docs/prd/` | /prd | Product requirements documents |
-| `docs/use-cases/` | /prd | Cross-module use cases spanning features/aggregates |
-| `docs/designs/` | /technical-design | Technical designs, API specs |
+| `docs/use-cases/` | /prd | Cross-module use cases (COMPREHENSIVE) |
 | `docs/plans/` | /plan | Implementation plans, sub-plans |
-| `docs/learnings/` | /compound | Accumulated project learnings |
 | `docs/reviews/` | /review | Consolidated review reports |
 | `docs/reference/` | /review | Alignment audits (COMPREHENSIVE) |
-| `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architecture decisions |
-| `docs/architecture/` | (project) | Existing architecture context |
-| `docs/patterns/` | (project) | Established conventions and reusable approaches |
 | `docs/browser-e2e-plans/` | /technical-design | Browser E2E test plans per feature |
 | `docs/diagnosis/` | /diagnose | Root cause analysis reports |
 
@@ -248,23 +253,17 @@ Present what was created:
 Initialized project documentation structure:
 
 docs/
-├── research/        ← /research output
-├── brainstorm/      ← /brainstorm output
-├── discovery/       ← /discovery output
-├── prd/             ← /prd output
-├── use-cases/       ← /prd use cases (COMPREHENSIVE)
-├── designs/         ← /technical-design output
-├── plans/           ← /plan output
-├── learnings/       ← /compound output
-├── reviews/         ← /review reports
-├── reference/       ← /review alignment audits
-├── adr/                  ← project-wide and feature-scoped architecture decisions
-├── architecture/         ← existing architecture context
-├── patterns/             ← established conventions and reusable approaches
-├── browser-e2e-plans/    ← browser E2E test plans per feature
-└── diagnosis/            ← /diagnose output
+├── prd/             ← product requirements
+├── designs/         ← technical designs
+├── architecture/    ← existing architecture context
+├── patterns/        ← established conventions and reusable approaches
+├── adr/             ← architecture decision records
+└── learnings/       ← accumulated project learnings
 
 CLAUDE.md: Workflow section added ✓
+
+Additional directories (research/, brainstorm/, plans/, reviews/, etc.)
+are created on demand when each skill runs.
 ```
 
 Then check and advise:
@@ -303,7 +302,8 @@ The init skill is safe to run multiple times:
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 3.6*
+*v3.6: Minimal scaffold — init now creates only 6 foundational directories (prd, designs, architecture, patterns, adr, learnings). Remaining 9 directories (research, brainstorm, discovery, use-cases, plans, reviews, reference, browser-e2e-plans, diagnosis) are created on demand by each skill. Philosophy updated. CLAUDE.md template split into foundations vs on-demand tables. Phase 3 tree simplified.*
 *v3.5: Removed docs/decisions/ (compound now uses docs/adr/). Updated docs/adr/ attribution to reflect both /technical-design and /compound. Added docs/patterns/ and docs/browser-e2e-plans/ to Phase 3 tree diagram. Updated docs/patterns/ description to include /plan and /review as consumers. Version scheme aligned with pipeline.*
 *v1.1: Adversarial review fixes. Added 4 missing directories (reviews, adr, decisions, architecture). Fixed nested code fence rendering (pipeline uses indented block). Fixed BRIEF pipeline routing to match brainstorm skill (skips prd and technical-design). Added .claude/CLAUDE.md location detection. Improved idempotency to check both markers and handle corrupt state. Clarified COMPREHENSIVE-only directories in table descriptions.*
 *v1.0: Initial release. Eager folder creation, CLAUDE.md workflow section with markers, tech stack detection and warning, idempotent design.*

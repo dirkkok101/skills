@@ -653,6 +653,8 @@ Aim for 25-35 test cases per feature area covering: happy paths, validation fail
 
 For each feature area with a user interface, produce a browser E2E test plan. These are **journey-level tests** that validate complete user flows through the browser using [agent-browser](https://github.com/vercel-labs/agent-browser) — distinct from the API-level test plans in Step 4.4. They translate UC scenario flows into browser actions using the UI mockup's components.
 
+Create the output directory if it doesn't exist: `docs/browser-e2e-plans/`
+
 Save to: `${PROJECT_ROOT}/docs/browser-e2e-plans/{feature-name}.md`
 
 Features without a UI skip this document.

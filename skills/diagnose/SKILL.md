@@ -449,6 +449,8 @@ Offer learning capture: "This might be worth capturing as a learning. Run `/comp
 
 **Step 5b.1 — Save Diagnostic Context:**
 
+Create the output directory if it doesn't exist: `docs/diagnosis/`
+
 Save to `${PROJECT_ROOT}/docs/diagnosis/{issue-slug}.md` so beads can reference it:
 
 ```markdown

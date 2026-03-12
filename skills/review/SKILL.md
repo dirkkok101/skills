@@ -107,6 +107,8 @@ Check for the existence of upstream artifacts:
 - **Discovery brief** — `docs/discovery/{feature}/discovery-brief.md`
 - **Browser E2E plans** — `docs/browser-e2e-plans/` (if exists, note in agent prompts for test coverage assessment)
 
+Create the output directory if it doesn't exist: `docs/reviews/`
+
 Record which documents exist. Each enables a conditional review agent:
 - **Design found:** Include design-intent agent
 - **Plan found:** Include plan-intent agent

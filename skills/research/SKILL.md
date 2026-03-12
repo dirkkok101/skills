@@ -87,6 +87,8 @@ Before web research, check internal sources — the cheapest research is the res
 
 If the answer is found in internal sources, present it directly — no web research needed.
 
+For STANDARD+ mode, create the output directory: `docs/research/{feature}/`
+
 ---
 
 ## Critical Sequence

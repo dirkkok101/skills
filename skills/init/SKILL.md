@@ -115,7 +115,6 @@ mkdir -p "${PROJECT_ROOT}/docs/designs"
 mkdir -p "${PROJECT_ROOT}/docs/plans"
 mkdir -p "${PROJECT_ROOT}/docs/learnings"
 mkdir -p "${PROJECT_ROOT}/docs/reference"
-mkdir -p "${PROJECT_ROOT}/docs/features"
 mkdir -p "${PROJECT_ROOT}/docs/reviews"
 mkdir -p "${PROJECT_ROOT}/docs/adr"
 mkdir -p "${PROJECT_ROOT}/docs/architecture"
@@ -124,7 +123,7 @@ mkdir -p "${PROJECT_ROOT}/docs/browser-e2e-plans"
 mkdir -p "${PROJECT_ROOT}/docs/diagnosis"
 
 # Add .gitkeep to empty directories
-for dir in research brainstorm discovery prd use-cases designs plans learnings reference features reviews adr architecture patterns browser-e2e-plans diagnosis; do
+for dir in research brainstorm discovery prd use-cases designs plans learnings reference reviews adr architecture patterns browser-e2e-plans diagnosis; do
   touch "${PROJECT_ROOT}/docs/${dir}/.gitkeep"
 done
 ```
@@ -142,7 +141,6 @@ done
 | `docs/plans/` | /plan | Implementation plans, sub-plans, companion docs |
 | `docs/learnings/` | /compound | Pattern, gotcha, architecture, process learnings |
 | `docs/reference/` | /review | Alignment audits (COMPREHENSIVE mode with 2+ upstream docs) |
-| `docs/features/` | /technical-design | Consolidated feature specifications (COMPREHENSIVE, 10+ UCs) |
 | `docs/reviews/` | /review | Consolidated review reports |
 | `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architectural decision records |
 | `docs/architecture/` | (project) | Existing architecture context consumed by /technical-design |
@@ -201,7 +199,6 @@ All project documentation lives in `docs/`:
 | `docs/learnings/` | /compound | Accumulated project learnings |
 | `docs/reviews/` | /review | Consolidated review reports |
 | `docs/reference/` | /review | Alignment audits (COMPREHENSIVE) |
-| `docs/features/` | /technical-design | Feature specifications (COMPREHENSIVE) |
 | `docs/adr/` | /technical-design, /compound | Project-wide and feature-scoped architecture decisions |
 | `docs/architecture/` | (project) | Existing architecture context |
 | `docs/patterns/` | (project) | Established conventions and reusable approaches |
@@ -261,7 +258,6 @@ docs/
 ├── learnings/       ← /compound output
 ├── reviews/         ← /review reports
 ├── reference/       ← /review alignment audits
-├── features/        ← /technical-design feature specs
 ├── adr/                  ← project-wide and feature-scoped architecture decisions
 ├── architecture/         ← existing architecture context
 ├── patterns/             ← established conventions and reusable approaches

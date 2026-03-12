@@ -836,9 +836,9 @@ Output: included in `design.md`
 
 ### Phase 8b: Consolidated Feature Specifications (COMPREHENSIVE only, 3+ feature areas)
 
-**Optional but recommended for COMPREHENSIVE designs with 10+ use cases.** Produces `docs/features/` docs that tie together UCs, endpoints, UI mockups, plan tasks, and test counts into a single cross-reference. These serve as the implementation-time "map" — a developer picks up a feature spec and sees everything related to their domain area in one place.
+**Optional but recommended for COMPREHENSIVE designs with 10+ use cases.** Produces per-feature-area specs that tie together UCs, endpoints, UI mockups, plan tasks, and test counts into a single cross-reference. These serve as the implementation-time "map" — a developer picks up a feature spec and sees everything related to their domain area in one place.
 
-Save to: `${PROJECT_ROOT}/docs/features/`
+Save to: `${PROJECT_ROOT}/docs/designs/{feature}/features/`
 
 ```markdown
 # Feature Specifications — Overview
@@ -873,7 +873,7 @@ Save to: `${PROJECT_ROOT}/docs/features/`
 | Named test cases (total) | {N} |
 ```
 
-For each feature area, produce `docs/features/{NN}-{feature-name}.md`:
+For each feature area, produce `docs/designs/{feature}/features/{NN}-{feature-name}.md`:
 
 ```markdown
 # Feature: {Feature Name}
@@ -1172,7 +1172,7 @@ ${PROJECT_ROOT}/docs/designs/{feature}/
 ### Feature Specifications (COMPREHENSIVE, 3+ feature areas, optional)
 
 ```
-${PROJECT_ROOT}/docs/features/
+${PROJECT_ROOT}/docs/designs/{feature}/features/
 ├── overview.md              # Coverage matrix, test ID conventions, cross-references
 ├── 01-{feature-name}.md     # Consolidated spec: UCs, endpoints, UI, plan tasks
 ├── 02-{feature-name}.md

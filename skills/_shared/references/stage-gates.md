@@ -1,6 +1,6 @@
 # Stage Gate Patterns — AskUserQuestion
 
-Skills pause at decision gates and review checkpoints. Use the `AskUserQuestion` tool at these points to give the user structured options and focused review workflows. This replaces freeform "present and wait" patterns with interactive, guided experiences.
+At every PAUSE point, **call the `AskUserQuestion` tool** — do not present options as plain markdown text. The YAML blocks in each skill show the exact parameters to pass to the tool. This is not pseudocode or documentation — these are tool call specifications.
 
 ## When to Use AskUserQuestion
 
@@ -8,7 +8,7 @@ Use at **decision gates and review checkpoints** — points where the user must 
 
 ## Fallback
 
-If `AskUserQuestion` is unavailable (e.g., Claude.ai, older Claude Code versions), fall back to the prose-based pattern: present content as markdown, list options as text, and wait for freeform response.
+Only if `AskUserQuestion` is genuinely not available as a tool in your environment (e.g., Claude.ai, older Claude Code versions without the tool), fall back to the prose-based pattern: present content as markdown, list options as text, and wait for freeform response. If you are unsure whether the tool is available, attempt to call it — do not pre-emptively fall back.
 
 ---
 
@@ -17,6 +17,8 @@ If `AskUserQuestion` is unavailable (e.g., Claude.ai, older Claude Code versions
 **Use for:** Approval gates, routing decisions, triage outcomes.
 
 Single-select question with 2-4 options. Put the recommended option first with "(Recommended)" suffix.
+
+Call the tool with these parameters:
 
 ```
 AskUserQuestion:

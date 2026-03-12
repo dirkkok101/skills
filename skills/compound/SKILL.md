@@ -34,9 +34,13 @@ Run this skill when:
 - After discovering a pattern, gotcha, or best practice
 - When /execute or /review identifies learnings to document
 
-## Stage Gate Reference
-For interactive stage gate patterns used at PAUSE points: `../_shared/references/stage-gates.md`
-If `AskUserQuestion` is unavailable, fall back to presenting options as markdown text and waiting for freeform response.
+## Stage Gates — AskUserQuestion
+
+At every PAUSE point in this skill, **call the `AskUserQuestion` tool** to present structured options to the user. Do not present options as plain markdown text — use the tool. The YAML blocks at each PAUSE point show the exact parameters to pass.
+
+For pattern details and examples: `../_shared/references/stage-gates.md`
+
+> **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
 
 ---
 

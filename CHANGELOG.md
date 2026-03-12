@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.6.0] - 2026-03-12
+
+### Changed
+- **init**: Minimal scaffold — creates only 6 foundational directories (prd, designs, architecture, patterns, adr, learnings) instead of 15. Remaining directories are created on demand by each skill when it runs
+- **AskUserQuestion enforcement** across all 11 skills — stage gate section rewritten from passive reference to imperative instruction ("call the tool"), fallback demoted to blockquote with "check your tool list" guard, stage-gates.md clarifies YAML blocks are tool call specs not pseudocode
+- **On-demand directory creation** added to research, brainstorm, review, diagnose, and technical-design (browser-e2e-plans) — each skill now creates its output directory if it doesn't exist
+
 ## [3.5.1] - 2026-03-12
 
 ### Changed

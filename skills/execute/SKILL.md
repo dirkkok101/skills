@@ -161,7 +161,19 @@ When multiple beads are ready simultaneously (no dependency between them), they 
 
 #### For Each Bead:
 
-**Step 2.1 — Claim Bead:**
+**Step 2.1 — Verify Module is Unblocked:**
+
+Before starting any bead, check if its module epic has upstream dependencies:
+```bash
+br dep tree bd-{module-epic}  # Check if upstream epics are closed
+```
+
+If the module epic depends on unclosed upstream epics, do NOT start work on this module.
+Pick a bead from an unblocked module instead.
+
+The dependency map at docs/plans/dependency-map.md shows the tier ordering.
+
+**Step 2.1a — Claim Bead:**
 
 Mark the next available bead as in-progress to track state.
 
@@ -182,6 +194,26 @@ Read ONLY the files specified in the bead's "Context to Load" section. Understan
 - Entire plan or design documents (unless specifically referenced)
 - Files from previous beads
 - Unrelated services or modules
+
+**Step 2.3a — Load Module Specs (first bead in module only):**
+
+When starting the FIRST bead in a module, also read:
+1. `docs/designs/{module}/design.md` — technical design overview
+2. `docs/designs/{module}/data-model.md` — entity specifications (if exists)
+3. `docs/designs/{module}/features/{feature}/api-surface.md` — endpoint specs (if referenced by bead)
+4. `docs/prd/{module}/prd.md` — requirements (skim for referenced FRs)
+
+For subsequent beads in the same module, these are already in context.
+Do NOT re-read these on every bead — only on the first bead or after context compaction.
+
+**Lookup order for specs:**
+```
+docs/designs/{module}/           — technical design (source of truth for HOW)
+docs/prd/{module}/               — requirements (source of truth for WHAT)
+docs/adr/                        — architectural decisions (source of truth for WHY)
+docs/patterns/                   — coding patterns (source of truth for STYLE)
+docs/architecture/               — system architecture (source of truth for CONSTRAINTS)
+```
 
 **Step 2.4 — Design Implementation:**
 
@@ -209,6 +241,18 @@ Based on loaded context:
 - No additional features beyond the bead's objective
 - Run the build after each file change to catch errors early
 
+**Step 2.5a — Checkpoint (for large beads):**
+
+If a bead involves modifying more than 3 files, checkpoint after each file:
+```bash
+git stash push -m "checkpoint: bd-{id} - {filename}"
+```
+
+This prevents total work loss on crash. After all files are done,
+pop the stashes and make a single clean commit.
+
+For smaller beads (1-3 files), skip checkpointing — just implement and commit.
+
 **Step 2.6 — Verify:**
 
 Run the bead's specific verification commands, then run the full test suite. All tests must pass before proceeding.
@@ -226,10 +270,27 @@ Per-Bead Self-Review:
 - [ ] Implementation follows the referenced pattern
 - [ ] Code style matches existing codebase
 - [ ] No obvious bugs, hardcoded values, or missing error handling
-- [ ] Tests use pure functions where possible (no unnecessary side effects)
-- [ ] Tests are deterministic (no randomness, timing, or external state)
-- [ ] Tests follow project patterns and conventions
+- [ ] Tests verify application logic, not framework guarantees
+- [ ] Tests use the project's test infrastructure (check existing test files for patterns)
+- [ ] Tests are deterministic (no random, no time-dependent assertions)
+- [ ] No object serialization in log messages
+- [ ] Integration tests use the project's test factory/fixture patterns
+- [ ] Run both the specific test AND the full suite before committing
 - [ ] Staged specific files (not git add -A)
+
+### Design & Spec Alignment
+- [ ] Implementation matches the module's design doc (api-surface, data-model)
+- [ ] Implementation satisfies the PRD functional requirements (FRs referenced in bead)
+- [ ] All referenced ADRs are followed (check docs/adr/)
+- [ ] Patterns from docs/patterns/ are applied correctly
+- [ ] Architecture constraints from docs/architecture/ are respected
+
+### How to verify
+1. Read the bead's "Implements" or "FR" references
+2. Find the corresponding design doc in docs/designs/{module}/
+3. Compare your implementation against the api-surface.md endpoint spec
+4. Check the data-model.md for entity field correctness
+5. If any mismatch → FIX before committing (the design is the source of truth)
 ```
 
 If any item fails, fix the issue, re-run tests, then re-review.
@@ -250,9 +311,16 @@ Skip this step for infrastructure-only beads with no FR references.
 
 **Step 2.9 — Commit:**
 
-Stage specific files (never use `git add -A` or `git add .`). Commit with the message specified in the bead. Follow the project's commit conventions from CLAUDE.md for co-authorship and formatting.
+Track which files you created or modified during implementation. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting.
 
 Close the bead in the issue tracker.
+
+**Step 2.9a — Push:**
+```bash
+git push
+```
+Push after each bead. Do NOT accumulate unpushed commits.
+This prevents work loss on crash.
 
 **Step 2.10 — Summarise & Reset:**
 
@@ -402,7 +470,7 @@ Close the feature epic in the issue tracker.
 
 ---
 
-Ready for code review. Run /review to start.
+Feature complete. Verify with `dotnet build && dotnet test`.
 ```
 
 **Step 4.5 — Push (with user confirmation):**
@@ -548,16 +616,17 @@ Each bead is self-contained — no need to reload plan documents.
 
 | Condition | Action |
 |-----------|--------|
-| All beads complete | Report completion, suggest /review |
+| All beads complete | Report completion, run quality gates |
 | Blocker hit | Stop, ask user, resume after resolution |
 | User says "stop" | Commit current work, report progress |
 | Execution health critical | Stop, assess whether to continue or revise |
 
-When all beads complete: **"Feature complete. Run /review to start code review."**
+When all beads complete: **"Feature complete. Verify with `dotnet build && dotnet test`."**
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 4.0*
+*v4.0: Crash resilience — per-bead push, git stash checkpointing for large beads. Explicit file staging enforced (never git add -A). Design/PRD/ADR verification added to self-review. Tier ordering check prevents out-of-order module execution. Module spec loading from docs/ folders on first bead. Project-agnostic testing standards. Removed /review suggestion (inline self-review handles quality).*
 *v3.5: Collaborative model added. Review-bead handling for /simplify checkpoints. COMPREHENSIVE mode per-bead check-in implemented with AskUserQuestion. PRD path added to upstream verification. Use case path added for BDD scenarios.*
 *v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for blocker handling and push confirmation, Batch Review for review fix learnings*
 *v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*

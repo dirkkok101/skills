@@ -249,14 +249,39 @@ List every significant decision this design requires. Exclude decisions already 
 
 **Step 2.2 — Explore Alternatives:**
 
-For each decision:
+For each decision, explore 2-3 genuine alternatives. This exploration is the most important part of the design process — it forces you to consider the full solution space rather than anchoring on the first idea.
+
+**Quality checks:**
+- Minimum 2-3 genuine alternatives per major decision. No straw-man options.
+- If you can't think of alternatives, the decision may not need a design doc — it's obvious.
+- Alternatives should be genuinely viable, not obviously bad options included to make the chosen approach look good.
+
+**Step 2.3 — Record Decisions (Two-Layer Pattern):**
+
+Decisions are recorded in **two places** serving different readers:
+
+**Layer 1: design.md summary table** — scannable overview for someone reading the design in 15 minutes. Records WHAT was decided and WHY, with links to the full exploration:
 
 ```markdown
 ## Key Decisions
 
-### Decision 1: {What's being decided}
+### Design Decisions
 
-**Context:** {Why this decision matters. What constraints apply.}
+| Decision | Chosen Approach | Rationale | Record |
+|----------|----------------|-----------|--------|
+| {What was decided} | {Chosen approach name} | {Why — tied to constraints} | [details](decisions/{slug}.md) |
+| {What was decided} | {Chosen approach name} | {Why} | [details](decisions/{slug}.md) |
+```
+
+**Layer 2: decisions/{slug}.md files** — full exploration for someone asking "why didn't we do it the other way?" six months later:
+
+```markdown
+# Decision: {What's being decided}
+
+## Context
+{Why this decision matters. What constraints apply.}
+
+## Alternatives
 
 | Approach | Description | Pros | Cons |
 |----------|-------------|------|------|
@@ -264,29 +289,21 @@ For each decision:
 | B: {Name} | {How it works} | {Benefits} | {Drawbacks} |
 | C: {Name} | {How it works} | {Benefits} | {Drawbacks} |
 
-**Recommendation:** Approach {X} because {specific reasoning tied to constraints}.
+## Decision
+**Chosen:** Approach {X} because {specific reasoning tied to constraints}.
 **Trade-off accepted:** {What we're giving up and why it's acceptable}.
+
+## Consequences
+- {What this decision enables}
+- {What this decision constrains going forward}
 ```
 
-**Quality checks:**
-- Minimum 2-3 genuine alternatives per major decision. No straw-man options.
-- If you can't think of alternatives, the decision may not need a design doc — it's obvious.
-- This section should be one of the longest. If it's shorter than the architecture section, you haven't explored enough.
-- Alternatives should be genuinely viable, not obviously bad options included to make the chosen approach look good.
-
-**Step 2.3 — Decision Records:**
-
-Decisions that are **feature-scoped** (apply only within this design) are co-located in `docs/designs/{feature}/decisions/`:
-
-```
-"Decision {N} about {topic} — is this feature-specific or does it set a
-precedent across the project? [feature / project-wide]"
-```
+Classify each decision:
 
 - **Feature-scoped** → `docs/designs/{feature}/decisions/{decision-slug}.md` (co-located with the design)
 - **Project-wide** → `docs/adr/NNNN-{decision-title}.md` (global ADR directory)
 
-Feature-scoped decision records are lightweight — context, research/comparison, decision, consequences. They answer "why did we do it this way?" when someone reads the design 6 months later.
+The design.md summary table links to whichever location holds the full record. This keeps design.md scannable while preserving the full exploration for future reference.
 
 **PAUSE 2:** Present architectural alternatives using **Comparison Gate** (Pattern 2).
 
@@ -1202,6 +1219,231 @@ When exiting, update design metadata: Status, Next Step, Completion Date.
 
 ---
 
+## Structural Conventions (Non-Negotiable)
+
+Every design produced by this skill must follow these conventions exactly. Only domain content varies between designs — structure, file organization, heading levels, and table formats are fixed.
+
+### Mandatory Files (STANDARD+)
+
+Every design directory must contain:
+
+| File | Purpose |
+|------|---------|
+| `design.md` | Master design: constraints, assumptions, decisions, security, ops, decomposition |
+| `README.md` | Entry point with links to all artifacts (when 5+ files) |
+| `architecture.md` | C4 Level 1 (System Context) + C4 Level 2 (Container) diagrams |
+| `data-model.md` | ER diagram, entity definitions, migration strategy |
+| `glossary.md` | Domain term disambiguation |
+
+Exception: policy/standards designs (e.g., cross-cutting concerns) may omit `architecture.md` and `data-model.md` if they define rules rather than entities.
+
+### Mandatory H2 Sections in design.md (in order)
+
+```
+## Documentation Foundation
+## Constraints
+## Assumptions
+## Key Decisions
+## Security & Privacy
+## Operational Design
+## Work Decomposition
+## Self-Review Log
+```
+
+Optional H2 sections (add when relevant):
+
+```
+## Context                              — before Constraints
+## Prior Decisions & Established Patterns — before Key Decisions
+## Domain Model                         — after Key Decisions (or reference data-model.md)
+## System Protection Rules              — after Domain Model
+## API Surface Summary                  — after Domain Model
+## Scope Exclusions                     — after Work Decomposition
+## Cross-Cutting FR Coverage            — after Work Decomposition
+## Open Questions                       — after Work Decomposition
+```
+
+### Documentation Foundation Format
+
+```markdown
+## Documentation Foundation
+
+### Upstream Artifacts
+| Artifact | Location |
+|----------|----------|
+| PRD | [link] |
+| Use Cases | [link] |
+
+### Sibling Designs
+| Design | Relationship to This Module |
+|--------|----------------------------|
+| [{name}]({link}) | {relationship} |
+
+### Learnings Applied
+| Learning | Source | How Applied |
+|----------|-------|-------------|
+| {learning} | {source} | {application} |
+```
+
+All three sub-headings are expected. Learnings Applied may be empty if no prior learnings exist — state "None applicable" rather than omitting the heading.
+
+### Constraints Format
+
+```markdown
+## Constraints
+
+### Technical Constraints
+- {constraint}
+
+### Organisational Constraints
+- {constraint}
+```
+
+Both sub-headings required.
+
+### Assumptions Format (Table, Not Bullets)
+
+```markdown
+## Assumptions
+
+| # | Assumption | Impact if Wrong | How to Validate |
+|---|-----------|----------------|-----------------|
+| 1 | {text} | {consequence} | {validation} |
+```
+
+Always a 4-column table. Never bullet lists for assumptions.
+
+### Key Decisions Format (Two-Layer Pattern)
+
+**Layer 1 — design.md summary table:**
+
+```markdown
+## Key Decisions
+
+### Design Decisions
+
+| Decision | Chosen Approach | Rationale | Record |
+|----------|----------------|-----------|--------|
+| {what} | {chosen} | {why} | [details](decisions/{slug}.md) |
+```
+
+**Layer 2 — decisions/{slug}.md full exploration:**
+
+```markdown
+# Decision: {What's being decided}
+
+## Context
+{Why this matters.}
+
+## Alternatives
+| Approach | Description | Pros | Cons |
+|----------|-------------|------|------|
+| A: {Name} | {how} | {pros} | {cons} |
+| B: {Name} | {how} | {pros} | {cons} |
+
+## Decision
+**Chosen:** {approach} because {reasoning}.
+**Trade-off accepted:** {what we gave up}.
+
+## Consequences
+- {what this enables/constrains}
+```
+
+### Operational Design Format
+
+```markdown
+## Operational Design
+
+### Deployment Strategy
+- {approach, rollback plan}
+
+### Failure Modes
+| Component | Failure Mode | Impact | Mitigation |
+|-----------|-------------|--------|------------|
+
+### Observability
+- **Metrics:** {key metrics}
+- **Logging:** {fields, levels}
+- **Alerting:** {conditions}
+```
+
+All three sub-headings required.
+
+### Work Decomposition Format
+
+```markdown
+## Work Decomposition
+
+### Component Breakdown
+| Component | Scope | Complexity | Risk | Implements |
+|-----------|-------|------------|------|-----------|
+
+### Dependency Graph
+  Component A ──> Component B ──> Component C
+
+### Suggested Execution Order
+1. {first — why}
+2. {second — why}
+```
+
+All three sub-headings required. Dependency Graph uses ASCII `──>` arrows.
+
+### Self-Review Log Format
+
+```markdown
+## Self-Review Log
+
+| Round | Issues | Key Fixes |
+|-------|--------|-----------|
+| 1 | {count} | {description} |
+| 2 | {count} | {description} |
+```
+
+Table format with numbered rounds. Minimum 2 rounds for STANDARD, 3 for COMPREHENSIVE.
+
+### Per-Feature File Structure
+
+| Feature Areas | Structure |
+|---------------|-----------|
+| 1-2 | Flat files at module root: `api-surface.md`, `test-plan.md`, `ui-mockup.md` |
+| 3+ | Per-feature subdirs: `features/{area}/api-surface.md`, etc. |
+
+### api-surface.md Required Sections
+
+```
+## Endpoints                    — | Verb | Route | Purpose |
+## Response Codes               — | Operation | Success Code | Body |
+## Error Responses              — | Error Scenario | Code | Detail | Source |
+## Contracts                    — DTO definitions, writable vs read-only
+## Validation Rules             — sync vs DB-lookup, BR-* references
+## Backend                      — directory structure, command flow, mapper, queries
+```
+
+### test-plan.md Required Format
+
+```
+## API Tests
+### {Operation Name}
+| # | Test Case | Method | Expected | Source |
+```
+
+Target 25-35 test cases per feature area. Source column traces to UC/FR/BR.
+
+### Strict Rules
+
+1. Assumptions use **table format** (4 columns), never bullet lists
+2. Decisions use **two-layer pattern**: summary table in design.md, full exploration in decision files
+3. Self-Review uses **table format** with numbered rounds
+4. Work Decomposition includes **Component Breakdown table + Dependency Graph + Execution Order**
+5. Dependency Graph uses ASCII `──>` arrows
+6. Per-feature docs use `features/{area}/` when 3+ feature areas
+7. `README.md` generated when design directory has 5+ files
+8. All three Documentation Foundation sub-headings present (Upstream Artifacts, Sibling Designs, Learnings Applied)
+9. architecture.md includes C4 Level 1 + Level 2 diagrams
+10. Test plans target 25-35 cases with Source column tracing to UC/FR/BR
+
+---
+
 ## Anti-Patterns
 
 **The Solution Monologue** — Agent generates entire design without pausing. The collaborative model exists because the user's domain knowledge catches problems early that cost 10x more to fix in detailed design. Every PAUSE point is a chance to course-correct before investing further effort.
@@ -1256,7 +1498,8 @@ This preserves the reasoning that led to the original design while directing rea
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 3.6*
+*v3.6: Structural Conventions section added — codifies mandatory files, H2 section order, heading levels, table formats (assumptions, decisions, self-review, work decomposition, operational design), and per-feature file structure as non-negotiable rules. Two-layer decision pattern: summary table in design.md + full exploration in decisions/ files. Documentation Foundation requires all 3 sub-headings (Upstream Artifacts, Sibling Designs, Learnings Applied). Self-Review uses table format with numbered rounds. Derived from autoresearch evaluation of 15 ground truth designs.*
 *v3.5: UC integration — Phase 0 imports use cases from `docs/prd/{feature}/use-cases/` and `docs/use-cases/`, Step 4.2 maps UC artifacts to API surface (scenario flows→endpoints, failure paths→errors, BR-*→validation), Step 4.4 adds Source column tracing tests to UCs, Phase 5.1 derives sequences from Tier 1 UC flows. ADR/pattern imports — Phase 0 imports `docs/patterns/`, `docs/adr/`, strengthened `docs/architecture/`; Step 2.0 checks prior ADRs/patterns as constraints before identifying new decisions. First-principles directive — design from upstream artifacts, not existing source code. Browser E2E test plans — Step 4.5 generates `docs/browser-e2e-plans/{feature}.md` with pattern-driven guidance, shared selector-reference and gotchas docs. STANDARD-mode fallback guidance for browser E2E when UCs don't exist. Step 2.4 Diagram Selection moved after PAUSE 2 (depends on confirmed decisions). BRIEF template fixed to reference `docs/patterns/` instead of "codebase". `ui-mockup.md` naming standardized. Phase 8b feature spec relative paths corrected. New anti-patterns: Implementation Anchoring, Ignoring Prior ADRs. Collaborative model updated to include browser-e2e-plan. Stage gate reference path corrected.*
 *v3.4: AskUserQuestion stage gates at all four PAUSE points. PAUSE 1 uses Batch Review (Pattern 3) for constraints/assumptions. PAUSE 2 uses Comparison Gate (Pattern 2) with preview fields for architectural alternatives. PAUSE 3 uses Guided Review (Pattern 5) walking through architecture, data model, and interfaces sequentially. PAUSE 4 uses Decision Gate (Pattern 1) for final approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Sibling design cross-references in Phase 0 for multi-design projects. Optional separate backend.md per feature when 5+ commands/queries (4-doc variant). Consolidated feature specifications (`docs/features/`) for COMPREHENSIVE mode with 10+ UCs — coverage matrix tying UCs to endpoints, UI, plan tasks, and tests. Legacy Update notice convention for evolving docs. All patterns validated against AMPS actions project (151 files, 5 numbered designs).*

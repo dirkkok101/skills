@@ -260,8 +260,89 @@ Two additions based on alignment findings:
 | Test cases | 6 | Simple (2), Intermediate (2), Hard (1), Boss (1) |
 | results.tsv | 3 iterations | Full experiment log |
 
-**Refinement methodology validated.** The Karpathy-style loop (generate → score → keep/revert) works for prompt-based skills. Key lessons specific to PRD refinement:
+**PRD refinement methodology validated.** The Karpathy-style loop (generate → score → keep/revert) works for prompt-based skills. Key lessons specific to PRD refinement:
 1. Checklist scoring is the right primary metric for structural consistency — semantic similarity measures content, not structure
 2. Making conventions explicit (not just shown in templates) is the single highest-impact change
 3. Ground truth alignment is as important as skill improvement — inconsistent ground truth produces false negatives
 4. Policy/standards PRDs are a real edge case that needs explicit guidance in the skill
+
+---
+
+## Technical Design Skill Refinement
+
+### Ground Truth Audit
+
+Scored all 15 design directories in ~/nxgn.identity/main/docs/designs/ against canonical structure. Average: 88%. Range: 77-100%. Entitlements was the only 100%.
+
+Key systemic issues:
+- Decision format: ground truth uses summary tables, skill template showed inline exploration
+- Self-Review: ground truth uses table format, checker expected heading format
+- Missing Upstream Artifacts, Learnings Applied sub-headings (newer conventions)
+
+### v3.6: Structural Conventions + Two-Layer Decisions
+
+Added Structural Conventions section (same approach as PRD skill). Key addition: **two-layer decision pattern** — summary table in design.md, full exploration in decisions/*.md files. This matched what all 15 ground truth designs already did, but the skill hadn't codified it.
+
+### Consistency Problem Discovered
+
+Ran the v3.6 skill twice on the same PRD (Entitlements). Results:
+
+| Aspect | Run 1 | Run 2 |
+|--------|-------|-------|
+| Feature areas | 2 (invented) | 3 (invented) |
+| Decision file names | Completely different set |
+| Test cases | 87 | 129 |
+| UI mockups | 0 files | 1 file |
+
+**Root cause:** The skill let agents invent feature decomposition instead of deriving it from the PRD. Different agents (or the same agent on different runs) made different judgment calls about how to group features.
+
+### v3.7: Deterministic Decomposition + PRD Traceability
+
+Three changes to eliminate inconsistency:
+
+1. **Feature areas derive from PRD Epics** — deterministic, not invented. `### Epic: X` in PRD → `features/x/` in design. Deviation requires documented rationale.
+2. **PRD Coverage Matrix mandatory** — table mapping every Must Have FR to an endpoint and test cases. Gaps block completion. Should Have FRs get "Phase 2 (arch only)" status.
+3. **ADR Compliance table mandatory** — scan ALL ADRs, classify each as applicable or not, document how applied.
+
+Also: endpoint table expanded to 5 columns (Verb | Route | Purpose | Maps To | Auth Policy) for FR traceability.
+
+### Consistency Test: v3.7
+
+Ran Entitlements a third time with v3.7. Comparison across all 3 runs:
+
+| Aspect | v1 (v3.6) | v2 (v3.6) | v3 (v3.7) |
+|--------|-----------|-----------|-----------|
+| Feature areas | 2 (invented) | 3 (invented) | **4 (from PRD Epics)** |
+| PRD Coverage Matrix | None | None | **All 9 Must Have = Covered** |
+| ADR Compliance | 8 ADRs cited | 12+ cited | **All 25 classified** |
+| Endpoint Maps To | No | No | **Yes, every endpoint → FR** |
+| Score | 96% | 92% | **96%** |
+
+**v3.7 fixed the decomposition problem.** Feature areas now match PRD Epics 1:1. Traceability is enforced. Remaining variation (decision naming, test count, mockup inclusion) is acceptable content-level judgment.
+
+### Ground Truth Design Alignment Status
+
+| Score | Designs |
+|-------|---------|
+| 100% | Entitlements (1) |
+| 92-96% | API Keys, Audit, Identity Providers, Organizations, Users, Applications, Roles (7) |
+| 87-90% | Languages, Sessions (2) — minor fixes needed |
+| 77-85% | Authentication, Approvals, Role Templates, Cross-Cutting, Portal (5) — full rerun needed |
+
+### Final State
+
+| Artifact | Version | Status |
+|----------|---------|--------|
+| technical-design SKILL.md | v3.7 | Production ready |
+| review-design SKILL.md | v2.1 | Synced with v3.7 |
+| evaluate-design.sh | v2 | 57 checks including coverage + ADR compliance |
+| canonical-design-structure.md | v1 | Reference spec |
+
+### Cross-Session Summary
+
+| Skill | Before | After | Key Improvement |
+|-------|--------|-------|-----------------|
+| prd | v3.5 | v3.7 | 23 implicit conventions → explicit rules, 98-100% structural compliance |
+| review-prd | v1.0 | v2.0 | Synced with prd v3.7, exact format enforcement |
+| technical-design | v3.5 | v3.7 | Structural conventions, deterministic feature decomposition, PRD/ADR traceability |
+| review-design | v1.0 | v2.1 | Synced with technical-design v3.7, coverage + ADR checks |

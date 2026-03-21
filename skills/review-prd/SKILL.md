@@ -69,13 +69,20 @@ When selected, run the autoresearch convergence loop. CONVERGE can be combined w
 - `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (adversarial checks, deeper)
 - `CONVERGE + BRIEF` → uses BRIEF depth (structural fixes only)
 
-1. **Review** — Run the review at the selected depth (default STANDARD, or COMPREHENSIVE if requested)
-2. **Classify** findings into three categories:
+**CONVERGE changes to the normal review flow:**
+- **Skip scope confirmation gate.** CONVERGE implies "just go."
+- **Replace Phase 5 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION. No per-finding AskUserQuestion for FAILs — present in batch, fix mechanicals directly.
+- **WARNs are listed** in the summary table but NOT presented interactively and NOT auto-fixed.
+
+**The loop:**
+
+1. **Review** — Run the review at the selected depth. For large PRDs or cross-cutting PRDs, chunked reading may be needed.
+2. **Classify** findings:
    - **MECHANICAL** — wrong numbering prefix, stale count, missing section, format error, ambiguity word in acceptance criteria, internal contradiction where one side is clearly correct. Auto-fix these.
    - **JUSTIFIED_DEVIATION** — PRD deviates from a convention with explicit, documented rationale. Verify rationale is sound; if yes, mark as PASS.
    - **DECISION** — PRD contradicts cross-cutting PRD, persona references don't match, scope question requiring user judgment. Escalate to user via AskUserQuestion.
-3. **Fix** mechanical findings using minimum changes. After fixing cross-cutting items (numbering, format), verify all sections of the PRD are consistent.
-4. **Re-review** — Run the review again on the fixed PRD
+3. **Fix** mechanical findings using minimum changes. After fixing cross-cutting items (numbering, format), verify all sections of the PRD are internally consistent.
+4. **Re-review** — Run the review again on the fixed PRD.
 5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop.
 6. **Repeat** until FAILs = 0 or max 5 rounds.
 
@@ -87,7 +94,7 @@ When selected, run the autoresearch convergence loop. CONVERGE can be combined w
 ```
 
 **Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
-`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated.`
+`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated. WARNs: {N} (not fixed).`
 
 ---
 
@@ -598,6 +605,8 @@ When approved: **"PRD approved. Run /technical-design to begin the design phase.
 
 ---
 
-*Skill Version: 2.1*
-*v2.1: CONVERGE mode added — autoresearch loop built into the review skill. Runs STANDARD review, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Authority hierarchy specific to PRDs (/prd Structural Conventions > cross-cutting PRD > ADRs > project personas > the PRD being reviewed).*
+*Skill Version: 2.2*
+*v2.2: CONVERGE mode refined — skip interactive stage gates, replace per-finding walkthrough with summary table, WARNs listed but not interactive. Chunked reading guidance for large PRDs.*
+
+*v2.1: CONVERGE mode added — autoresearch loop built into the review skill. Runs review at selected depth, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Authority hierarchy specific to PRDs.*
 *v2.0: Phase 1 checklist fully synced with /prd v3.7 Structural Conventions — now checks exact heading formats, numbering prefixes (G/NG/A/C), heading levels (H2/H3/H4), all 6 persona sub-fields individually, FR/NFR body structure lines, mandatory audit NFR, strict NFR minimum (Fail not Warning), MoSCoW exact headings, Integration Points sub-headings, Document Approval table columns, Dependency Graph with ASCII arrows. Phase 2 adds naming convention consistency, heading level compliance, and audit coverage checks. Policy & Standards PRD exceptions noted. Template Worship anti-pattern reconciled with non-negotiable structural conventions. TOC upgraded from Warning to Fail for COMPREHENSIVE.*

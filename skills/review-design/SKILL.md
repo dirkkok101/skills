@@ -62,30 +62,41 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
 
 - `CONVERGE` alone → uses STANDARD depth
-- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (deeper findings, longer per round)
+- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (all phases including adversarial coherence)
 - `CONVERGE + BRIEF` → uses BRIEF depth (structural fixes only)
 
-1. **Review** — Run the review at the selected depth (default STANDARD, or COMPREHENSIVE if requested)
+**CONVERGE changes to the normal review flow:**
+- **Skip all interactive stage gates** (Phase 0 scope confirmation, Phase 6 per-finding walkthrough). CONVERGE implies "just go — fix what you can, escalate what you can't."
+- **Replace Phase 6 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION. No per-finding AskUserQuestion — present findings in batch, fix mechanicals directly.
+- **WARNs are listed** in the summary table but NOT presented interactively and NOT auto-fixed. They're informational.
+- **Decision records (decisions/*.md) are NOT in scope** for cascade fixes — they're historical context, not normative. Only fix normative design files (api-surface, test-plan, design.md, diagrams, data-model, architecture).
+
+**The loop:**
+
+1. **Review** — Run the review at the selected depth. Use progressive loading:
+   - Wave 1: design.md + PRD (catches 60%+ of findings)
+   - Wave 2: feature docs referenced by Wave 1 findings
+   - Wave 3: parallel agents for broad pattern/ADR/architecture surveys
+   - Large authority sources (cross-cutting PRD, pattern directories) may need chunked reading
 2. **Classify** findings into three categories:
-   - **MECHANICAL** — wrong heading, stale count, format error, internal contradiction where one side is clearly correct. Auto-fix these.
-   - **JUSTIFIED_DEVIATION** — design deviates from pattern/ADR but has an explicit, documented rationale. Verify the rationale is sound; if yes, mark as PASS.
+   - **MECHANICAL** — wrong heading, stale count, format error, internal contradiction where one side is clearly correct per the authority hierarchy. Auto-fix these.
+   - **JUSTIFIED_DEVIATION** — design deviates from pattern/ADR but has an explicit, documented rationale. Verify the rationale is sound; if yes, mark as PASS (not a finding).
    - **DECISION** — PRD vs design conflict, ADR contradiction without rationale, architectural choice. Escalate to user via AskUserQuestion.
-3. **Fix** mechanical findings using minimum changes. After cross-cutting fixes, grep the design directory for related terms to catch cascading references.
+3. **Fix** mechanical findings using minimum changes. **Cascade check:** after each fix, grep the entire design directory for terms related to the fix (e.g., after fixing a route parameter name, search for the old name across all files). Fix cascading references in the same round.
 4. **Re-review** — Run the review again on the fixed documents
 5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop (converged).
 6. **Repeat** until FAILs = 0 or max 5 rounds.
 
-**Progressive loading:** Load design.md + PRD first (Wave 1). Load feature docs only for areas with findings (Wave 2). Use agents for broad surveys of patterns/ADRs (Wave 3).
-
-**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE mode fixes FAILs only. WARNs are reported but not auto-fixed.
+**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE mode fixes FAILs only.
 
 **Authority hierarchy for mechanical fixes:**
 ```
 ADRs > Pattern docs > Architecture docs > PRD > api-surface.md > diagrams > test plans > use cases > READMEs
 ```
+Decision records (`decisions/*.md`) are outside this hierarchy — they document historical choices and are not updated during cascade fixes.
 
 **Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
-`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated.`
+`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated. WARNs: {N} (not fixed).`
 
 ---
 
@@ -674,8 +685,10 @@ When approved: **"Design review complete. Run /plan to create implementation pla
 
 ---
 
-*Skill Version: 2.3*
-*v2.3: CONVERGE mode added — autoresearch loop built into the review skill. Runs STANDARD review, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Progressive loading, cascade check, authority hierarchy, max 5 rounds.*
+*Skill Version: 2.4*
+*v2.4: CONVERGE mode refined from production runs. Skip all interactive stage gates (scope confirmation, per-finding walkthrough). Replace Phase 6 interactive walkthrough with summary table. WARNs listed but not interactive. Decision records excluded from cascade scope. Large authority sources may need chunked reading. Cascade check catches related issues across all normative files.*
+
+*v2.3: CONVERGE mode added — autoresearch loop built into the review skill. Runs review at selected depth, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Progressive loading, cascade check, authority hierarchy, max 5 rounds.*
 *v2.2: Feature area to PRD Epic alignment check added. Phase 2 FR coverage independently verified (don't trust the design's own matrix). Phase 3 rewritten — ADR, pattern, and architecture checks are now generic (read from docs/adr/, docs/patterns/, docs/architecture/) instead of hardcoded to a specific project's conventions. This makes the review skill portable across projects.*
 
 *v2.1: Synced with /technical-design v3.7. PRD Coverage Matrix check added (every Must Have FR must map to endpoint + tests). ADR Compliance table check added (all ADRs classified). Endpoint table check updated to 5 columns (Verb, Route, Purpose, Maps To, Auth Policy).*

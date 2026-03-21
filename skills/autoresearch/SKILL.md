@@ -109,10 +109,17 @@ ROUND 1:
      Record every change made (file, line, what changed, why)
 
      CASCADE CHECK: After applying fixes for cross-cutting concerns (audit,
-     error format, auth policy, status codes), grep the entire design directory
+     error format, auth policy, status codes), grep the entire document directory
      for terms related to the fix before declaring it complete. Example: after
-     moving audit from commands to endpoints, search for "audit", "LogAsync",
-     "AuditEvent" across all design files to catch stale references.
+     fixing a route parameter name, search for the old name across all files.
+
+     DECISION RECORDS are out of scope for cascade fixes — they document
+     historical choices and should not be modified during the convergence loop.
+     Only fix normative documents (the document under review and its supporting files).
+
+  3b. SKIP all interactive stage gates during the loop. CONVERGE implies "just go."
+      Replace any interactive per-finding walkthrough with a summary table.
+      WARNs are listed but NOT fixed and NOT presented interactively.
 
   4. ESCALATE — Present DECISION findings to user via AskUserQuestion
      Do not attempt to fix these. Present context, options, recommendation.
@@ -316,7 +323,9 @@ The key requirement: the review skill must produce **structured, deterministic f
 
 ---
 
-*Skill Version: 1.1*
+*Skill Version: 1.2*
+*v1.2: Skip interactive stage gates during loop. Decision records excluded from cascade scope. WARNs listed but not interactive. Aligned with review-design v2.4 and review-prd v2.2 CONVERGE mode refinements.*
+
 *v1.1: Progressive loading strategy (3 waves to reduce upfront context cost). JUSTIFIED_DEVIATION classification for pattern/ADR deviations with documented rationale. Cascade check after cross-cutting fixes (grep for related terms). Compact report format for quick convergences. Severity alignment note (review skill wins on FAIL vs WARN). Agent vs direct read guidance. All improvements from first production run on Entitlements module.*
 
 *v1.0: Initial autoresearch convergence loop. Adapted from Karpathy autoresearch + pi-autoresearch (domain-agnostic). Frozen metric = review FAIL count. Mechanical vs decision classification. Authority hierarchy for conflict resolution. Max 5 rounds with revert-on-regression guardrail. Multi-module parallel mode.*

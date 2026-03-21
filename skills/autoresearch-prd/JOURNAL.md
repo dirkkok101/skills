@@ -1,4 +1,31 @@
-# Autoresearch PRD — Refinement Journal
+# Autoresearch — Document Quality Refinement Journal
+
+## References & Inspiration
+
+- **[karpathy/autoresearch](https://github.com/karpathy/autoresearch)** (44K+ stars) — Original: autonomous ML experiments, frozen metric, single GPU, 630 lines
+- **[davebcn87/pi-autoresearch](https://github.com/davebcn87/pi-autoresearch)** (2K+ stars) — Domain-agnostic version: works on bundle size, build times, any metric. Reduced 414KB to 55KB (7.5x) in 1 hour
+- **[vivekvkashyap/autoresearch-rl](https://github.com/vivekvkashyap/autoresearch-rl)** — Autoresearch applied to RL post-training. +15.8% eval score
+- **[@itsolelehmann](https://x.com/itsolelehmann/status/2033919415771713715)** (259K views) — Built autoresearch skill for Claude Code. Landing page skill: 56% to 92% pass rate
+- **[@MilksandMatcha](https://x.com/milksandmatcha/status/2033971089853059414)** (35K views) — Frozen metric guardrails for autoresearch
+- **[Hybrid Horizons: The Frozen Metric](https://hybridhorizons.substack.com/p/the-frozen-metric-of-autoresearch)** — Essay on why frozen evaluation functions matter
+- **[SOTA AZ: Autoresearch Part 2](https://www.sotaaz.com/post/autoresearch-part2-en)** — Detailed analysis of the technique
+- **Our refinement guide:** `~/nxgn.patterns/main/docs/skill-refinement-guide.md` — Karpathy-style training for Claude Code skills
+
+## Our Approach
+
+We adapted the autoresearch technique to **document quality convergence**:
+
+| ML Concept | Our Equivalent |
+|---|---|
+| Model weights | The document being optimized (PRD, technical design) |
+| Loss function | Review skill FAIL count (frozen metric) |
+| Training data | PRD, ADRs, patterns, architecture docs (authority sources) |
+| Training loop | Review → classify → fix mechanical → escalate decisions → re-review |
+| Validation set | The review skill's checklist (frozen evaluation function) |
+| Overfitting | Fixing the symptom without fixing the root cause |
+| Convergence | FAILs reach 0 or 3 rounds with no improvement |
+
+The key insight from pi-autoresearch: **the metric doesn't have to be ML loss**. Any frozen, deterministic scorer works. Our review skills produce structured FAIL/WARN/PASS findings — that's the frozen metric.
 
 ## Session 1: Harness Build & Ground Truth Validation
 
@@ -383,4 +410,83 @@ Added to all designs: PRD Coverage Matrix, ADR Compliance table (all 25 ADRs), L
 | technical-design | v3.5 | **v3.7** | Structural conventions, deterministic decomposition, PRD/ADR traceability |
 | review-design | v1.0 | **v2.2** | Generic ADR/pattern/architecture checks, independent FR verification |
 
-**Methodology validated.** Autoresearch (generate → score → iterate) works best for formulaic output (PRDs). For technical designs, defining canonical structure + running reviews at scale to find content issues was more effective. For review skills, syncing with latest conventions and making checks generic (not project-specific) was the key improvement.
+---
+
+## Round 3: Review → Fix → Re-Review Convergence
+
+### The Problem
+
+After fixing 68 FAILs down to 47, re-reviewing found that:
+- Some fixes didn't land correctly (agent missed the target file/section)
+- Some fixes resolved one contradiction but exposed an adjacent one (cascade effect)
+- Deeper review found issues that were always there but hidden behind structural noise
+
+### Round 3 Results (7 modules re-reviewed)
+
+| Design | v1 FAILs | v2 FAILs | v3 FAILs | Trend |
+|--------|----------|----------|----------|-------|
+| Entitlements | 2 | 3 | **2** | Converging |
+| Applications | 7 | 4 | **3** | Improving |
+| Approvals | 3 | 3 | **3** | Stable (same root issues) |
+| Cross-Cutting | 2 | 3 | **4** | Fix didn't land |
+| Organizations | 8 | 5 | **6** | Fix partially landed |
+| Roles | 6 | 5 | **5** | Stable (3-way conflict) |
+| Users | 6 | 4 | **5** | New issues surfaced |
+
+### Systemic Issues Identified
+
+The remaining FAILs clustered into 5 systemic themes:
+1. PermissionType delete policy 3-way conflict (Cross-Cutting, Roles, Role Templates)
+2. 400 vs 422 not fully propagated (Users, Organizations, Approvals)
+3. RFC 7807 examples still using old format (Organizations, Users)
+4. Stale UCs referencing old data models (Organizations, Audit)
+5. ADR-0016 OneOf return types applied inconsistently (Organizations)
+
+### Key Insight: Diminishing Returns
+
+Each manual round resolves some issues and finds new ones. The fixes themselves can introduce inconsistencies. This is the **cascading consistency problem** — documents reference each other, so fixing one can invalidate another.
+
+This is exactly the problem autoresearch solves: automated review→fix→re-review loops with convergence detection and revert-on-regression.
+
+---
+
+## Autoresearch Convergence Skill Created
+
+Built `/autoresearch` skill (v1.0) to automate the review→fix→re-review loop:
+
+- **Frozen metric:** Review skill FAIL count (never modify review skill during loop)
+- **Classification:** MECHANICAL fixes (auto-applied) vs DECISION findings (escalated to user)
+- **Authority hierarchy:** ADRs > Patterns > Architecture > PRD > api-surface > diagrams > tests > UCs > READMEs
+- **Guardrails:** Max 5 rounds, revert on regression, mandatory decision escalation
+- **Multi-module mode:** Parallel independent loops, aggregate decisions, re-run affected modules
+
+### Process Summary (Full Session)
+
+| Phase | What We Did | Result |
+|-------|------------|--------|
+| 1. PRD autoresearch | Karpathy loop on /prd skill (3 iterations, 6 test cases) | Skill v3.5→v3.7, 98-100% structural compliance |
+| 2. PRD ground truth alignment | Scored 14 PRDs, wrote fix/rerun prompts | All 14 PRDs at 97%+ |
+| 3. Review-PRD sync | Synced review-prd with prd v3.7 conventions | review-prd v1.0→v2.0 |
+| 4. Technical design evaluation | Built evaluate-design.sh, scored 15 designs | Avg 88%, identified gaps |
+| 5. Technical design consistency test | Generated same design 3x, compared | v3.6: different decomposition each time |
+| 6. Technical design v3.7 | Deterministic feature areas, PRD coverage, ADR compliance | Consistent output from PRD Epics |
+| 7. Review-design sync | Synced review-design, made ADR/pattern checks generic | review-design v1.0→v2.2 |
+| 8. Design review at scale | 15 parallel review agents | 68 FAILs, 130 WARNs found |
+| 9. Structural fixes | 13 parallel fix agents | Avg score 91%→96% |
+| 10. Content decisions | 12 decisions via AskUserQuestion | All resolved, 8 parallel fix agents |
+| 11. Re-review v2 | 15 parallel review agents | 68→47 FAILs |
+| 12. Fix round 2 | 15 targeted fix prompts (user-executed) | Applied across all modules |
+| 13. Re-review v3 | 7 targeted review agents | ~48 FAILs (convergence plateau) |
+| 14. Autoresearch skill | Built /autoresearch to automate the loop | v1.0 |
+
+### Final Skill Versions
+
+| Skill | Version | Status |
+|-------|---------|--------|
+| prd | v3.7 | Production ready |
+| review-prd | v2.0 | Production ready |
+| technical-design | v3.7 | Production ready |
+| review-design | v2.2 | Production ready |
+| autoresearch | v1.0 | New — convergence loop skill |
+
+**Methodology validated across both domains.** The Karpathy technique works for document quality when you have a frozen, deterministic evaluation function (review skill) and can classify findings as mechanical (auto-fixable) vs decision-required (escalate). The remaining challenge is cascading consistency — fixing one document can invalidate references in another. The autoresearch skill addresses this with convergence detection and revert-on-regression guardrails.

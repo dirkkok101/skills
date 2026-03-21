@@ -134,7 +134,7 @@ AskUserQuestion:
 
 ### Phase 1: Design Structural Completeness
 
-Check the design against the `/technical-design` v3.6 Structural Conventions. These are non-negotiable — exact heading names, table formats, and file structure.
+Check the design against the `/technical-design` v3.7 Structural Conventions. These are non-negotiable — exact heading names, table formats, file structure, and PRD traceability.
 
 **Note on policy/standards designs:** Designs for shared concerns (e.g., cross-cutting, error contracts) may omit `architecture.md` and `data-model.md` if they define rules rather than entities. All other structural conventions still apply.
 
@@ -150,6 +150,7 @@ Check the design against the `/technical-design` v3.6 Structural Conventions. Th
 | `decisions/` directory | Feature-scoped decision records | Warn if missing |
 | `diagrams/` directory | Sequence, workflow, data flow diagrams | Warn if missing |
 | Feature decomposition | 1-2 areas: flat files. 3+ areas: `features/{area}/` subdirs | Warn if wrong structure |
+| Feature areas match PRD Epics | Each `features/{area}/` should correspond to a PRD `### Epic:`. Document deviation rationale. | Warn if areas don't match PRD Epics |
 
 **Step 1.2 — design.md Mandatory H2 Sections (in order):**
 
@@ -232,13 +233,25 @@ Cross-reference every PRD element against the design. This is the core complianc
 
 **Step 2.1 — Functional Requirements Coverage:**
 
-For every FR in the PRD:
-- Does at least one API endpoint implement this FR?
-- Is the FR referenced in the design (endpoint table "Maps to" field, test plan "Source" column)?
-- For Must-Have FRs: is the design FULLY specified (contracts, validation, backend flow, test cases)?
-- For Should-Have FRs: is the design at least sketched?
+**Do NOT rely on the design's own PRD Coverage Matrix.** Independently verify by reading the PRD and cross-checking:
 
-Record: `FR-{ID}: {COVERED | PARTIAL | MISSING} — {endpoint or "no mapping found"}`
+For every FR in the PRD:
+1. Read the FR ID, title, and priority from the PRD
+2. Search the design's endpoint tables for a `Maps To` reference to this FR
+3. Search the design's test plans for a `Source` reference to this FR
+4. Classify:
+
+| Priority | Required Coverage | Severity if Missing |
+|----------|-------------------|---------------------|
+| Must Have | Endpoint + contracts + validation + backend flow + test cases | **FAIL** |
+| Should Have | Endpoint sketch + data model accommodation (Phase 2 arch) | **WARN** |
+| Could Have / Won't Have | Should NOT appear in design (scope creep) | **WARN** if designed |
+
+Then compare your independent findings against the design's PRD Coverage Matrix. Flag discrepancies:
+- Matrix says "Covered" but you found no endpoint → **FAIL** (false coverage claim)
+- Matrix is missing FRs that exist in the PRD → **FAIL** (incomplete matrix)
+
+Record: `FR-{ID}: {COVERED | PARTIAL | MISSING | SCOPE CREEP} — {endpoint or "no mapping found"}`
 
 **Step 2.2 — Use Case Coverage:**
 
@@ -285,56 +298,65 @@ Record all alignment findings with severity:
 
 ---
 
-### Phase 3: ADR & Pattern Compliance
+### Phase 3: ADR, Pattern & Architecture Compliance
 
-**Step 3.1 — ADR Scoping:**
+**Step 3.1 — ADR Completeness Check:**
 
-List ALL ADRs from `docs/adr/`. For each, determine: applies to this module (relevant), does not apply (out of scope), or superseded. Document the scoping decision:
+The design's `### ADR Compliance` table should classify ALL ADRs from `docs/adr/`. Verify:
 
-```markdown
-| ADR | Title | Scope for This Module |
-|-----|-------|-----------------------|
-| ADR-0001 | {title} | Relevant — {why} |
-| ADR-0002 | {title} | Out of scope — {why} |
-| ADR-0003 | {title} | Superseded by ADR-{NNNN} |
-```
+1. Count ADRs in `docs/adr/` directory
+2. Count ADRs in the design's ADR Compliance table
+3. If counts don't match → **FAIL** (incomplete ADR scan)
+4. For each ADR marked "Applicable": verify the design actually follows it (not just lists it)
+5. For each ADR marked "Not applicable": verify the rationale is sound
+6. If the design diverges from an applicable ADR without proposing a superseding ADR → **FAIL**
 
-**Step 3.2 — ADR Compliance:**
+**Step 3.2 — Pattern Doc Compliance:**
 
-For each relevant ADR:
-- Does the design comply with the ADR's decision?
-- If the design diverges, does it explicitly propose superseding the ADR?
-- Are superseded ADRs NOT referenced as active constraints?
+Read ALL pattern documents in `docs/patterns/` (if the directory exists). For each pattern file:
 
-**Step 3.3 — Pattern Doc Compliance:**
+1. Determine if the pattern applies to this design's domain
+2. If applicable, verify the design follows the pattern
+3. If the design deviates, check for documented rationale
 
-Check the design against each applicable pattern doc:
+Do NOT use a hardcoded list of patterns — different projects have different patterns. Read what exists in `docs/patterns/` and review against those.
 
-| Pattern Area | Check |
-|-------------|-------|
-| Vertical slice | Features organized as vertical slices? |
-| Contracts placement | All DTOs, Requests, Responses in Contracts project? |
-| DTO conventions | DTO suffix ALL CAPS? EnumDTO/NamedDTO for dropdowns? Classes not records? |
-| Endpoint patterns | FastEndpoints conventions? Correct response methods? |
-| Save pattern | Upsert (SaveCommand) not separate Create/Update? SaveRequest inherits DTO? |
-| Frontend patterns | Standalone components? No NgModules? |
-| Delete pattern | ExecuteDeleteAsync not RemoveRange? |
-| Query patterns | QueryParameters builder classes? POST for GridList? |
+Common pattern areas to look for (project-dependent):
+- API/endpoint conventions
+- Data access patterns (save/upsert, delete, query)
+- DTO/contract conventions
+- Frontend component patterns
+- Testing patterns
 
-**Step 3.4 — Architecture Doc Compliance:**
+Record: `Pattern: {name} — {FOLLOWED | DEVIATED (with rationale) | VIOLATED (no rationale)}`
 
-Check the design against architecture docs:
+- **FAIL** — Pattern violated without rationale
+- **WARN** — Pattern partially followed or deviation rationale is weak
+- **PASS** — Pattern followed
 
-| Architecture Area | Check |
-|-------------------|-------|
-| Multi-tenancy | Tenant-scoped entities have RLS notes? Cross-org access uses correct patterns? |
-| Authorization | Auth gates on all write endpoints? Role/permission model aligned? |
-| CQRS | Commands and queries properly separated? |
+**Step 3.3 — Architecture Doc Compliance:**
 
-Record all compliance findings with severity:
-- **FAIL** — ADR violated without superseding proposal, pattern contradicted
-- **WARN** — Pattern partially followed, architecture doc not fully addressed
-- **PASS** — Compliant
+Read ALL architecture documents in `docs/architecture/`. For each:
+
+1. Determine if the architecture constraint applies to this design
+2. If applicable, verify the design respects it
+
+Do NOT use a hardcoded list of architecture checks — different projects have different architecture docs. Read what exists and review against those.
+
+Common architecture areas to look for (project-dependent):
+- System topology and service boundaries
+- Multi-tenancy model (data isolation, tenant context)
+- Authorization model (policies, roles, claims)
+- Data architecture (CQRS, event sourcing, shared databases)
+- Security and compliance requirements
+
+Record: `Architecture: {doc name} — {ALIGNED | MISALIGNED — {specific gap}}`
+
+- **FAIL** — Design contradicts architecture constraint
+- **WARN** — Architecture area not explicitly addressed in design
+- **PASS** — Aligned
+
+Record all compliance findings with severity as above.
 
 ---
 
@@ -620,7 +642,9 @@ When approved: **"Design review complete. Run /plan to create implementation pla
 
 ---
 
-*Skill Version: 2.1*
+*Skill Version: 2.2*
+*v2.2: Feature area to PRD Epic alignment check added. Phase 2 FR coverage independently verified (don't trust the design's own matrix). Phase 3 rewritten — ADR, pattern, and architecture checks are now generic (read from docs/adr/, docs/patterns/, docs/architecture/) instead of hardcoded to a specific project's conventions. This makes the review skill portable across projects.*
+
 *v2.1: Synced with /technical-design v3.7. PRD Coverage Matrix check added (every Must Have FR must map to endpoint + tests). ADR Compliance table check added (all ADRs classified). Endpoint table check updated to 5 columns (Verb, Route, Purpose, Maps To, Auth Policy).*
 
 *v2.0: Phase 1 fully synced with /technical-design v3.6 Structural Conventions. Now checks exact file structure (mandatory files, feature decomposition), design.md H2 section order, Documentation Foundation sub-headings, assumption table format (4-column, never bullets), two-layer decision pattern (summary table + decision files), operational design sub-headings, work decomposition format (component breakdown table + dependency graph + execution order), self-review table format with round count enforcement, architecture.md C4 level requirements, data-model.md completeness, per-feature doc structure and test plan quality. Policy/standards design exception documented. All checks specify exact severity (Fail vs Warn).*

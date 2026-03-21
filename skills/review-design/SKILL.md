@@ -82,7 +82,7 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
    - **MECHANICAL** — wrong heading, stale count, format error, internal contradiction where one side is clearly correct per the authority hierarchy. Auto-fix these.
    - **JUSTIFIED_DEVIATION** — design deviates from pattern/ADR but has an explicit, documented rationale. Verify the rationale is sound; if yes, mark as PASS (not a finding).
    - **DECISION** — PRD vs design conflict, ADR contradiction without rationale, architectural choice. Escalate to user via AskUserQuestion.
-3. **Fix** mechanical findings using minimum changes. **Cascade check:** after each fix, grep the entire design directory for terms related to the fix (e.g., after fixing a route parameter name, search for the old name across all files). Fix cascading references in the same round.
+3. **Fix** mechanical findings using minimum changes. **Cascade check:** after each fix, grep the module's design directory for terms related to the fix. Fix cascading references in the same round. **Cascade scope is the module's design directory only** — cross-module cascades (e.g., sibling designs referencing a changed field) are out of scope for CONVERGE. Note them as WARNs for manual follow-up.
 4. **Re-review** — Run the review again on the fixed documents
 5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop (converged).
 6. **Repeat** until FAILs = 0 or max 5 rounds.
@@ -91,9 +91,13 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 
 **Authority hierarchy for mechanical fixes:**
 ```
-ADRs > Pattern docs > Architecture docs > PRD > api-surface.md > diagrams > test plans > use cases > READMEs
+ADRs > Pattern docs > Architecture docs > PRD > api-surface.md > backend.md > ui-mockup.md > diagrams > test plans > use cases > READMEs
 ```
-Decision records (`decisions/*.md`) are outside this hierarchy — they document historical choices and are not updated during cascade fixes.
+Within a feature area: api-surface.md (contract) wins over backend.md (pseudocode) wins over ui-mockup.md (visual). Decision records (`decisions/*.md`) are outside this hierarchy — they document historical choices and are not updated during cascade fixes.
+
+**FR ID aliasing:** Designs may use shortened FR IDs (e.g., `FR-APP-SAVE` for `FR-APP-AGGREGATE-SAVE`). Before cross-referencing, check whether the design documents an alias mapping. Documented aliases are acceptable — don't flag them as mismatches.
+
+**Token budget:** COMPREHENSIVE reviews read 20-40 documents totaling 15-25K lines. Models with <200K context may need to split into two passes (Phases 1-3, then Phases 4-5 with findings carried forward). For 1M context models, single-pass is fine.
 
 **Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
 `{N} findings → {N} fixed in {N} rounds. {N} decisions escalated. WARNs: {N} (not fixed).`
@@ -176,7 +180,7 @@ AskUserQuestion:
 
 ### Phase 1: Design Structural Completeness
 
-Check the design against the `/technical-design` v3.7 Structural Conventions. These are non-negotiable — exact heading names, table formats, file structure, and PRD traceability.
+Check the design against the `/technical-design` v3.7 Structural Conventions. File structure, table formats, and PRD traceability are non-negotiable. Heading names are preferred conventions — **FAIL if the concern is missing entirely, WARN if the content is present but under a non-canonical heading name.** Substance over form: a design that covers auth thoroughly in bullets under "Security Model" is better than one with perfect `### Authentication & Authorization` heading and shallow content.
 
 **Note on policy/standards designs:** Designs for shared concerns (e.g., cross-cutting, error contracts) may omit `architecture.md` and `data-model.md` if they define rules rather than entities. All other structural conventions still apply.
 
@@ -210,8 +214,8 @@ Check the design against the `/technical-design` v3.7 Structural Conventions. Th
 | Decision summary table | `Decision \| Chosen Approach \| Rationale` table in design.md (Layer 1 of two-layer pattern) | Fail if missing |
 | Decision record files | Full exploration in `decisions/{slug}.md` files (Layer 2) | Warn if no files |
 | `## Security & Privacy` | Present as H2 | Fail if missing |
-| `### Authentication & Authorization` | Auth policies, claims, guards | Warn if missing for auth-touching features |
-| `### Audit Logging` | Event types, retention | Warn if missing for state-changing features |
+| `### Authentication & Authorization` | Auth policies, claims, guards — content must be present; exact heading name is preferred but not required | Warn if concern not addressed (regardless of heading name) |
+| `### Audit Logging` | Event types, retention — content must be present; exact heading name is preferred but not required | Warn if concern not addressed (regardless of heading name) |
 | `## Operational Design` | Present as H2 | Fail if missing |
 | `### Deployment Strategy` | H3 under Operational Design | Fail if missing |
 | `### Failure Modes` | H3 with table: Component \| Failure Mode \| Impact \| Mitigation | Fail if missing |
@@ -256,7 +260,7 @@ Check the design against the `/technical-design` v3.7 Structural Conventions. Th
 | Test case count | 25-35 per feature area | Warn if below 20 |
 | Source column | Each test traces to UC, FR, or BR | Warn if missing |
 | `ui-mockup.md` exists | Per feature area with UI | Warn if missing |
-| Mockup states | 3 per screen: populated, empty, error | Warn if fewer |
+| Mockup states | At least populated + one other state (empty or error) per primary screen | Warn if only populated state |
 
 **Step 1.6 — Cross-Cutting Diagrams:**
 
@@ -685,7 +689,9 @@ When approved: **"Design review complete. Run /plan to create implementation pla
 
 ---
 
-*Skill Version: 2.4*
+*Skill Version: 2.5*
+*v2.5: Production feedback round 3. Authority hierarchy: added backend.md > ui-mockup.md ranking within feature areas. FR ID aliasing: documented aliases are acceptable, check for mapping before cross-referencing. Cascade scope bounded: module directory only, cross-module cascades noted as WARNs. Phase 1 structural checks softened: FAIL if concern missing, WARN if present under non-canonical heading (substance over form). Mockup states: lowered from 3 to 2 (populated + one other). Token budget estimate for COMPREHENSIVE. All from Applications CONVERGE + COMPREHENSIVE production run.*
+
 *v2.4: CONVERGE mode refined from production runs. Skip all interactive stage gates (scope confirmation, per-finding walkthrough). Replace Phase 6 interactive walkthrough with summary table. WARNs listed but not interactive. Decision records excluded from cascade scope. Large authority sources may need chunked reading. Cascade check catches related issues across all normative files.*
 
 *v2.3: CONVERGE mode added — autoresearch loop built into the review skill. Runs review at selected depth, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Progressive loading, cascade check, authority hierarchy, max 5 rounds.*

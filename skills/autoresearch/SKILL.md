@@ -209,7 +209,11 @@ Architecture docs (system constraints)
   ↓
 PRD (requirements — but FRs/ACs can have errors)
   ↓
-Design api-surface.md (detailed specification)
+Design api-surface.md (contract — most authoritative design file)
+  ↓
+Design backend.md (pseudocode — subordinate to api-surface)
+  ↓
+Design ui-mockup.md (visual — subordinate to api-surface)
   ↓
 Design diagrams (visual aids — most likely to be stale)
   ↓
@@ -218,6 +222,16 @@ Test plans (derived from api-surface — update to match)
 Use cases (scenario descriptions — update to match design)
   ↓
 READMEs (index/summary — most likely to have stale counts)
+
+Decision records (decisions/*.md) are OUTSIDE this hierarchy.
+They document historical choices and are not updated during the loop.
+
+**FR ID aliasing:** Documents may use shortened FR IDs (e.g., FR-APP-SAVE
+for FR-APP-AGGREGATE-SAVE). Check for documented alias mappings before
+flagging mismatches.
+
+**Cascade scope:** Module directory only. Cross-module cascades are out
+of scope — note them as WARNs for manual follow-up.
 ```
 
 ---
@@ -323,8 +337,10 @@ The key requirement: the review skill must produce **structured, deterministic f
 
 ---
 
-*Skill Version: 1.2*
-*v1.2: Skip interactive stage gates during loop. Decision records excluded from cascade scope. WARNs listed but not interactive. Aligned with review-design v2.4 and review-prd v2.2 CONVERGE mode refinements.*
+*Skill Version: 1.3*
+*v1.3: Authority hierarchy: added backend.md, ui-mockup.md ranking. FR ID aliasing guidance. Cascade scope bounded to module directory. Cross-module cascades noted as WARNs. Aligned with review-design v2.5.*
+
+*v1.2: Skip interactive stage gates during loop. Decision records excluded from cascade scope. WARNs listed but not interactive.*
 
 *v1.1: Progressive loading strategy (3 waves to reduce upfront context cost). JUSTIFIED_DEVIATION classification for pattern/ADR deviations with documented rationale. Cascade check after cross-cutting fixes (grep for related terms). Compact report format for quick convergences. Severity alignment note (review skill wins on FAIL vs WARN). Agent vs direct read guidance. All improvements from first production run on Entitlements module.*
 

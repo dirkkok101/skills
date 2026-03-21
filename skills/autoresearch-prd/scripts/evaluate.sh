@@ -394,7 +394,7 @@ if [ "$SCOPE" != "BRIEF" ]; then
     # Must Have count ≤ 10
     MUST_N=$(count_in_section "Prioritisation" '^- FR-')
     check WARN "Must Have ≤ 10 items ($MUST_N in Prioritisation)" \
-        $([ "$MUST_N" -le 40 ] && echo 0 || echo 1)
+        $([ "$MUST_N" -le 10 ] && echo 0 || echo 1)
 
     check FAIL "## Dependency Graph" \
         $(has_h2 "Dependency Graph" || has_exact '## Dependency'; echo $?)

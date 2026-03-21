@@ -338,11 +338,49 @@ Ran Entitlements a third time with v3.7. Comparison across all 3 runs:
 | evaluate-design.sh | v2 | 57 checks including coverage + ADR compliance |
 | canonical-design-structure.md | v1 | Reference spec |
 
-### Cross-Session Summary
+---
+
+## Design Review Validation & Content Fixes
+
+### Review at Scale
+
+Ran review-design v2.2 against all 15 designs in parallel. The review skill found 68 FAILs and 130 WARNs — including content/alignment issues the automated checker cannot detect (ADR contradictions, PRD mismatches, cross-module inconsistencies, internal diagram contradictions).
+
+### Structural Fixes (13 parallel agents)
+
+Added to all designs: PRD Coverage Matrix, ADR Compliance table (all 25 ADRs), Learnings Applied, 5-column endpoint tables. Average structural score: 91% → 96%.
+
+### Content Decisions (12 decisions via AskUserQuestion)
+
+| # | Decision | Impact |
+|---|----------|--------|
+| 1 | Sessions: follow ADR-0014 (language_id in JWT) | Design + test case updated |
+| 2 | API Keys: keep direct KeyDelete | PRD updated (removed pub/sub) |
+| 3 | PermissionType delete: CASCADE with audit | Cross-cutting PRD updated |
+| 4 | Business rules: 422 not 400 | Applications + API Keys updated |
+| 5 | FR-APP-LOOKUP: add 9 test cases | Applications test-plan updated |
+| 6 | IdP runtime: document boundary | Both designs updated |
+| 7 | IdP save response: minimal { Id } | UC-IDP-001 updated |
+| 8 | Organizations: align FR IDs to PRD | Design + test-plan updated |
+| 9 | Languages: 201/200 split | Both api-surface files updated |
+| 10 | Languages Code readonly: all languages | PRD updated |
+| 11 | RFC 7807: add acknowledgment | 6 module designs updated |
+| 12 | Accessibility: add responsibility statement | 4 module designs updated |
+
+### Final Identity Project State
+
+- 14 PRDs at 97%+ (zero FAILs)
+- 15 designs at 89%+ (10 with zero FAILs)
+- All content contradictions resolved
+- 106 files changed, 4543 insertions, 2794 deletions
+
+### Cross-Session Final Summary
 
 | Skill | Before | After | Key Improvement |
 |-------|--------|-------|-----------------|
-| prd | v3.5 | v3.7 | 23 implicit conventions → explicit rules, 98-100% structural compliance |
-| review-prd | v1.0 | v2.0 | Synced with prd v3.7, exact format enforcement |
-| technical-design | v3.5 | v3.7 | Structural conventions, deterministic feature decomposition, PRD/ADR traceability |
-| review-design | v1.0 | v2.1 | Synced with technical-design v3.7, coverage + ADR checks |
+| prd | v3.5 | **v3.7** | 23 implicit conventions → explicit rules, 98-100% compliance |
+| review-prd | v1.0 | **v2.0** | Synced with prd v3.7, exact format enforcement |
+| technical-design | v3.5 | **v3.7** | Structural conventions, deterministic decomposition, PRD/ADR traceability |
+| review-design | v1.0 | **v2.2** | Generic ADR/pattern/architecture checks, independent FR verification |
+
+**Methodology validated.** Autoresearch (generate → score → iterate) works best for formulaic output (PRDs). For technical designs, defining canonical structure + running reviews at scale to find content issues was more effective. For review skills, syncing with latest conventions and making checks generic (not project-specific) was the key improvement.

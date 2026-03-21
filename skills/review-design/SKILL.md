@@ -176,7 +176,8 @@ Check the design against the `/technical-design` v3.7 Structural Conventions. Th
 | `### Observability` | H3 with Metrics, Logging, Alerting | Fail if missing |
 | `## Work Decomposition` | Present as H2 | Fail if missing |
 | `### Component Breakdown` | H3 with table: Component \| Scope \| Complexity \| Risk \| Implements | Fail if missing |
-| `### Dependency Graph` | ASCII diagram using `──>` arrows | Fail if missing |
+| `### Dependency Graph` | ASCII diagram present | Fail if missing |
+| Dependency graph arrows | Must use `──>` ASCII arrows (not prose like "depends on") | Warn if wrong format |
 | `### Suggested Execution Order` | Numbered list with rationale | Fail if missing |
 | `### PRD Coverage Matrix` | Table: FR ID \| Title \| Priority \| Feature Area \| API Endpoint \| Test Cases \| Status. Every Must Have = Covered. | Fail if missing or Must Have gaps |
 | `### ADR Compliance` | Table: ADR \| Title \| Applicable \| How Applied. ALL ADRs in docs/adr/ must be classified. | Fail if missing |

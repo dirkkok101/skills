@@ -177,6 +177,8 @@ Check the design against the `/technical-design` v3.6 Structural Conventions. Th
 | `### Component Breakdown` | H3 with table: Component \| Scope \| Complexity \| Risk \| Implements | Fail if missing |
 | `### Dependency Graph` | ASCII diagram using `──>` arrows | Fail if missing |
 | `### Suggested Execution Order` | Numbered list with rationale | Fail if missing |
+| `### PRD Coverage Matrix` | Table: FR ID \| Title \| Priority \| Feature Area \| API Endpoint \| Test Cases \| Status. Every Must Have = Covered. | Fail if missing or Must Have gaps |
+| `### ADR Compliance` | Table: ADR \| Title \| Applicable \| How Applied. ALL ADRs in docs/adr/ must be classified. | Fail if missing |
 | `## Self-Review Log` | Table format: Round \| Issues \| Key Fixes. Minimum 2 rounds (STANDARD), 3 (COMPREHENSIVE) | Fail if missing or < 2 rounds |
 
 **Step 1.3 — architecture.md:**
@@ -200,7 +202,7 @@ Check the design against the `/technical-design` v3.6 Structural Conventions. Th
 | Check | Criteria | Severity |
 |-------|----------|----------|
 | `api-surface.md` exists | Per feature area | Fail if missing |
-| Endpoints table | `Verb \| Route \| Purpose` format | Fail if missing |
+| Endpoints table | `Verb \| Route \| Purpose \| Maps To \| Auth Policy` format — every endpoint traces to an FR | Fail if missing |
 | Response Codes section | Success codes per operation | Warn if missing |
 | Error Responses | Error scenario table with Source column | Warn if missing |
 | Contracts | DTO definitions, writable vs read-only distinguished | Warn if missing |
@@ -618,5 +620,7 @@ When approved: **"Design review complete. Run /plan to create implementation pla
 
 ---
 
-*Skill Version: 2.0*
+*Skill Version: 2.1*
+*v2.1: Synced with /technical-design v3.7. PRD Coverage Matrix check added (every Must Have FR must map to endpoint + tests). ADR Compliance table check added (all ADRs classified). Endpoint table check updated to 5 columns (Verb, Route, Purpose, Maps To, Auth Policy).*
+
 *v2.0: Phase 1 fully synced with /technical-design v3.6 Structural Conventions. Now checks exact file structure (mandatory files, feature decomposition), design.md H2 section order, Documentation Foundation sub-headings, assumption table format (4-column, never bullets), two-layer decision pattern (summary table + decision files), operational design sub-headings, work decomposition format (component breakdown table + dependency graph + execution order), self-review table format with round count enforcement, architecture.md C4 level requirements, data-model.md completeness, per-feature doc structure and test plan quality. Policy/standards design exception documented. All checks specify exact severity (Fail vs Warn).*

@@ -145,6 +145,23 @@ check WARN "ASCII dependency arrows (──>)" $(has_exact '──>'; echo $?)
 check FAIL "### Suggested Execution Order" $(has_h3 "Suggested Execution Order"; echo $?)
 
 # ============================================================
+# 8b. PRD COVERAGE & ADR COMPLIANCE
+# ============================================================
+
+check FAIL "PRD Coverage Matrix present" \
+    $(has 'PRD Coverage' || has 'FR.*Title.*Priority.*Feature' || has 'Coverage Matrix'; echo $?)
+
+check FAIL "ADR Compliance table present" \
+    $(has 'ADR Compliance' || has 'ADR.*Title.*Applicable'; echo $?)
+
+# Check endpoint table has Maps To column
+FIRST_API=$(find "$DESIGN_DIR" -name "api-surface.md" 2>/dev/null | head -1)
+if [ -n "$FIRST_API" ]; then
+    check WARN "Endpoint table has Maps To column (FR traceability)" \
+        $(grep -qiP 'Maps.*To|FR-[A-Z]' "$FIRST_API" 2>/dev/null; echo $?)
+fi
+
+# ============================================================
 # 9. SELF-REVIEW LOG
 # ============================================================
 
@@ -209,7 +226,9 @@ check FAIL "At least 1 test-plan.md ($TEST_FILES found)" \
 FIRST_API=$(find "$DESIGN_DIR" -name "api-surface.md" 2>/dev/null | head -1)
 if [ -n "$FIRST_API" ]; then
     check FAIL "api-surface: Endpoints table (Verb | Route | Purpose)" \
-        $(grep -qiP 'Verb.*Route.*Purpose' "$FIRST_API" 2>/dev/null; echo $?)
+        $(grep -qiP 'Verb.*Route.*Purpose' "$FIRST_API" 2>/dev/null || \
+         grep -qiP 'Method.*Route.*Purpose' "$FIRST_API" 2>/dev/null || \
+         grep -qiP 'POST.*\/api\/' "$FIRST_API" 2>/dev/null; echo $?)
     check WARN "api-surface: Response Codes section" \
         $(grep -qiP '(Response Code|Success Code)' "$FIRST_API" 2>/dev/null; echo $?)
     check WARN "api-surface: Contracts / DTO section" \

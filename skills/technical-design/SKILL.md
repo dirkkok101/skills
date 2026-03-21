@@ -514,16 +514,30 @@ If "Needs revision": collect notes, iterate. If any section was skipped, circle 
 
 This phase produces **per-feature documentation** — focused docs that serve one reader doing one job. The structure depends on how many distinct feature areas the design covers.
 
-**Step 4.1 — Identify Feature Areas:**
+**Step 4.1 — Identify Feature Areas (Deterministic):**
 
-Identify distinct feature areas from the PRD's FR groupings (Epics) and the data model's entity boundaries. Each feature area typically corresponds to an aggregate root or a distinct user-facing capability.
+Feature areas come **directly from the PRD's Epics** — they are not invented by the design agent. Each PRD Epic becomes one feature area in the design. This ensures the design maps 1:1 to the requirements structure.
+
+```
+PRD Epic               →  Design Feature Area       →  Output Directory
+─────────────────────  →  ───────────────────────    →  ──────────────────
+### Epic: Language      →  languages                  →  features/languages/
+### Epic: Translation   →  translation-keys           →  features/translation-keys/
+### Epic: Frontend      →  frontend                   →  features/frontend/
+```
+
+The only reasons to deviate from PRD Epics:
+- **Merge:** Two small epics that share the same aggregate root and endpoint set → merge into one feature area
+- **Split:** One epic that covers both backend and a complex UI with its own component tree → split into separate api-surface and ui-specific docs within the same feature area, NOT into separate feature areas
+
+Any deviation must be documented with rationale in design.md under Work Decomposition.
 
 | Feature Area Count | Structure |
 |--------------------|-----------|
 | 1-2 feature areas | Flat files: `api-surface.md`, `ui-mockup.md`, `test-plan.md` |
 | 3+ feature areas | Per-feature: `features/{sub-feature}/api-surface.md`, `ui-mockup.md`, `test-plan.md` |
 
-Feature areas are NOT arbitrary decomposition — they should align with how the codebase will be structured (e.g., `Features/Applications/`, `Features/Clients/`, `Features/RoleTemplates/`).
+**Phase 2 (Should Have) FRs in scope:** Design Phase 2 / Should Have FRs at the architectural level (data model, API routes, contracts) even if implementation is deferred. This prevents the common failure where Phase 2 requirements force rework of Phase 1 architecture. Mark Phase 2 items clearly in the api-surface as "Phase 2 — deferred" but ensure the data model and routes can accommodate them.
 
 **Backend separation decision:** By default, backend implementation guidance (command flow, mapper logic, queries) is merged into `api-surface.md` — one doc per feature that covers endpoints through to persistence. However, for features with **5+ commands/queries** or complex backend patterns (workflow engines, interceptor chains, background services), a separate `backend.md` per feature may be cleaner. The AMPS actions project uses 4 docs per feature (`api-surface.md + backend.md + ui-mockup.md + test-plan.md`) successfully because each feature has 6+ commands with rich pseudocode. Ask the user if backend complexity warrants separation.
 
@@ -545,16 +559,18 @@ Reference the source UC in the api-surface doc where design decisions derive fro
 
 ## Endpoints
 
-| Verb | Route | Purpose |
-|------|-------|---------|
-| `POST` | `/api/v1/{resource}` | Save (upsert) |
-| `GET` | `/api/v1/{resource}/{id}` | Get detail |
-| `POST` | `/api/v1/{resource}/grid` | Get grid list |
-| `DELETE` | `/api/v1/{resource}` | Delete (bulk) |
+| Verb | Route | Purpose | Maps To | Auth Policy |
+|------|-------|---------|---------|-------------|
+| `POST` | `/api/v1/{resource}` | Save (upsert) | FR-{MODULE}-{SAVE} | {Policy} |
+| `GET` | `/api/v1/{resource}/{id}` | Get detail | FR-{MODULE}-{GET} | {Policy} |
+| `POST` | `/api/v1/{resource}/grid` | Get grid list | FR-{MODULE}-{GRID-LIST} | {Policy} |
+| `DELETE` | `/api/v1/{resource}` | Delete (bulk) | FR-{MODULE}-{DELETE} | {Policy} |
 
-All endpoints require `{Policy}` policy.
-Maps to: FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
 Use cases: UC-{MODULE}-{NNN} (steps {X.X–X.X})
+
+{The Endpoints table is the primary structural element of api-surface.md.
+ It MUST use exactly these columns: Verb | Route | Purpose | Maps To | Auth Policy.
+ Every endpoint must trace to at least one FR in the Maps To column.}
 
 ## Response Codes
 
@@ -940,7 +956,53 @@ These specs consolidate information that already exists in design, PRD, and plan
 
 ---
 
-### Phase 9: Assembly & Self-Review
+### Phase 9: Assembly, Coverage Verification & Self-Review
+
+**Step 9.0 — PRD Coverage Verification (Mandatory):**
+
+Before self-review, verify that the design covers everything the PRD requires. This is NOT optional — it is the primary quality gate.
+
+Generate a coverage matrix in design.md (or update the existing one under `## Work Decomposition`):
+
+```markdown
+### PRD Coverage Matrix
+
+| FR ID | Title | Priority | Feature Area | API Endpoint | Test Cases | Status |
+|-------|-------|----------|-------------|-------------|------------|--------|
+| FR-{MOD}-{NAME} | {title} | Must | {feature area} | {verb} {route} | {test IDs} | Covered |
+| FR-{MOD}-{NAME} | {title} | Must | {feature area} | {verb} {route} | {test IDs} | Covered |
+| FR-{MOD}-{NAME} | {title} | Should | — | — | — | Phase 2 (arch only) |
+| FR-{MOD}-{NAME} | {title} | Must | — | — | — | **GAP** |
+```
+
+**Rules:**
+- Every **Must Have** FR must have Status = `Covered` with a mapped endpoint and test cases. If any Must Have FR shows `GAP`, stop and design it before proceeding.
+- Every **Should Have** FR must have Status = `Covered` or `Phase 2 (arch only)`. Phase 2 items need data model and route reservation, not full implementation design.
+- **Could Have / Won't Have** FRs should NOT appear in the design — if they do, flag scope creep.
+
+For COMPREHENSIVE mode, also verify UC coverage:
+
+```markdown
+### UC Coverage Matrix
+
+| UC ID | Title | Tier | Sequence Diagram | Failure Paths → Error Responses | Business Rules → Validation |
+|-------|-------|------|-----------------|-------------------------------|---------------------------|
+| UC-{MOD}-001 | {title} | 1 | [sequences.md] | {count} of {total} mapped | {count} of {total} mapped |
+| UC-{MOD}-002 | {title} | 2 | — | {count} of {total} mapped | — |
+```
+
+For ADR/Pattern compliance, verify:
+
+```markdown
+### ADR Compliance
+
+| ADR | Title | Applicable | How Applied |
+|-----|-------|-----------|-------------|
+| ADR-{NNNN} | {title} | Yes | {where in the design this ADR is followed} |
+| ADR-{NNNN} | {title} | No | {why not applicable to this module} |
+```
+
+Scan ALL ADRs in `docs/adr/` — not just the ones you think are relevant. Missed ADRs are the #1 source of design review failures.
 
 **Step 9.1 — Generate README (IF design directory has 5+ files):**
 
@@ -1411,13 +1473,15 @@ Table format with numbered rounds. Minimum 2 rounds for STANDARD, 3 for COMPREHE
 ### api-surface.md Required Sections
 
 ```
-## Endpoints                    — | Verb | Route | Purpose |
+## Endpoints                    — | Verb | Route | Purpose | Maps To | Auth Policy |
 ## Response Codes               — | Operation | Success Code | Body |
 ## Error Responses              — | Error Scenario | Code | Detail | Source |
 ## Contracts                    — DTO definitions, writable vs read-only
 ## Validation Rules             — sync vs DB-lookup, BR-* references
 ## Backend                      — directory structure, command flow, mapper, queries
 ```
+
+The Endpoints table MUST include `Maps To` (FR-ID) and `Auth Policy` columns. Every endpoint traces to at least one FR.
 
 ### test-plan.md Required Format
 
@@ -1431,16 +1495,21 @@ Target 25-35 test cases per feature area. Source column traces to UC/FR/BR.
 
 ### Strict Rules
 
-1. Assumptions use **table format** (4 columns), never bullet lists
-2. Decisions use **two-layer pattern**: summary table in design.md, full exploration in decision files
-3. Self-Review uses **table format** with numbered rounds
-4. Work Decomposition includes **Component Breakdown table + Dependency Graph + Execution Order**
-5. Dependency Graph uses ASCII `──>` arrows
-6. Per-feature docs use `features/{area}/` when 3+ feature areas
-7. `README.md` generated when design directory has 5+ files
-8. All three Documentation Foundation sub-headings present (Upstream Artifacts, Sibling Designs, Learnings Applied)
-9. architecture.md includes C4 Level 1 + Level 2 diagrams
-10. Test plans target 25-35 cases with Source column tracing to UC/FR/BR
+1. **Feature areas come from PRD Epics** — do not invent feature decomposition. Document any deviation with rationale.
+2. **PRD Coverage Matrix is mandatory** — every Must Have FR must map to an endpoint and test cases. No gaps allowed before self-review.
+3. **ADR Compliance table is mandatory** — scan ALL ADRs, classify each as applicable or not.
+4. Assumptions use **table format** (4 columns), never bullet lists
+5. Decisions use **two-layer pattern**: summary table in design.md, full exploration in decision files
+6. Self-Review uses **table format** with numbered rounds
+7. Work Decomposition includes **Component Breakdown table + Dependency Graph + Execution Order**
+8. Dependency Graph uses ASCII `──>` arrows
+9. Per-feature docs use `features/{area}/` when 3+ feature areas
+10. `README.md` generated when design directory has 5+ files
+11. All three Documentation Foundation sub-headings present (Upstream Artifacts, Sibling Designs, Learnings Applied)
+12. architecture.md includes C4 Level 1 + Level 2 diagrams
+13. Test plans target 25-35 cases with Source column tracing to UC/FR/BR
+14. Endpoint table uses 5 columns: `Verb | Route | Purpose | Maps To | Auth Policy`
+15. Phase 2 / Should Have FRs designed at architectural level (data model + routes) even if implementation deferred
 
 ---
 
@@ -1498,7 +1567,9 @@ This preserves the reasoning that led to the original design while directing rea
 
 ---
 
-*Skill Version: 3.6*
+*Skill Version: 3.7*
+*v3.7: Deterministic feature decomposition — feature areas derive from PRD Epics, not agent invention. PRD Coverage Matrix mandatory before self-review (every Must Have FR maps to endpoint + tests; gaps block completion). ADR Compliance table mandatory (scan ALL ADRs, classify each). Endpoint table expanded to 5 columns (Verb, Route, Purpose, Maps To, Auth Policy) for FR traceability. Phase 2 / Should Have FRs designed at architectural level. Derived from consistency test — two runs of the same PRD produced different feature decompositions, confirming the need for deterministic rules.*
+
 *v3.6: Structural Conventions section added — codifies mandatory files, H2 section order, heading levels, table formats (assumptions, decisions, self-review, work decomposition, operational design), and per-feature file structure as non-negotiable rules. Two-layer decision pattern: summary table in design.md + full exploration in decisions/ files. Documentation Foundation requires all 3 sub-headings (Upstream Artifacts, Sibling Designs, Learnings Applied). Self-Review uses table format with numbered rounds. Derived from autoresearch evaluation of 15 ground truth designs.*
 *v3.5: UC integration — Phase 0 imports use cases from `docs/prd/{feature}/use-cases/` and `docs/use-cases/`, Step 4.2 maps UC artifacts to API surface (scenario flows→endpoints, failure paths→errors, BR-*→validation), Step 4.4 adds Source column tracing tests to UCs, Phase 5.1 derives sequences from Tier 1 UC flows. ADR/pattern imports — Phase 0 imports `docs/patterns/`, `docs/adr/`, strengthened `docs/architecture/`; Step 2.0 checks prior ADRs/patterns as constraints before identifying new decisions. First-principles directive — design from upstream artifacts, not existing source code. Browser E2E test plans — Step 4.5 generates `docs/browser-e2e-plans/{feature}.md` with pattern-driven guidance, shared selector-reference and gotchas docs. STANDARD-mode fallback guidance for browser E2E when UCs don't exist. Step 2.4 Diagram Selection moved after PAUSE 2 (depends on confirmed decisions). BRIEF template fixed to reference `docs/patterns/` instead of "codebase". `ui-mockup.md` naming standardized. Phase 8b feature spec relative paths corrected. New anti-patterns: Implementation Anchoring, Ignoring Prior ADRs. Collaborative model updated to include browser-e2e-plan. Stage gate reference path corrected.*
 *v3.4: AskUserQuestion stage gates at all four PAUSE points. PAUSE 1 uses Batch Review (Pattern 3) for constraints/assumptions. PAUSE 2 uses Comparison Gate (Pattern 2) with preview fields for architectural alternatives. PAUSE 3 uses Guided Review (Pattern 5) walking through architecture, data model, and interfaces sequentially. PAUSE 4 uses Decision Gate (Pattern 1) for final approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*

@@ -1,0 +1,11 @@
+iteration	skill_version	test_case	checklist	semantic	combined	status	description
+1	3.5	languages	100	97	98	baseline	Perfect checklist, minor semantic diff (cross-module refs)
+1	3.5	approvals	98	93	96	baseline	1 warn (5 NFRs < 6 minimum)
+1	3.5	roles	100	83	93	baseline	Perfect checklist, semantic gap from content differences in FR names
+1	3.5	portal	97	52	79	baseline	2 warns (no ASCII dep graph, no audit). Semantic low: ground truth uses non-canonical structure
+2	3.5+nfr	languages	100	99	99	improved	+1 combined. Semantic near-perfect.
+2	3.5+nfr	approvals	100	83	93	improved	Checklist 98→100 (audit NFR + 6 min). Semantic -10 (extra NFRs vs GT).
+2	3.5+nfr	roles	100	88	95	improved	+2 combined. Semantic +5 (numbered assumptions helped).
+2	3.5+nfr	portal	98	44	76	mixed	Checklist 97→98. Semantic -8 (GT is non-canonical, gap widens with more canonical output).
+3	3.6	languages	98	40	74	regressed	Checklist 100→98 (Depends On warn). Semantic 99→40 — agent didn't read GT, generated different FR names.
+3	3.6	approvals	98	36	73	regressed	Checklist 100→98 (Depends On warn). Semantic 93→36 — 15 FRs vs GT's 7, completely different content.

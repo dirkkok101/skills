@@ -59,6 +59,19 @@ Determine mode from brainstorm scope classification or ask user:
 If brainstorm exists, use its scope classification. Otherwise ask:
 "How complex is this feature? [brief / standard / comprehensive]"
 
+### Policy & Standards PRDs
+
+Not every PRD maps to a single bounded module with its own aggregate root, personas, and CRUD operations. Some PRDs define **shared policies, standards, or cross-cutting concerns** that multiple modules consume (e.g., error handling contracts, data lifecycle rules, rate limiting policies).
+
+These PRDs still follow the same structural conventions, but some sections may be lighter:
+
+- **Personas:** May reference project-wide personas rather than defining new ones. Still use the `### P{n}:` format, but a 1-line "See [project personas doc]" reference is acceptable if personas are defined centrally.
+- **Use Cases:** May have fewer use cases or none — policy PRDs define rules, not user flows. If there are no use cases, state "N/A — this PRD defines standards consumed by module PRDs" in the Use Cases section.
+- **NFRs:** Aim for the minimum (6 for COMPREHENSIVE) but some policy PRDs may legitimately have fewer if the policies themselves are the non-functional constraints. Document why in a note if under the minimum.
+- **Dependency Graph:** May show which modules consume the policies rather than FR-to-FR build order.
+
+The structural conventions (heading formats, numbering, table columns) still apply without exception. Only the *depth* of content adapts.
+
 ---
 
 ## Collaborative Model
@@ -140,6 +153,7 @@ Ask user:
 | Scope | {BRIEF / STANDARD / COMPREHENSIVE} |
 | Brainstorm | {link or N/A} |
 | Discovery | {link or N/A} |
+| Depends On | {links to prerequisite PRDs, or N/A} |
 
 ## Document History
 
@@ -643,6 +657,10 @@ Categories to consider:
 
 Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms P95" is. Every NFR target should trace to either the problem statement, a success metric, or a persona need — arbitrary targets are waste.
 
+**Mandatory NFR: Audit coverage.** Any module with state-changing operations (create, update, delete, status transitions) MUST include an audit NFR (e.g., `NFR-{MODULE}-AUDIT`) specifying: 100% mutation coverage, actor ID + timestamp + entity ID in every log entry, and the audit event type naming convention (`{entity_type}.{action}`).
+
+**Minimum counts are strict.** COMPREHENSIVE requires at least 6 NFRs — not 5, not "around 6". Count them before finalizing. If you have fewer than 6, add NFRs for categories you haven't covered (performance, security, scalability, data, accessibility).
+
 ---
 
 ### Phase 8: Prioritisation & Dependencies
@@ -668,11 +686,14 @@ Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms 
 {Explicitly out of scope. Prevents scope creep.}
 
 ## Dependency Graph
-{ASCII diagram showing requirement dependencies}
 
   FR-REGISTER ──> FR-VALIDATE ──> FR-PROVISION
        |                              |
        +──> FR-CONFIGURE          FR-NOTIFY
+
+{ASCII diagram using ──> arrows showing FR-to-FR dependencies.
+ Always include this diagram — it makes implementation ordering visible.
+ Show which FRs must be built before others can start.}
 ```
 
 #### PAUSE 4: Validate priorities (Guided Review — Pattern 5)
@@ -935,6 +956,144 @@ When exiting, update PRD metadata: Status, Next Step, Completion Date.
 
 ---
 
+## Structural Conventions (Non-Negotiable)
+
+Every PRD produced by this skill must follow these conventions exactly. Only content varies between PRDs — structure, naming, and formatting are fixed.
+
+### Mandatory Sections (COMPREHENSIVE)
+
+Every COMPREHENSIVE PRD must contain ALL of these H2 sections in this order:
+
+1. `## Document History`
+2. `## Table of Contents`
+3. `## Problem Statement`
+4. `## Goals`
+5. `## Non-Goals`
+6. `## Success Metrics`
+7. `## User Personas`
+8. `## Assumptions & Constraints`
+9. `## Use Cases`
+10. `## Functional Requirements`
+11. `## Non-Functional Requirements`
+12. `## Integration Points`
+13. `## Prioritisation (MoSCoW)`
+14. `## Domain Validation`
+15. `## Document Approval`
+
+Optional H2 sections (add when relevant, after Document Approval):
+- `## Appendix: API Endpoint Summary (Indicative)`
+- `## Appendix: Database Tables (Indicative)`
+
+### Naming & Numbering Conventions
+
+| Element | Format | Example |
+|---------|--------|---------|
+| Goals | `- **G{n}:** {text}` | `- **G1:** Reduce time-to-access` |
+| Non-Goals | `- **NG{n}:** {text} — Reason: {why}` | `- **NG1:** Mobile — Reason: desktop-only` |
+| Assumptions | `- **A{n}:** {text}` | `- **A1:** API handles load` |
+| Constraints | `- **C{n}:** {text}` | `- **C1:** Must use existing schema` |
+| FR IDs | `FR-{MODULE}-{DESCRIPTIVE-NAME}` | `FR-APP-REGISTER` |
+| NFR IDs | `NFR-{MODULE}-{DESCRIPTIVE-NAME}` | `NFR-APP-RESPONSE-TIME` |
+| UC IDs | `UC-{MODULE}-{NNN}` | `UC-APP-001` |
+| Personas | `### P{n}: {Role Title}` | `### P1: Platform Administrator (Primary)` |
+| Epics | `### Epic: {Name}` | `### Epic: User Lifecycle` |
+
+### Heading Levels (Fixed)
+
+| Element | Level | Example |
+|---------|-------|---------|
+| Sections | H2 | `## Problem Statement` |
+| Epics | H3 | `### Epic: User Lifecycle` |
+| Personas | H3 | `### P1: Platform Administrator` |
+| NFRs | H3 | `### NFR-APP-LATENCY: API Response Time` |
+| FRs | H4 | `#### FR-APP-SAVE: Save Application` |
+| Sub-sections | H3 | `### Assumptions`, `### Constraints`, `### Risks`, `### Open Questions` |
+
+### Persona Sub-Fields (All 6 Mandatory)
+
+Every persona MUST have exactly these 6 bold sub-fields:
+
+```
+- **Goals:** {2-3 items}
+- **Pain Points:** {2-3 items}
+- **Current Workaround:** {how they cope today}
+- **Success Criteria:** {how they know the feature works}
+- **Tech Level:** {description}
+- **Frequency:** {how often they use this}
+```
+
+### FR Body Structure (Fixed Format)
+
+```
+#### FR-{MODULE}-{NAME}: {Title}
+Priority: Must / Should / Could / Won't
+Complexity: S / M / L / XL
+Related: UC-{MODULE}-{NNN}
+
+As a {persona} (P{n}),
+I want to {action},
+So that {benefit}.
+
+Acceptance Criteria:
+  Given {precondition}
+  When {action}
+  Then {expected result}
+
+Security Criteria:
+  - {requirement}
+```
+
+Lines Priority, Complexity, Related appear one per line, no bold. Acceptance Criteria are indented 2 spaces. Security Criteria required on any FR that modifies data, touches auth, or handles PII. Compliance Criteria required on any FR touching regulated data.
+
+### NFR Body Structure (Fixed Format)
+
+```
+### NFR-{MODULE}-{NAME}: {Title}
+Category: Performance / Security / Scalability / Data / Accessibility
+Target: {specific number — "P95 < 200ms", not "fast"}
+Load Condition: {context}
+Measurement: {how to verify}
+Rationale: {traces to problem statement, success metrics, or persona needs}
+```
+
+### Table Formats (Fixed Columns)
+
+| Table | Columns (in order) |
+|-------|-------------------|
+| Success Metrics | Metric \| Current \| Target \| By When \| How Measured |
+| Risks | Risk \| Likelihood \| Impact \| Mitigation |
+| Open Questions | # \| Question \| Context \| Status \| Decision \| Owner |
+| Document Approval | Role \| Name \| Status \| Date |
+
+### MoSCoW Headings (Fixed Text)
+
+```
+### Must Have (MVP)
+### Should Have (v1)
+### Could Have (Future)
+### Won't Have (Yet)
+```
+
+### Integration Points Sub-Headings (Fixed Text)
+
+```
+### Consumed Services
+### Exposed Services
+### Integration NFRs
+```
+
+### Strict Rules
+
+1. FR IDs are DESCRIPTIVE, never sequential numbers (`FR-APP-REGISTER` not `FR-APP-001`)
+2. NFR targets contain specific numbers, never adjectives
+3. No ambiguity words in acceptance criteria: "appropriate", "reasonable", "quickly", "user-friendly", "intuitive", "properly", "sufficient", "as needed", "etc.", "and/or"
+4. At least one error/edge case acceptance criterion per Must Have FR
+5. Must Have list ≤ 10 items
+6. Won't Have items always have a "Reason:" rationale
+7. Dependency Graph section uses ASCII `──>` arrows showing FR-to-FR build order
+
+---
+
 ## Anti-Patterns
 
 **The Monologue** — Agent generates entire PRD, dumps it for approval. Instead, pause and validate at each phase. The user knows things the agent doesn't.
@@ -972,7 +1131,10 @@ This preserves the decision trail — anyone reading the PRD can see what change
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 3.7*
+*v3.7: Depends On field added to metadata template. Policy & Standards PRDs guidance added — handles PRDs for shared concerns that don't map to a single module (lighter personas, fewer use cases, policy-as-NFR pattern). Derived from applying the skill across 14 PRDs and identifying edge cases.*
+
+*v3.6: Structural Conventions section added — codifies all naming, numbering, heading level, table format, and body structure conventions as explicit non-negotiable rules. Previously these were only shown in templates. Mandatory audit NFR for modules with state-changing operations. Strict 6-NFR minimum for COMPREHENSIVE enforced. Dependency Graph ASCII arrow format made explicit. Optional appendix sections documented. Derived from autoresearch refinement loop (6 test cases, 2 iterations, 98-100% structural compliance achieved).*
 *v3.5: Use case location restructured — feature-scoped UCs now live in `docs/prd/{feature}/use-cases/` (colocated with PRD), cross-module UCs in `docs/use-cases/`. PAUSE 2 added for per-use-case Guided Review (Approve/Revise/Remove/Skip). PAUSE numbering rationalized (sequential 1-5, removed "1b" label). BRIEF mode skip list completed (added Phase 8b, 10b). PAUSE 5 deferrals question guarded for STANDARD+ only. Stage gate reference path corrected.*
 
 *v3.4.1: FR review switched from Batch Review (Pattern 3) to per-requirement Guided Review (Pattern 5) — each FR reviewed individually with Approve/Revise/Remove/Skip options.*

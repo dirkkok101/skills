@@ -63,9 +63,13 @@ If the user hasn't specified a mode, assess the PRD:
 
 ### CONVERGE Mode
 
-When selected, run the autoresearch convergence loop:
+When selected, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
 
-1. **Review** — Run a STANDARD review (Phases 0-6)
+- `CONVERGE` alone → uses STANDARD depth
+- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (adversarial checks, deeper)
+- `CONVERGE + BRIEF` → uses BRIEF depth (structural fixes only)
+
+1. **Review** — Run the review at the selected depth (default STANDARD, or COMPREHENSIVE if requested)
 2. **Classify** findings into three categories:
    - **MECHANICAL** — wrong numbering prefix, stale count, missing section, format error, ambiguity word in acceptance criteria, internal contradiction where one side is clearly correct. Auto-fix these.
    - **JUSTIFIED_DEVIATION** — PRD deviates from a convention with explicit, documented rationale. Verify rationale is sound; if yes, mark as PASS.

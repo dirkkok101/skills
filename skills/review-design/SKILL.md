@@ -59,9 +59,13 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 ### CONVERGE Mode
 
-When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop:
+When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
 
-1. **Review** — Run a STANDARD review (Phases 0-4, 6-7)
+- `CONVERGE` alone → uses STANDARD depth
+- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (deeper findings, longer per round)
+- `CONVERGE + BRIEF` → uses BRIEF depth (structural fixes only)
+
+1. **Review** — Run the review at the selected depth (default STANDARD, or COMPREHENSIVE if requested)
 2. **Classify** findings into three categories:
    - **MECHANICAL** — wrong heading, stale count, format error, internal contradiction where one side is clearly correct. Auto-fix these.
    - **JUSTIFIED_DEVIATION** — design deviates from pattern/ADR but has an explicit, documented rationale. Verify the rationale is sound; if yes, mark as PASS.

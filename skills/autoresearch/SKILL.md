@@ -21,18 +21,25 @@ argument-hint: "[prd|design] [module-name]"
 
 ---
 
-## When to Use
+## When to Use This Skill vs CONVERGE Mode
 
-- After `/review-prd` or `/review-design` reveals 3+ findings
-- User says "autoresearch", "converge", "fix all issues", "get to zero"
-- When manual fix→re-review cycles are taking too long
-- When cross-document consistency issues keep cascading
+Both `/review-prd` and `/review-design` have a built-in **CONVERGE mode** that runs the autoresearch loop on a single document. Use that for single-module convergence.
 
-## When NOT to Use
+**Use this standalone `/autoresearch` skill when:**
+- Running convergence across **multiple modules** in parallel
+- Running convergence on a document type that **doesn't have its own review skill** (custom checklists, plans, any doc with a structured evaluation)
+- You want to run the loop with a **custom evaluation function** (not the standard review skills)
+- User says "autoresearch all designs", "converge everything", "fix all modules"
 
+**Use CONVERGE mode on the review skill when:**
+- Converging a **single PRD** → `/review-prd {module}` then select CONVERGE
+- Converging a **single design** → `/review-design {module}` then select CONVERGE
+- The review skill already has all the context and checklist needed
+
+**Do NOT use either when:**
 - For a single finding (just fix it directly)
-- When findings require architectural decisions (escalate to user first)
-- On documents that don't have a corresponding review skill
+- When ALL findings require architectural decisions (nothing to auto-fix)
+- On documents without a structured evaluation function (subjective reviews can't converge)
 
 ---
 

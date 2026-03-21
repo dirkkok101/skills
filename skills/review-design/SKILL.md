@@ -53,8 +53,35 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 | **BRIEF** | Small design (1-2 feature areas, single design.md) | 0-1-2-3-6-7 | ~20 min |
 | **STANDARD** | Typical design (3+ feature areas, decomposed docs) | 0-1-2-3-4-6-7 | ~45-90 min |
 | **COMPREHENSIVE** | Large design (multi-module, 10+ UCs, critical system) | All phases 0-7 | ~2-3 hours |
+| **CONVERGE** | Fix all issues until 0 FAILs | STANDARD review + auto-fix loop | ~30-90 min |
 
-**BRIEF** checks structural completeness and key PRD/ADR alignment. **STANDARD** adds cross-module consistency and full compliance. **COMPREHENSIVE** adds adversarial depth — internal coherence, feasibility, security completeness, and error handling coverage.
+**BRIEF** checks structural completeness and key PRD/ADR alignment. **STANDARD** adds cross-module consistency and full compliance. **COMPREHENSIVE** adds adversarial depth — internal coherence, feasibility, security completeness, and error handling coverage. **CONVERGE** runs a STANDARD review, then automatically fixes mechanical findings, re-reviews, and repeats until FAILs reach zero or convergence is detected.
+
+### CONVERGE Mode
+
+When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop:
+
+1. **Review** — Run a STANDARD review (Phases 0-4, 6-7)
+2. **Classify** findings into three categories:
+   - **MECHANICAL** — wrong heading, stale count, format error, internal contradiction where one side is clearly correct. Auto-fix these.
+   - **JUSTIFIED_DEVIATION** — design deviates from pattern/ADR but has an explicit, documented rationale. Verify the rationale is sound; if yes, mark as PASS.
+   - **DECISION** — PRD vs design conflict, ADR contradiction without rationale, architectural choice. Escalate to user via AskUserQuestion.
+3. **Fix** mechanical findings using minimum changes. After cross-cutting fixes, grep the design directory for related terms to catch cascading references.
+4. **Re-review** — Run the review again on the fixed documents
+5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop (converged).
+6. **Repeat** until FAILs = 0 or max 5 rounds.
+
+**Progressive loading:** Load design.md + PRD first (Wave 1). Load feature docs only for areas with findings (Wave 2). Use agents for broad surveys of patterns/ADRs (Wave 3).
+
+**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE mode fixes FAILs only. WARNs are reported but not auto-fixed.
+
+**Authority hierarchy for mechanical fixes:**
+```
+ADRs > Pattern docs > Architecture docs > PRD > api-surface.md > diagrams > test plans > use cases > READMEs
+```
+
+**Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
+`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated.`
 
 ---
 
@@ -643,7 +670,8 @@ When approved: **"Design review complete. Run /plan to create implementation pla
 
 ---
 
-*Skill Version: 2.2*
+*Skill Version: 2.3*
+*v2.3: CONVERGE mode added — autoresearch loop built into the review skill. Runs STANDARD review, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Progressive loading, cascade check, authority hierarchy, max 5 rounds.*
 *v2.2: Feature area to PRD Epic alignment check added. Phase 2 FR coverage independently verified (don't trust the design's own matrix). Phase 3 rewritten — ADR, pattern, and architecture checks are now generic (read from docs/adr/, docs/patterns/, docs/architecture/) instead of hardcoded to a specific project's conventions. This makes the review skill portable across projects.*
 
 *v2.1: Synced with /technical-design v3.7. PRD Coverage Matrix check added (every Must Have FR must map to endpoint + tests). ADR Compliance table check added (all ADRs classified). Endpoint table check updated to 5 columns (Verb, Route, Purpose, Maps To, Auth Policy).*

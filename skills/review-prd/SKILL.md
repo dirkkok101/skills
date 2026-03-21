@@ -53,11 +53,37 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 | **BRIEF** | Quick sanity check, small PRD, time-constrained | Structural completeness only — all sections present, IDs valid |
 | **STANDARD** | Typical PRD review before technical design | Full template compliance + content quality + cross-cutting compliance |
 | **COMPREHENSIVE** | Complex feature, high-stakes, multi-module | All STANDARD checks + adversarial depth on acceptance criteria, security, measurability, failure paths |
+| **CONVERGE** | Fix all issues until 0 FAILs | STANDARD review + auto-fix loop |
 
 If the user hasn't specified a mode, assess the PRD:
 - BRIEF scope PRD or quick check requested → BRIEF
 - STANDARD scope PRD → STANDARD
 - COMPREHENSIVE scope PRD or high-stakes feature → COMPREHENSIVE
+- User says "converge", "fix all issues", "autoresearch" → CONVERGE
+
+### CONVERGE Mode
+
+When selected, run the autoresearch convergence loop:
+
+1. **Review** — Run a STANDARD review (Phases 0-6)
+2. **Classify** findings into three categories:
+   - **MECHANICAL** — wrong numbering prefix, stale count, missing section, format error, ambiguity word in acceptance criteria, internal contradiction where one side is clearly correct. Auto-fix these.
+   - **JUSTIFIED_DEVIATION** — PRD deviates from a convention with explicit, documented rationale. Verify rationale is sound; if yes, mark as PASS.
+   - **DECISION** — PRD contradicts cross-cutting PRD, persona references don't match, scope question requiring user judgment. Escalate to user via AskUserQuestion.
+3. **Fix** mechanical findings using minimum changes. After fixing cross-cutting items (numbering, format), verify all sections of the PRD are consistent.
+4. **Re-review** — Run the review again on the fixed PRD
+5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop.
+6. **Repeat** until FAILs = 0 or max 5 rounds.
+
+**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE fixes FAILs only.
+
+**Authority hierarchy for mechanical fixes:**
+```
+/prd skill Structural Conventions > cross-cutting PRD > ADRs > project personas > the PRD being reviewed
+```
+
+**Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
+`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated.`
 
 ---
 
@@ -568,5 +594,6 @@ When approved: **"PRD approved. Run /technical-design to begin the design phase.
 
 ---
 
-*Skill Version: 2.0*
+*Skill Version: 2.1*
+*v2.1: CONVERGE mode added — autoresearch loop built into the review skill. Runs STANDARD review, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Authority hierarchy specific to PRDs (/prd Structural Conventions > cross-cutting PRD > ADRs > project personas > the PRD being reviewed).*
 *v2.0: Phase 1 checklist fully synced with /prd v3.7 Structural Conventions — now checks exact heading formats, numbering prefixes (G/NG/A/C), heading levels (H2/H3/H4), all 6 persona sub-fields individually, FR/NFR body structure lines, mandatory audit NFR, strict NFR minimum (Fail not Warning), MoSCoW exact headings, Integration Points sub-headings, Document Approval table columns, Dependency Graph with ASCII arrows. Phase 2 adds naming convention consistency, heading level compliance, and audit coverage checks. Policy & Standards PRD exceptions noted. Template Worship anti-pattern reconciled with non-negotiable structural conventions. TOC upgraded from Warning to Fail for COMPREHENSIVE.*

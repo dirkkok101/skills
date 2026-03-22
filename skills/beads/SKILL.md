@@ -615,8 +615,8 @@ For greenfield: Create beads from the Frontend Bead Decomposition table.
 For gap-driven: Create beads only for frontend elements marked "New" or "Modify".
 
 **Step 1.2d — Create test beads:**
-- One backend integration test bead per feature (depends on backend `/simplify` gate)
-- One frontend UI test bead per feature (depends on frontend `/simplify` gate)
+- One backend integration test bead per feature (depends on last backend impl bead)
+- One frontend UI test bead per feature (depends on last frontend impl bead)
 - For gap-driven: test beads verify BOTH new code AND that existing flows still work
 
 **Step 1.2e — Apply grouping exceptions:**
@@ -625,7 +625,7 @@ Review the bead list for trivially small beads that can be combined per the Grou
 **Step 1.2f — Auto-detect gate scale:**
 ```
 IF total implementation beads ≤ 5 AND plan tasks ≤ 3:
-  → BRIEF gates only (backend review + simplify, no UC/module gates)
+  → BRIEF gates only (backend test + frontend test, no UC/module verify gates)
 ELSE:
   → Standard gate structure per Step 1.3
 ```
@@ -822,18 +822,16 @@ Register dependencies between beads as specified in the plan's dependency graph 
 - The dependency tree reflects the plan's ordering plus pattern-internal ordering
 - First bead(s) have no blockers and are ready to execute
 - Frontend impl beads depend on backend test gate (NOT on backend impl beads)
-- Gate beads correctly chain: `/review` → `/simplify` → test
+- Test gates correctly placed after last impl bead per phase
 - UC gates depend on all contributing feature test gates
 - Module gates depend on all UC gates
 
 **Stage gate dependency rules:**
-- `/review` bead depends on last impl bead of phase
-- `/simplify` bead depends on `/review` bead
-- Test gate depends on `/simplify` bead
+- Test gate depends on last impl bead of phase
 - Frontend impl beads depend on backend test gate (NEVER on backend impl beads directly)
 - UC gates depend on all contributing feature test gates
 - Module gates depend on all UC gates
-- Epic depends on module `/simplify` gate
+- Epic depends on module verify gate
 
 ---
 
@@ -1140,43 +1138,27 @@ Then IsVerified is set to true and persisted
 - **Commit:** `feat(models): add IsVerified property to Account`
 ```
 
-### Good Gate Bead
+### Good Test Gate Bead
 
 ```markdown
 ## Objective
-Run `/review` on all backend code for the Roles feature slice.
-Fix all Critical and High findings before proceeding.
+Run integration tests for the Roles feature slice. All backend beads
+are complete — verify the code compiles and tests pass.
 
 ## Depends On
-- bd-017: Role Service Registration
+- bd-017: Role Service Registration (last backend bead)
 
 ## In Scope
-- All files in Features/Roles/ changed by beads bd-001 through bd-017
-- Correctness, security, and design conformance review
-
-## Out of Scope
-- Frontend code (separate gate after frontend beads)
-- Architecture changes (escalate to /plan)
+- All backend code in Features/Roles/
+- Integration tests covering Save, Get, Grid, Delete, Lookup endpoints
 
 ## Success Criteria
-- `/review` produces 0 Critical and 0 High findings (or all are fixed)
-- `dotnet build` succeeds after fixes
-- `dotnet test --filter "Role"` passes after fixes
-
-## Failure Criteria
-- ❌ Do NOT skip findings rated Critical or High
-- ❌ Do NOT defer fixes to a later bead
-- ❌ Do NOT modify code outside Roles scope
-
-## Context to Load
-- **Review scope:** `Features/Roles/` — all files in this feature directory
-- **Pattern docs:** {resolved from doc map — all pattern keys used by Roles beads}
-- **Design docs:** {resolved `api-surface` from doc map}
-- **Decisions:** {resolved from `decisions[]` — all Roles-scoped and project-scoped decisions}
+- `{build command}` succeeds
+- `{test command} --filter "Role"` passes — all tests green
 
 ## Verification
-- **Command:** `dotnet build && dotnet test --filter "Role"`
-- **Commit:** `review(roles): fix /review findings for backend`
+- **Command:** `{build command} && {test command} --filter "Role"`
+- **Commit:** `test(roles): verify backend integration tests pass`
 ```
 
 ### Bad Bead
@@ -1232,20 +1214,18 @@ bd-014: Role Grid Endpoint
 bd-015: Role Delete Endpoint
 bd-016: Role Lookup Endpoint
 bd-017: Role Service Registration
-  → /review(roles): backend
-  → /simplify(roles): backend
   → test(roles): integration tests
 bd-018: Roles Models + Enums
 bd-019: Roles Feature Service
 bd-020: Roles List Page
 bd-021: Roles Capture Page
 bd-022: Roles Routing
-  → /review(roles): frontend
-  → /simplify(roles): frontend
   → test(roles): UI tests
+  → verify(roles): UC-ROLE-001
+  → verify(roles): module complete
 ```
 
-**17 backend + 5 frontend + 6 gates + 2 tests = 30 beads** for one feature. Each bead is a focused, single-pattern, single-commit unit of work.
+**17 backend + 5 frontend + 4 test/verify gates = 26 beads** for one feature. Each bead is a focused, single-pattern, single-commit unit of work.
 
 ---
 
@@ -1259,12 +1239,12 @@ For a typical module with 3 entities, 3 UI features, and 2 use cases:
 - Agent must hold multiple concerns in context
 - One failing concern blocks the entire bead
 
-**After (pattern-granular + stage gates):**
+**After (pattern-granular + test gates):**
 - ~45 pattern-aligned impl beads (15 backend × 3 entities + 5 frontend × 3 features + 6 tests)
-- ~18 feature gates (6 per feature × 3 features)
-- ~4 UC gates (2 per UC × 2 UCs)
-- ~2 module gates
-- **Total: ~69 beads**
+- ~6 test gates (2 per feature × 3 features)
+- ~2 UC verify gates (1 per UC × 2 UCs)
+- ~1 module verify gate
+- **Total: ~54 beads**
 
 **Why more beads is better:**
 1. Each bead is faster to execute — smaller context, single concern, clear pattern reference
@@ -1274,7 +1254,7 @@ For a typical module with 3 entities, 3 UI features, and 2 use cases:
 5. Frontend never builds on broken backend — test gates enforce verification before UI work
 6. Git history is useful — each commit is one pattern artifact, easy to revert or cherry-pick
 7. Eliminates the "fix everything at the end" anti-pattern — quality is continuous, not deferred
-8. Gate beads are fast — `/review` and `/simplify` on a single feature take minutes, not hours
+8. Test gates are fast — running tests on a single feature takes seconds, not hours
 
 ---
 
@@ -1314,10 +1294,10 @@ For BRIEF scope (3-6 tasks from a BRIEF plan), create beads directly from the ov
 
 The bead format is identical. The only difference is that you extract objectives and criteria from the overview's inline task descriptions rather than from separate sub-plan files.
 
-For BRIEF scope, stage gates are simplified:
-- One `/review` + `/simplify` cycle after all backend beads
-- One `/review` + `/simplify` cycle after all frontend beads (if applicable)
-- Skip UC and module gates (there's typically only one use case in BRIEF scope)
+For BRIEF scope, test gates are simplified:
+- One test gate after all backend beads
+- One test gate after all frontend beads (if applicable)
+- Skip UC and module verify gates (there's typically only one use case in BRIEF scope)
 
 ---
 
@@ -1326,9 +1306,9 @@ For BRIEF scope, stage gates are simplified:
 Beads live in the project's issue tracker (e.g., `br` database), not as files. The output of this skill is:
 - An epic linking all beads
 - Individual implementation beads with full descriptions and pattern references
-- Stage gate beads at feature, UC, and module boundaries
-- Test beads after each `/simplify` gate
-- Dependencies set between all beads (implementation → gates → next phase)
+- Test gate beads at feature boundaries
+- Verify gate beads at UC and module boundaries
+- Dependencies set between all beads (implementation → test gates → next phase)
 - Labels applied for categorisation
 - Self-assessment completed with all beads Ready
 

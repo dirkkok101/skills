@@ -157,6 +157,61 @@ Every Must-Have FR from the PRD must appear in at least one task.
 
 Flag any uncovered Must-Have FRs as blocking issues. If the project uses an issue tracker, offer to create tracked items: "These Must-Have FRs have no covering task. Want me to create tracked issues for them?"
 
+**Step 1.4b — Map UCs to Tasks:**
+
+Every use case from the PRD must be executable end-to-end across the task sequence. A UC may span multiple tasks — that's fine, but the full scenario flow must be covered.
+
+```markdown
+### UC Coverage
+| UC | Title | Tier | Task(s) | End-to-End? |
+|----|-------|------|---------|-------------|
+| UC-{MODULE}-001 | {title} | 1 | T02, T03, T05 | ✅ Full scenario covered |
+| UC-{MODULE}-002 | {title} | 2 | T03 | ✅ Covered |
+| UC-{MODULE}-003 | {title} | 1 | T02 | ⚠ Steps 3-5 not covered (failure paths) |
+```
+
+For Tier 1 UCs, verify: every scenario step has a covering task, every failure path has a covering task, every business rule (BR-*) maps to a validation task.
+
+**Step 1.4c — Design Coverage Matrix:**
+
+Every design element (endpoint, entity, command, query, contract, mapper) must have a covering task. This goes beyond FR coverage — a design may specify 6 endpoints for a single FR.
+
+```markdown
+### Design Coverage
+| Design Element | Type | Source File | Task | Status |
+|---------------|------|------------|------|--------|
+| POST /api/v1/widgets | endpoint | api-surface.md | T03 | ✅ Covered |
+| WidgetDTO | contract | api-surface.md | T02 | ✅ Covered |
+| SaveWidgetCommand | command | api-surface.md | T03 | ✅ Covered |
+| GetWidgetQuery | query | api-surface.md | T04 | ✅ Covered |
+| Widget entity | entity | data-model.md | T01 | ✅ Covered |
+| widget.saved audit | audit | design.md | — | ⚠ Gap |
+```
+
+Derive the element list from the design's api-surface files (endpoints, contracts, commands, queries) and data-model (entities, migrations). Flag gaps as blocking issues.
+
+**Step 1.4d — Implementation Gap Analysis (Non-Greenfield):**
+
+For features where partial implementation exists, check what's already built before planning tasks. This prevents creating beads for work that's already done.
+
+```markdown
+### Implementation Status
+| Design Element | Status | Notes |
+|---------------|--------|-------|
+| Widget entity | ✅ Exists | Schema matches design |
+| WidgetDTO | ✅ Exists | Missing new field "Category" |
+| SaveWidgetCommand | ⚠ Partial | Exists but uses old pattern (HasConflict flags) |
+| GetWidgetQuery | ❌ New | Not yet implemented |
+| Widget grid UI | ❌ New | Not yet implemented |
+```
+
+Mark each task as:
+- **New** — nothing exists, build from scratch per design
+- **Modify** — exists but needs changes to match design (specify what changes)
+- **Exists** — already matches design, skip or verify only
+
+This step is OPTIONAL for greenfield features. For features building on existing code, it prevents the most common execution drift: the agent copies existing patterns instead of following the design, because the plan never told it what already exists and what needs to change.
+
 **Step 1.5 — Order by Risk and Dependency:**
 
 Neither pure "risk-first" nor pure "foundation-first" is optimal. Use this sequence:
@@ -290,6 +345,15 @@ Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
 ## FR Coverage
 {Table from Phase 1.4}
 
+## UC Coverage
+{Table from Phase 1.4b}
+
+## Design Coverage
+{Table from Phase 1.4c}
+
+## Implementation Status (if non-greenfield)
+{Table from Phase 1.4d}
+
 ## Dependency Graph
 {ASCII diagram from Phase 1.6}
 
@@ -384,8 +448,10 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 **Success Criteria:**
 - {Testable assertion — what must be true when done}
 
-**Failure Criteria:** (include known pitfalls)
-- {What NOT to do — common mistakes, design constraints that must hold}
+**Failure Criteria:** (REQUIRED for every task, not optional)
+- {What NOT to do — from design decisions: "Do NOT use HasConflict flags — use OneOf per ADR-0016"}
+- {Rejected alternative — from design: "Do NOT use pub/sub for cache invalidation — use direct KeyDelete per design decision"}
+- {Pattern constraint — "Do NOT inject DbContext directly — use IDbContextFactory per project pattern"}
 
 ---
 
@@ -719,7 +785,8 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 3.6*
+*v3.6: UC Coverage table (Step 1.4b) — every UC mapped to tasks, end-to-end verification for Tier 1. Design Coverage Matrix (Step 1.4c) — every endpoint, entity, command, query, contract mapped to tasks. Implementation Gap Analysis (Step 1.4d) — non-greenfield features check what exists before planning. Failure Criteria made mandatory per task with explicit "do NOT" guidance from design decisions. Overview template includes UC Coverage, Design Coverage, and Implementation Status tables.*
 *v3.5: Prerequisites expanded with use cases, browser E2E plans, ADRs, and patterns paths. Phase 3b added to collaborative model. BRIEF skip list made explicit. ASCII conventions path corrected.*
 *v3.4: AskUserQuestion stage gates. PAUSE 1 uses Guided Review Workflow (Pattern 5) with Batch Review for task validation, Decision Gate for FR coverage, and Decision Gate for ordering. PAUSE 2 uses Decision Gate (Pattern 1) for plan approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*

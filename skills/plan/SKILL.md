@@ -159,18 +159,24 @@ Flag any uncovered Must-Have FRs as blocking issues. If the project uses an issu
 
 **Step 1.4b — Map UCs to Tasks:**
 
-Every use case from the PRD must be executable end-to-end across the task sequence. A UC may span multiple tasks — that's fine, but the full scenario flow must be covered.
+Every use case from the PRD must be executable end-to-end across the task sequence. A UC may span multiple tasks — that's fine, but the full scenario flow must be covered. If tasks covering a UC can run in parallel (per the dependency graph), verify the UC has no ordering dependency between them.
 
 ```markdown
 ### UC Coverage
-| UC | Title | Tier | Task(s) | End-to-End? |
-|----|-------|------|---------|-------------|
-| UC-{MODULE}-001 | {title} | 1 | T02, T03, T05 | ✅ Full scenario covered |
-| UC-{MODULE}-002 | {title} | 2 | T03 | ✅ Covered |
-| UC-{MODULE}-003 | {title} | 1 | T02 | ⚠ Steps 3-5 not covered (failure paths) |
+| UC | Title | Tier | Task(s) | Ordering | End-to-End? |
+|----|-------|------|---------|----------|-------------|
+| UC-{MODULE}-001 | {title} | 1 | T02, T03, T05 | Sequential (T02→T03→T05) | ✅ Full scenario covered |
+| UC-{MODULE}-002 | {title} | 2 | T03 | Single task | ✅ Covered |
+| UC-{MODULE}-003 | {title} | 1 | T02 | — | ⚠ Steps 3-5 not covered (failure paths) |
 ```
 
-For Tier 1 UCs, verify: every scenario step has a covering task, every failure path has a covering task, every business rule (BR-*) maps to a validation task.
+For Tier 1 UCs, verify:
+- Every scenario step has a covering task
+- Every failure path has a covering task
+- Every business rule (BR-*) maps to a validation task
+- If UC tasks are parallelizable, the UC doesn't require them in sequence
+
+UC Coverage gaps for Tier 1 UCs are **blockers** — do not proceed until resolved. Tier 2 gaps may be deferred with explicit owner and rationale.
 
 **Step 1.4c — Design Coverage Matrix:**
 
@@ -210,7 +216,7 @@ Mark each task as:
 - **Modify** — exists but needs changes to match design (specify what changes)
 - **Exists** — already matches design, skip or verify only
 
-This step is OPTIONAL for greenfield features. For features building on existing code, it prevents the most common execution drift: the agent copies existing patterns instead of following the design, because the plan never told it what already exists and what needs to change.
+For greenfield features, every element is "New" — but still document the table to confirm nothing was assumed to exist. For features building on existing code, it prevents the most common execution drift: the agent copies existing patterns instead of following the design, because the plan never told it what already exists and what needs to change.
 
 **Step 1.5 — Order by Risk and Dependency:**
 
@@ -276,7 +282,7 @@ AskUserQuestion:
 
 Repeat with additional batches if there are more than 4 tasks. For any tasks flagged for adjustment, collect the user's notes and iterate before continuing.
 
-**Step 3:** Present the FR Coverage table (from Step 1.4), then:
+**Step 3:** Present the FR Coverage table (from Step 1.4), UC Coverage table (from Step 1.4b), and Design Coverage table (from Step 1.4c) as formatted markdown, then:
 
 ```
 AskUserQuestion:
@@ -285,11 +291,11 @@ AskUserQuestion:
   multiSelect: false
   options:
     - label: "Complete (Recommended)"
-      description: "All Must-Have FRs are covered by at least one task."
+      description: "All Must-Have FRs covered, all Tier 1 UCs end-to-end, all design elements mapped."
     - label: "Has gaps"
-      description: "Some Must-Have FRs are missing task coverage."
+      description: "Some FRs, UCs, or design elements are missing task coverage."
     - label: "Need to adjust"
-      description: "Task-to-FR mapping needs changes."
+      description: "Coverage mappings need changes."
 ```
 
 **Step 4:** Present the Dependency Graph and Critical Path (from Step 1.6), then:
@@ -452,6 +458,12 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 - {What NOT to do — from design decisions: "Do NOT use HasConflict flags — use OneOf per ADR-0016"}
 - {Rejected alternative — from design: "Do NOT use pub/sub for cache invalidation — use direct KeyDelete per design decision"}
 - {Pattern constraint — "Do NOT inject DbContext directly — use IDbContextFactory per project pattern"}
+
+To extract failure criteria, read the design's decision records (decisions/*.md):
+1. For each task, identify which design decisions apply
+2. Read the "Rejected Alternatives" or "Cons" from the decision record
+3. Quote the rejected approach verbatim as a "Do NOT"
+4. Include the ADR/decision reference so the executing agent can verify
 
 ---
 
@@ -785,8 +797,10 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.6*
-*v3.6: UC Coverage table (Step 1.4b) — every UC mapped to tasks, end-to-end verification for Tier 1. Design Coverage Matrix (Step 1.4c) — every endpoint, entity, command, query, contract mapped to tasks. Implementation Gap Analysis (Step 1.4d) — non-greenfield features check what exists before planning. Failure Criteria made mandatory per task with explicit "do NOT" guidance from design decisions. Overview template includes UC Coverage, Design Coverage, and Implementation Status tables.*
+*Skill Version: 3.7*
+*v3.7: Adversarial review fixes. UC Coverage table includes Ordering column for parallel-safe verification. Tier 1 UC gaps are explicit blockers. Failure criteria extraction process defined (read decision records, quote rejected alternatives). Implementation Gap Analysis always required (not optional for greenfield — confirms "all new"). PAUSE 1 Step 3 validates all three coverage tables together (FR + UC + Design). Design Coverage verified at PAUSE gate, not just self-reported.*
+
+*v3.6: UC Coverage table (Step 1.4b), Design Coverage Matrix (Step 1.4c), Implementation Gap Analysis (Step 1.4d), mandatory Failure Criteria.*
 *v3.5: Prerequisites expanded with use cases, browser E2E plans, ADRs, and patterns paths. Phase 3b added to collaborative model. BRIEF skip list made explicit. ASCII conventions path corrected.*
 *v3.4: AskUserQuestion stage gates. PAUSE 1 uses Guided Review Workflow (Pattern 5) with Batch Review for task validation, Decision Gate for FR coverage, and Decision Gate for ordering. PAUSE 2 uses Decision Gate (Pattern 1) for plan approval. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
 *v3.3: Companion documents for COMPREHENSIVE plans: e2e-test-plan.md (acceptance-level E2E scenarios), security-hardening-checklist.md (operationalized security findings with priority tiers), test-scenario-matrix.md (UC → test class living mapping). Dependency graph diagram for complex plans. All patterns validated against AMPS actions project (17 sub-plans + 3 companion docs).*

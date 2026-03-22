@@ -65,8 +65,8 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 **CONVERGE changes to the normal review flow:**
 - **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
 - **Replace Phase 7 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
-- **Observations and Minor findings are listed** but NOT fixed and NOT presented interactively.
-- **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly to fix mechanical findings.
+- **WARNs are listed** but NOT auto-fixed. Triaged after FAILs reach 0.
+- **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly to fix MECHANICAL FAIL findings. FAIL findings with clear authority precedence are auto-fixed. FAIL findings requiring judgment are escalated as DECISION via AskUserQuestion. WARN findings are never auto-fixed.
 
 **The loop:**
 
@@ -175,7 +175,7 @@ Verify the overview contains all required sections from the `/plan` skill spec:
 | Testing Summary | No | Yes | Yes |
 | Sub-Plans table | No | Yes | Yes |
 
-Flag missing required sections as **Major** findings.
+Flag missing required sections as **WARN** findings.
 
 **Step 1.2 — Sub-Plan Document Structure (STANDARD+):**
 
@@ -194,9 +194,9 @@ Verify conditional sections are present when applicable:
 - Pattern Reference (when established patterns exist)
 
 Verify mandatory sections:
-- Failure Criteria — REQUIRED per task (not optional). Must include explicit "do NOT" guidance derived from design decisions and rejected alternatives. Flag missing Failure Criteria as **Major** (without them, the executing agent may re-derive the wrong approach).
+- Failure Criteria — REQUIRED per task (not optional). Must include explicit "do NOT" guidance derived from design decisions and rejected alternatives. Flag missing Failure Criteria as **WARN** (without them, the executing agent may re-derive the wrong approach).
 
-Flag missing required sections as **Major**. Flag missing conditional sections (when clearly applicable) as **Minor**.
+Flag missing required sections as **WARN**. Flag missing conditional sections (when clearly applicable) as **Minor**.
 
 **Step 1.3 — Companion Document Compliance (COMPREHENSIVE):**
 
@@ -205,7 +205,7 @@ If plan mode is COMPREHENSIVE, verify companion documents exist and contain requ
 - `security-hardening-checklist.md`: Priority tiers (0/1/2), Exit Criteria (skip if design says "no security implications")
 - `test-scenario-matrix.md`: Summary metrics, UC-to-test mapping
 
-Flag missing COMPREHENSIVE companion docs as **Major**.
+Flag missing COMPREHENSIVE companion docs as **WARN**.
 
 **Step 1.4 — Anti-Pattern Detection:**
 
@@ -213,14 +213,14 @@ Check for each anti-pattern defined in the `/plan` skill spec:
 
 | Anti-Pattern | Detection Signal | Severity |
 |-------------|-----------------|----------|
-| **Horizontal-Only Decomposition** | All tasks scoped to a single layer (all DB, then all API, then all UI) with no end-to-end slice | Critical |
-| **Deferred Risk** | High-risk or integration tasks appear only in late phases | Major |
-| **Testing as Phase N** | A dedicated "write tests" phase/task with no per-task test expectations | Major |
-| **200-Task Plan** | Excessive task count relative to feature scope; trivial tasks that should be merged | Major |
-| **Plan-as-Design** | Sub-plans make architectural decisions not present in the design (new patterns, new entities, new API shapes) | Critical |
+| **Horizontal-Only Decomposition** | All tasks scoped to a single layer (all DB, then all API, then all UI) with no end-to-end slice | FAIL |
+| **Deferred Risk** | High-risk or integration tasks appear only in late phases | WARN |
+| **Testing as Phase N** | A dedicated "write tests" phase/task with no per-task test expectations | WARN |
+| **200-Task Plan** | Excessive task count relative to feature scope; trivial tasks that should be merged | WARN |
+| **Plan-as-Design** | Sub-plans make architectural decisions not present in the design (new patterns, new entities, new API shapes) | FAIL |
 | **Copy-Paste Sub-Plans** | Large blocks of text duplicated verbatim from design docs instead of referenced | Minor |
-| **Hollow Sub-Plans** | Sub-plans with only prose descriptions — no pseudocode, no contract shapes, no pattern references despite design having produced this detail | Major |
-| **Misaligned Decomposition** | Sub-plan grouping doesn't mirror the design's feature decomposition structure | Major |
+| **Hollow Sub-Plans** | Sub-plans with only prose descriptions — no pseudocode, no contract shapes, no pattern references despite design having produced this detail | WARN |
+| **Misaligned Decomposition** | Sub-plan grouping doesn't mirror the design's feature decomposition structure | WARN |
 
 **Step 1.5 — Plan/Beads Boundary Violations:**
 
@@ -249,16 +249,16 @@ Map the design's feature areas to plan sub-plans:
 | features/role-templates/ | 04-role-template-feature.md | Yes/No |
 ```
 
-Flag unmapped design features as **Critical** (work that won't get done).
-Flag plan sub-plans with no design counterpart as **Critical** (phantom scope).
+Flag unmapped design features as **FAIL** (work that won't get done).
+Flag plan sub-plans with no design counterpart as **FAIL** (phantom scope).
 
 **Step 2.2 — API Surface & Contract Verification:**
 
 For each endpoint in the design's API surface (typically `api-surface.md` or similar):
 - Verify a plan task covers it
 - Verify route, HTTP verb, request/response shapes in the plan match the design
-- Flag mismatches (wrong verb, missing fields, different route) as **Critical**
-- Flag missing endpoint coverage as **Critical**
+- Flag mismatches (wrong verb, missing fields, different route) as **FAIL**
+- Flag missing endpoint coverage as **FAIL**
 
 **Step 2.3 — Data Model Verification:**
 
@@ -266,22 +266,22 @@ Compare the design's data model (entities, columns, constraints, FK behaviours, 
 - Every entity in the design should have creation coverage in a plan task
 - Column names, types, and constraints should match
 - FK cascade/restrict behaviours should match
-- Flag mismatches as **Critical** (wrong schema = wrong code)
+- Flag mismatches as **FAIL** (wrong schema = wrong code)
 
 **Step 2.4 — Design Decision Preservation:**
 
 For each design decision (chosen approach, rejected alternatives, trade-offs):
 - Verify the plan doesn't contradict it
 - Verify the plan doesn't introduce new architectural decisions not in the design
-- Flag contradictions as **Critical**
-- Flag new decisions as **Major** (should be pushed back to design)
+- Flag contradictions as **FAIL**
+- Flag new decisions as **WARN** (should be pushed back to design)
 
 **Step 2.5 — Test Plan Alignment:**
 
 Compare the design's per-feature test plans against the plan's Testing Summary and sub-plan success criteria:
 - Are test categories from the design reflected in plan tasks?
 - Do sub-plan success criteria cover the design's test expectations?
-- Flag gaps as **Major**
+- Flag gaps as **WARN**
 
 **Step 2.6 — Companion Doc Fidelity (COMPREHENSIVE):**
 
@@ -289,7 +289,7 @@ If companion docs exist, verify them against the design:
 - E2E test plan scenarios should align with the design's integration/E2E expectations
 - Security hardening items should trace to the design's security analysis
 - Test scenario matrix should reflect the design's per-feature test plans
-- Flag contradictions as **Major**
+- Flag contradictions as **WARN**
 
 **Early Termination:** If Phase 2 produces 5 or more Critical findings, STOP. Present findings to the user immediately — there is no value in continuing deeper review when the plan fundamentally misrepresents the design. Use the PAUSE described in Phase 7.
 
@@ -306,8 +306,8 @@ If companion docs exist, verify them against the design:
 For every gap classified in the gap analysis:
 - If classified as "include" / "address" / "in scope" → verify at least one plan task covers it
 - If classified as "defer" / "out of scope" / "future" → verify NO plan task implements it
-- Flag included gaps with no task coverage as **Critical**
-- Flag deferred gaps that appear in plan tasks as **Major** (scope creep)
+- Flag included gaps with no task coverage as **FAIL**
+- Flag deferred gaps that appear in plan tasks as **WARN** (scope creep)
 
 **Step 3.2 — Scope Decision Respect:**
 
@@ -316,7 +316,7 @@ Verify the plan respects all scope decisions from the gap analysis:
 - Items explicitly included should appear
 - Migration ordering recommendations should be reflected in task sequencing
 
-Flag violations as **Major**.
+Flag violations as **WARN**.
 
 ---
 
@@ -333,8 +333,8 @@ For every Must-Have FR in the PRD:
 
 This is the adversarial step. A plan that maps FR-WIDGET-DELETE to a task titled "Widget CRUD" but whose sub-plan body only covers create and edit has a false coverage claim. The FR Coverage table says "covered" but the implementation won't deliver it.
 
-Flag Must-Have FRs with no task coverage as **Critical**.
-Flag Must-Have FRs with false/shallow coverage as **Critical**.
+Flag Must-Have FRs with no task coverage as **FAIL**.
+Flag Must-Have FRs with false/shallow coverage as **FAIL**.
 
 **Step 4.2 — Self-Review Claim Verification:**
 
@@ -343,7 +343,7 @@ If the plan contains its own FR coverage claims (most plans do, per the /plan sk
 - For each "Covered" claim, trace to the sub-plan and verify the task body addresses the FR
 - For each "Gap" acknowledgment, verify it's genuinely a gap and not something covered elsewhere
 
-Flag false "Covered" claims as **Critical**.
+Flag false "Covered" claims as **FAIL**.
 
 **Step 4.3 — Use Case Coverage:**
 
@@ -352,9 +352,9 @@ Verify the plan includes a UC Coverage table (new in /plan v3.6). For each use c
 - For Tier 1 UCs: verify every scenario step has a covering task, every failure path has a covering task, every BR-* maps to a validation task
 - Identify any use case steps that fall between tasks (gaps in the vertical slice)
 
-Flag missing UC Coverage table as **Major**.
-Flag use cases with broken execution paths as **Major**.
-Flag Tier 1 UC failure paths with no covering task as **Critical**.
+Flag missing UC Coverage table as **WARN**.
+Flag use cases with broken execution paths as **WARN**.
+Flag Tier 1 UC failure paths with no covering task as **FAIL**.
 
 **Step 4.4 — Design Coverage Matrix:**
 
@@ -364,8 +364,8 @@ Verify the plan includes a Design Coverage table (new in /plan v3.6). Cross-refe
 - Every command/query in the design has a covering task
 - Every contract (DTO, Request, Response) has a covering task
 
-Flag missing Design Coverage table as **Major**.
-Flag design elements with no covering task as **Critical** (work that won't get done).
+Flag missing Design Coverage table as **WARN**.
+Flag design elements with no covering task as **FAIL** (work that won't get done).
 
 **Step 4.4 — Cross-Cutting PRD Compliance:**
 
@@ -375,7 +375,7 @@ Check whether the plan addresses PRD cross-cutting requirements:
 - **Error handling** — if the PRD specifies error UX or recovery requirements, verify task coverage
 - **Pagination** — if the PRD specifies list/grid requirements, verify plan tasks include pagination
 
-Flag missing cross-cutting coverage as **Major**.
+Flag missing cross-cutting coverage as **WARN**.
 
 ---
 
@@ -392,7 +392,7 @@ Scope relevant ADRs:
 4. Verify the plan doesn't contradict active ADRs
 5. **Respect superseded ADRs** — if an ADR is marked superseded, the superseding decision takes precedence. Do not flag plan content that follows the superseding decision.
 
-Flag ADR violations as **Major**.
+Flag ADR violations as **WARN**.
 
 **Step 5.2 — Pattern Compliance:**
 
@@ -404,7 +404,7 @@ Check the plan against established patterns from `docs/patterns/`:
 - Delete pattern (ExecuteDeleteAsync, not load-and-delete)
 - Other project-specific patterns from CLAUDE.md
 
-Flag pattern violations as **Major** (they'll cause rework during /execute).
+Flag pattern violations as **WARN** (they'll cause rework during /execute).
 
 **Step 5.3 — Architecture Compliance:**
 
@@ -413,7 +413,7 @@ Check the plan against architecture documents from `docs/architecture/`:
 - Authorization model (permission checks, role enforcement)
 - CQRS boundaries (commands vs queries, no mixing)
 
-Flag architecture violations as **Critical**.
+Flag architecture violations as **FAIL**.
 
 ---
 
@@ -428,7 +428,7 @@ Flag architecture violations as **Critical**.
 - Complexity ratings in overview match sub-plan scope
 - Sub-Plans table file names match actual files on disk
 
-Flag inconsistencies as **Major**.
+Flag inconsistencies as **WARN**.
 
 **Step 6.2 — Cross-Sub-Plan Consistency:**
 
@@ -446,8 +446,8 @@ Flag inconsistencies as **Minor** (confusing but not blocking).
 - Critical path is actually the longest chain
 - Parallelisable tasks have no hidden dependencies
 
-Flag circular dependencies as **Critical**.
-Flag invalid references as **Major**.
+Flag circular dependencies as **FAIL**.
+Flag invalid references as **WARN**.
 Flag incorrect critical path as **Minor**.
 
 **Step 6.4 — Naming Consistency:**
@@ -466,20 +466,20 @@ Flag naming inconsistencies as **Minor**.
 
 Every finding gets a severity:
 
-| Severity | Definition | Examples |
-|----------|-----------|---------|
-| **Critical** | Blocks /beads — will produce wrong code or miss requirements | Design contradiction, missing Must-Have FR, phantom scope, circular dependencies |
-| **Major** | Degrades quality — causes rework or confusion during /execute | Missing plan sections, hollow sub-plans, ADR violations, false FR coverage |
-| **Minor** | Fix during /beads — low impact, cosmetic, or easily caught | Copy-paste content, naming inconsistency, beads-level content in plans |
-| **Observation** | Not a defect — suggestion or note for awareness | Alternative decomposition strategy, potential optimization |
+| Severity | Definition | Examples | Autoresearch Mapping |
+|----------|-----------|---------|---------------------|
+| **FAIL** | Blocks /beads — will produce wrong code or miss requirements | Design contradiction, missing Must-Have FR, phantom scope, circular dependencies | Auto-fixed (MECHANICAL) or escalated (DECISION) |
+| **WARN** | Degrades quality — causes rework or confusion during /execute | Missing plan sections, hollow sub-plans, ADR violations, false FR coverage | Logged, not auto-fixed |
+
+Minor and observational issues are reported inline as notes, not as formal findings. This aligns with review-prd and review-design severity models and ensures CONVERGE mode works consistently across all review skills.
 
 **Step 7.2 — Determine Verdict:**
 
 | Verdict | Criteria |
 |---------|----------|
-| **PASS** | 0 Critical, 0 Major |
-| **PASS WITH CONDITIONS** | 0 Critical, 1-3 Major (list conditions to resolve before /beads) |
-| **FAIL** | Any Critical findings, OR 4+ Major findings |
+| **PASS** | 0 FAILs |
+| **PASS WITH CONDITIONS** | 0 FAILs after CONVERGE, WARNs noted |
+| **FAIL** | Any FAIL findings remaining |
 
 **Step 7.3 — Write Review Report:**
 
@@ -501,7 +501,7 @@ Save to: `${PROJECT_ROOT}/docs/reviews/review-plan-{feature}-{date}.md`
 
 ### Authority Source Compliance
 
-| Authority Source | Status | Critical | Major | Minor |
+| Authority Source | Status | FAIL | WARN | Minor |
 |-----------------|--------|----------|-------|-------|
 | /plan skill spec (structural) | Pass/Fail | {N} | {N} | {N} |
 | Technical design (fidelity) | Pass/Fail | {N} | {N} | {N} |
@@ -624,7 +624,9 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.0*
-*v2.0: CONVERGE mode with COMPREHENSIVE depth option. UC Coverage table verification (new in /plan v3.6). Design Coverage Matrix verification (every endpoint, entity, command, query, contract mapped to tasks). Failure Criteria upgraded from optional to mandatory per sub-plan. Substance-over-form principle for structural checks. Progressive loading strategy. Cascade check with module-scoped boundaries. Authority hierarchy for mechanical fixes. Token budget estimate. Learnings applied from review-prd v2.3 and review-design v2.5 production feedback. Structural Rigidity anti-pattern added.*
+*Skill Version: 2.1*
+*v2.1: Severity model aligned to FAIL/WARN (was Critical/Major/Minor/Observation) for autoresearch compatibility. CONVERGE behavior explicit: MECHANICAL FAILs auto-fixed, DECISION FAILs escalated, WARNs never touched. Verdict simplified to PASS/PASS WITH CONDITIONS/FAIL. From adversarial review of both plan and review-plan skills.*
+
+*v2.0: CONVERGE mode with COMPREHENSIVE depth option. UC Coverage table verification. Design Coverage Matrix verification. Failure Criteria mandatory. Substance-over-form. Progressive loading. Cascade check. Authority hierarchy. Learnings from review-prd v2.3 and review-design v2.5.*
 
 *v1.0: Initial skill. Six authority sources, seven review phases, adversarial stance with depth-over-breadth priority. Execution priority puts design fidelity and PRD traceability first. Early termination on 5+ Critical design findings.*

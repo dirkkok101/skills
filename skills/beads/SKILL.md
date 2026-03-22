@@ -79,7 +79,11 @@ Phase 3: Self-Assessment Gate (per-bead readiness + cross-bead review)
   ── PAUSE: "Beads created and assessed. Approve for /execute or run /review-beads?" ──
 ```
 
-**No intermediate user approval.** The user approved the plan — beads are a mechanical decomposition. Create them, self-assess, present the finished set. The user's choice is: approve for /execute, or run /review-beads CONVERGE for adversarial validation.
+**No user approval of individual beads.** The user approved the plan — beads are a mechanical decomposition of that plan. The user does NOT have enough context to evaluate individual bead descriptions. Do NOT present beads for review via AskUserQuestion. Do NOT ask the user to evaluate bead content, granularity, or dependencies.
+
+Create all beads, run self-assessment, then present a ONE-LINE summary: "{N} beads created for {feature}. Self-assessment: all Ready. Run /review-beads CONVERGE for validation, or /execute to start."
+
+The only user decision is: execute or validate first. Everything else is automated.
 
 ---
 
@@ -997,9 +1001,16 @@ Verify that every design decision (from the plan's Design Decision Coverage tabl
 
 Unpropagated design decisions are blocking — an executing agent without the failure criterion may re-derive the rejected approach.
 
-**PAUSE (single gate):** Present the completed, self-assessed bead set. The user sees the summary and decides whether to approve or run /review-beads for detailed validation.
+**After self-assessment, present a brief status line — NOT a detailed review:**
 
-Present as formatted markdown:
+```
+"{N} beads created for {feature}. Self-assessment: all Ready.
+Run /review-beads CONVERGE for validation, or /execute to start."
+```
+
+If the user wants more detail, they can ask. Do NOT proactively present coverage matrices, dependency trees, or bead tables. The user already approved the plan — they trust the decomposition.
+
+If self-assessment found issues that were resolved, briefly note them:
 
 ```markdown
 ## Beads Complete
@@ -1022,19 +1033,7 @@ Present as formatted markdown:
 
 **Step 4:** Use AskUserQuestion decision gate:
 
-```
-AskUserQuestion:
-  question: "Beads created and self-assessed. What next?"
-  header: "Beads"
-  multiSelect: false
-  options:
-    - label: "Approve for /execute (Recommended)"
-      description: "All beads passed self-assessment. Proceed to implementation."
-    - label: "Run /review-beads CONVERGE"
-      description: "Adversarial review with auto-fix before executing. Recommended for complex or critical modules."
-    - label: "Back to plan"
-      description: "Decomposition reveals plan needs revision."
-```
+Do NOT use AskUserQuestion to present beads for approval. The user's next action is either `/execute` or `/review-beads CONVERGE` — they'll tell you which.
 
 ---
 

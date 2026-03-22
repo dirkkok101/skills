@@ -114,9 +114,10 @@ This is the most important step for any module where code may already exist. Run
 
 ```
 IF Implementation Status shows > 90% "Exists":
-  → Verification Mode: produce gap-analysis.md + single verification sub-plan + companion docs
-  → No separate sub-plan files per task (the remaining work is too small to justify them)
-  → The gap analysis IS the plan — it identifies what to fix, verify, and test
+  → Verification Mode: produce gap-analysis.md + companion docs
+  → If remaining work is trivial (< 3 discrete items): single verification sub-plan
+  → If remaining work is non-trivial (3+ distinct gaps with real implementation): separate sub-plans per gap are acceptable
+  → The gap analysis IS the primary artifact — sub-plans detail specific fixes
 
 IF Implementation Status shows > 70% "Exists" (but < 90%):
   → Non-Greenfield Fast Path: derive tasks from gaps, not design work decomposition
@@ -136,18 +137,30 @@ ELSE:
 
 **Design feedback:** If the gap analysis or decomposition reveals a design-level issue (architectural tension, missing specification, contradicted assumption), document it as a `## Design Feedback` section in the overview — not buried in sub-plan context paragraphs. This surfaces issues that should go back to `/technical-design` without blocking plan completion.
 
-**Agent efficiency:** Do NOT use Explore agents for gap analysis — they over-report existence without catching field-level gaps. Use targeted Grep/Glob for element-by-element checks:
-- Grep for class names to confirm existence
-- Read specific files to compare properties/fields against design
-- Count test attributes (`[Fact]`, `[Theory]`, `it(`) to get precise test coverage
+**Gap analysis approach:** Use targeted Grep/Glob for element-by-element checks, not Explore agents. Explore agents over-report existence without catching field-level gaps.
+
+For small modules (< 20 design elements): run Grep/Read calls directly.
+For large modules (20+ design elements): partition gap analysis agents by layer with no overlap:
+- Agent A: data layer (entities, configs, enums, migrations)
+- Agent B: backend logic (commands, queries, validators, mappers, services)
+- Agent C: contracts only (DTOs, requests, responses)
+- Agent D: frontend (components, services, routing, models)
+- Agent E: cross-cutting (DI registration, audit events, tests)
 
 Explore agents are useful for initial context loading (Phase 0) but not for the gap analysis itself.
+
+**Verify absence claims.** If an agent reports "file not found" or "tests missing," confirm with a targeted Grep before marking it as a gap. Agents miss files in non-obvious locations.
+
+**Test mapping precision:** When test counts exceed design cases, note which mappings were verified vs inferred. Mark approximate counts with `~` and flag for verification during execution.
 
 **Re-planning (overwriting existing plans):** When a plan directory already exists:
 1. Read the old plan's overview to understand prior state
 2. Run gap analysis against current code (not old plan)
-3. Remove old sub-plan files before writing new ones
-4. Note in the overview what changed from the prior plan and why
+3. List all old sub-plan and companion doc files explicitly
+4. Remove old files before writing new ones (prevents orphaned files)
+5. Note in the overview what changed from the prior plan and why
+
+**Agent result verification:** Always verify agent claims about **absence** ("no tests exist", "file not found") with targeted Grep/Glob. Presence claims are generally reliable; absence claims need spot-checking. Agents can miss files that exist in non-obvious locations.
 
 **PAUSE 1 presentation:** Show the FR Coverage table, UC Coverage table, and Dependency Graph as formatted markdown BEFORE the AskUserQuestion. The user cannot approve what they cannot see. For non-greenfield plans with ≤8 tasks, present task summary + gap highlights + dependency graph inline, with full coverage tables in overview.md.
 
@@ -354,11 +367,11 @@ Verify: no circular dependencies. Every task has explicit "Depends on" and "Bloc
 
 **PAUSE 1:** Guided Review Workflow — adaptive depth based on task count.
 
-**For ≤ 8 tasks:** Present Task Summary + Dependency Graph in chat, with a note "Full coverage tables (FR, UC, Design) will be in overview.md." Use a single approval gate.
+**For ≤ 8 tasks:** Present Task Summary + FR Coverage table + Dependency Graph in chat. Use a single approval gate (1 AskUserQuestion with 2 questions: tasks + ordering). Always show the FR Coverage table inline — the user cannot approve coverage they cannot see, even for small plans.
 
 **For > 8 tasks:** Walk the user through the decomposition section by section using the multi-step flow below.
 
-**For non-greenfield (>70% exists):** Present only Task Summary + gap summary + Dependency Graph. The full coverage tables are dominated by "Covered/Exists" rows — presenting them in chat is noise. Reference overview.md for the full tables.
+**For non-greenfield (>70% exists):** Present Task Summary + FR Coverage table + gap highlights + Dependency Graph. UC and Design Coverage tables go in overview.md only (they're dominated by "Covered/Exists" rows).
 
 **Step 1:** Present the Task Summary table as formatted markdown (from Step 1.3/1.4 output).
 
@@ -907,8 +920,10 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 4.1*
-*v4.1: Production feedback from Organizations, Authentication, Languages runs. Gap analysis renamed to Step 1.0b (explicit named step before decomposition, not buried in Step 1.4d). "Do NOT use Explore agents for gap analysis" — use Grep/Glob for element-by-element checks. Re-planning guidance (overwrite existing plans: read old, compare, remove stale files, note delta). PAUSE 1 must show artifacts inline before AskUserQuestion. Test coverage as first-class step (precise counts, not estimates).*
+*Skill Version: 4.2*
+*v4.2: Production feedback from Approvals, Identity Providers, Users runs. Verification Mode clarified for non-trivial remaining work (>90% exists but 3+ distinct gaps). Gap analysis agent partitioning by layer (data/backend/contracts/frontend/cross-cutting). Agent absence claim verification required. Re-planning file cleanup explicit (list + remove old files). PAUSE 1 always shows FR Coverage inline. Test mapping precision (mark approximate with ~). Companion doc overwrite handling.*
+
+*v4.1: Gap analysis Step 1.0b. No Explore agents for gap analysis. Re-planning guidance. PAUSE 1 inline artifacts. Test coverage first-class.*
 
 *v4.0: Verification Mode (>90% exists). Gap analysis as single source of truth. Design Feedback section. Agent efficiency. PAUSE 1 lighter for non-greenfield.*
 

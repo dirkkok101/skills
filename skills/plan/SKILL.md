@@ -113,19 +113,30 @@ If a kill criterion is violated or at serious risk: "Kill criterion '{criterion}
 Before choosing a decomposition strategy, run the gap analysis (Step 1.4d) to determine whether this is greenfield or non-greenfield work. This changes everything about how the plan is structured.
 
 ```
-IF Implementation Status shows > 70% "Exists":
-  → Non-Greenfield Fast Path (derive tasks from gaps, not from design work decomposition)
-  → Skip importing design's Work Decomposition section (it describes greenfield build)
+IF Implementation Status shows > 90% "Exists":
+  → Verification Mode: produce gap-analysis.md + single verification sub-plan + companion docs
+  → No separate sub-plan files per task (the remaining work is too small to justify them)
+  → The gap analysis IS the plan — it identifies what to fix, verify, and test
+
+IF Implementation Status shows > 70% "Exists" (but < 90%):
+  → Non-Greenfield Fast Path: derive tasks from gaps, not design work decomposition
+  → Skip importing design's Work Decomposition section
   → Tasks focus on "what to change" not "what to build"
   → Companion docs focus on verification, not new behavior
 
 IF Implementation Status shows < 30% "Exists":
-  → Greenfield Path (standard decomposition from design)
+  → Greenfield Path: standard decomposition from design
   → Import design Work Decomposition as starting point
 
 ELSE:
-  → Hybrid (some greenfield tasks, some modification tasks)
+  → Hybrid: some greenfield tasks, some modification tasks
 ```
+
+**Gap analysis is the single source of truth.** The gap-analysis.md file (or the overview's Implementation Status table) is the authoritative record of what exists, what needs modification, and what's new. Do NOT duplicate this information across overview, gap analysis, and sub-plans — reference it. The overview's Design Coverage table can summarize with a single line ("44/44 exist — see gap-analysis.md for modification details") when all elements exist.
+
+**Design feedback:** If the gap analysis or decomposition reveals a design-level issue (architectural tension, missing specification, contradicted assumption), document it as a `## Design Feedback` section in the overview — not buried in sub-plan context paragraphs. This surfaces issues that should go back to `/technical-design` without blocking plan completion.
+
+**Agent efficiency:** When launching agents for gap analysis, instruct them to "report gaps and differences only, not full file contents." Use targeted Grep/Glob to verify agent findings for critical claims — agents can over-report or miss items. The structured checklist in Step 1.4d should be the agent's mandate, not open-ended exploration.
 
 **Step 1.2 — Choose Decomposition Strategy:**
 
@@ -328,9 +339,11 @@ Verify: no circular dependencies. Every task has explicit "Depends on" and "Bloc
 
 **PAUSE 1:** Guided Review Workflow — adaptive depth based on task count.
 
-**For ≤ 8 tasks:** Present all tables in a single view (Task Summary + FR/UC/Design Coverage + Ordering) and use a single approval gate. The overhead of 4+ interactive steps is disproportionate for small plans.
+**For ≤ 8 tasks:** Present Task Summary + Dependency Graph in chat, with a note "Full coverage tables (FR, UC, Design) will be in overview.md." Use a single approval gate.
 
 **For > 8 tasks:** Walk the user through the decomposition section by section using the multi-step flow below.
+
+**For non-greenfield (>70% exists):** Present only Task Summary + gap summary + Dependency Graph. The full coverage tables are dominated by "Covered/Exists" rows — presenting them in chat is noise. Reference overview.md for the full tables.
 
 **Step 1:** Present the Task Summary table as formatted markdown (from Step 1.3/1.4 output).
 
@@ -429,8 +442,13 @@ Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
 ## Design Coverage
 {Table from Phase 1.4c}
 
-## Implementation Status (if non-greenfield)
-{Table from Phase 1.4d}
+## Implementation Status
+{Table from Phase 1.4d — always present, even if all "New" for greenfield}
+
+## Design Feedback (if any)
+{Issues discovered during planning that should go back to /technical-design.
+Architectural tensions, missing specifications, contradicted assumptions.
+These don't block the plan but should be addressed in the design.}
 
 ## Dependency Graph
 {ASCII diagram from Phase 1.6}
@@ -874,8 +892,10 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.9*
-*v3.9: Failure Criteria exemption for verification/audit tasks (no rejected alternatives to quote — success criteria serve as constraint). From review-plan production feedback.*
+*Skill Version: 4.0*
+*v4.0: Production feedback from Sessions, Audit, Portal runs. Verification Mode for >90% exists (single checklist instead of full sub-plans). Gap analysis as single source of truth (don't duplicate across files). Design Feedback section for issues to escalate to /technical-design. Agent efficiency guidance (concise prompts, Grep verification). PAUSE 1 lighter for non-greenfield (task summary + gaps only in chat, full tables in overview.md). Implementation Status always present (not conditional).*
+
+*v3.9: Failure Criteria exemption for verification/audit tasks.*
 *v3.8: Production feedback from 3 runs (Entitlements, Applications, Roles). Non-greenfield fast path: run gap analysis FIRST (Step 1.1), reorder Phase 1 when >70% exists. Gap-driven decomposition strategy added. Structured gap analysis checklist (entity, contract, command, query, endpoint, frontend — use Grep/Glob not Explore agents). Task sizing table for modifications (pattern replacement/field addition/behavioral change/architecture change). Scope-excluded UC handling (not a blocker). PAUSE 1 adaptive: single gate for ≤8 tasks, multi-step for >8. Companion docs scope-aware for non-greenfield. Failure criteria extraction from decision records/*.md with step-by-step process.*
 
 *v3.7: Adversarial review fixes. UC Coverage Ordering column, Tier 1 blockers, failure criteria extraction, gap analysis always required, PAUSE 1 validates all 3 coverage tables.*

@@ -268,6 +268,8 @@ For each document loaded, record what it provides:
 
 For each FR in the PRD, identify which bead(s) implement it. Check bead descriptions for `## Implements` sections and FR tags.
 
+**Acceptance criteria depth check:** For each Must-Have FR, read the PRD's Given/When/Then acceptance criteria. Verify each criterion maps to at least one bead's success criteria. An FR is "Full" only if ALL acceptance criteria are addressed. If 2 of 4 criteria are missing from any bead, the FR is "Partial" — flag as FAIL.
+
 ```markdown
 ## FR Coverage Matrix
 
@@ -569,7 +571,7 @@ For each bead, review against all 11 categories. Not every category applies to e
 - [ ] **Pattern references are specific** — points to actual pattern doc path, not just "follow patterns"
 - [ ] **In/Out scope bounded** — explicit boundaries, out-of-scope names the other bead
 - [ ] **Success criteria are testable** — observable outcomes, not "make sure it works"
-- [ ] **Failure criteria are realistic** — anti-patterns the agent could actually fall into
+- [ ] **Failure criteria are realistic AND design-decision-traced** — not generic ("Do NOT over-engineer") but specific ("Do NOT use [rejected approach] per [decision ref]"). Cross-reference against the plan's Design Decision Coverage table — every decision should appear as a failure criterion in at least one bead.
 - [ ] **Verification commands are executable** — real commands with correct filters/paths
 - [ ] **Commit message specified** — conventional commit format, one per bead
 - [ ] **Implements section present** — FR/UC traceability
@@ -882,6 +884,7 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.0*
+*Skill Version: 2.1*
+*v2.1: Full-pipeline adversarial review fixes. FR acceptance criteria depth check (each Given/When/Then must map to a bead success criterion). Design Decision Coverage cross-reference (failure criteria must trace to design decisions, not be generic). From end-to-end pipeline review covering PRD→design→plan→beads→review-beads.*
 *v2.0: CONVERGE mode with progressive loading, cascade check, same-session detection, WARN triage. Severity model aligned to FAIL/WARN (was class-only). Finding classification now includes default severity per class. Authority hierarchy aligned with siblings. Non-greenfield bead review guidance (verification beads, modify beads). Token budget estimate. Compact report format. From adversarial review against review-prd v2.3, review-design v2.5, and review-plan v2.6.*
 *v1.0: Initial release. 11 review categories, 6-phase review process, severity calibration with examples, finding classification taxonomy, granularity decomposition with expected bead count derivation, FR/UC coverage matrices, stage gate analysis, batch execution support for multi-module reviews, anti-patterns.*

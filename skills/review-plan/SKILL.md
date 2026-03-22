@@ -211,6 +211,7 @@ Verify the overview contains all required sections from the `/plan` skill spec:
 | FR Coverage table | Yes | Yes | Yes |
 | UC Coverage table | No | Yes | Yes |
 | Design Coverage table | No | Yes | Yes |
+| Design Decision Coverage table | No | Yes | Yes |
 | Implementation Status (non-greenfield) | No | If applicable | If applicable |
 | Dependency Graph | No | Yes | Yes |
 | Critical Path | No | Yes | Yes |

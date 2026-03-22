@@ -475,6 +475,16 @@ Create `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`:
 ## Implementation Status
 {Table from Phase 1.4d — always present, even if all "New" for greenfield}
 
+## Design Decision Coverage
+{Every design decision from decisions/*.md must appear as failure criteria in at least one sub-plan.}
+
+| Decision | File | Sub-Plan(s) | Failure Criteria Present? |
+|----------|------|-------------|--------------------------|
+| {decision title} | decisions/{slug}.md | T02, T03 | ✅ "Do NOT use [rejected]" |
+| {decision title} | decisions/{slug}.md | — | ⚠ NOT propagated |
+
+Flag unpropagated decisions as blocking. If a design decision has no covering failure criteria in any sub-plan, the executing agent may silently reverse it.
+
 ## Design Feedback (if any)
 {Issues discovered during planning that should go back to /technical-design.
 Architectural tensions, missing specifications, contradicted assumptions.
@@ -922,7 +932,8 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 4.2*
+*Skill Version: 4.3*
+*v4.3: Design Decision Coverage table added to overview — every decision from decisions/*.md must appear as failure criteria in at least one sub-plan. Unpropagated decisions are blocking. From full-pipeline adversarial review.*
 *v4.2: Production feedback from Approvals, Identity Providers, Users runs. Verification Mode clarified for non-trivial remaining work (>90% exists but 3+ distinct gaps). Gap analysis agent partitioning by layer (data/backend/contracts/frontend/cross-cutting). Agent absence claim verification required. Re-planning file cleanup explicit (list + remove old files). PAUSE 1 always shows FR Coverage inline. Test mapping precision (mark approximate with ~). Companion doc overwrite handling.*
 
 *v4.1: Gap analysis Step 1.0b. No Explore agents for gap analysis. Re-planning guidance. PAUSE 1 inline artifacts. Test coverage first-class.*

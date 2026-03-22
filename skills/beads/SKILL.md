@@ -153,7 +153,27 @@ Do not re-derive information that exists in these artifacts. Import it, referenc
 
 The tables below show decomposition for a typical .NET/Angular vertical-slice architecture. **For other tech stacks, adapt the tables to your project's pattern docs.** The principle is the same: one bead per pattern artifact, resolved from the doc map built in Phase 0.
 
-If your project uses different patterns (e.g., Python/FastAPI handlers, Go services, React components), build your decomposition table from your `docs/patterns/` directory — each pattern doc becomes a potential bead type.
+If your project uses different patterns (e.g., Python/FastAPI handlers, Go services, React components), build your decomposition table from your `docs/patterns/` directory using this algorithm:
+
+**Decomposition Adaptation Algorithm:**
+1. List all pattern docs in `docs/patterns/` (from Phase 0 doc map)
+2. For each pattern doc, identify: what artifact it produces, what it depends on, what depends on it
+3. Build a dependency-ordered table: each pattern doc → one bead type
+4. Apply the same principles: one bead per pattern artifact, split signals (spans two projects → split), grouping exceptions (trivially small → combine)
+
+Example for Python/FastAPI:
+```
+| # | Bead Type | Pattern Doc | Depends On |
+|---|-----------|-------------|------------|
+| 1 | {Module} Models | models.md | — |
+| 2 | {Module} Schema | schema.md | #1 |
+| 3 | {Module} Repository | repository.md | #1 |
+| 4 | {Module} Service | service.md | #3 |
+| 5 | {Module} Router | router.md | #4 |
+| 6 | {Module} Tests | testing.md | #5 |
+```
+
+The tables below are the exemplar for .NET/Angular vertical-slice architecture.
 
 ### Backend Bead Decomposition (per entity/feature)
 
@@ -565,12 +585,37 @@ The decomposition strategy depends on the Implementation Status from Step 1.1:
 
 **Greenfield path (<30% exists):** For each task in the plan, decompose into one bead per pattern artifact using the Backend/Frontend Bead Decomposition tables below.
 
+**Hybrid path (30-70% exists):** Mix of greenfield and modification beads:
+- **Status = "New":** Create standard pattern beads per decomposition tables (greenfield)
+- **Status = "Modify":** Create ONE focused modification bead titled "Modify {Element}" with WHAT needs to change
+- **Status = "Exists" (no changes):** Create a lightweight verification bead: "Verify {Element} matches design". The bead's success criteria are a checklist comparing existing code against design spec. This catches subtle issues (wrong return type, missing field) that coarse gap analysis misses.
+
 **Gap-driven path (>70% exists):** For each design element in the plan's Design Coverage Matrix:
-- **Status = "Exists" (no changes):** Skip — no bead needed
-- **Status = "Modify":** Create ONE focused modification bead. The bead title should be "Modify {Element}" not "Add {Element}". Include in the bead description WHAT needs to change (from Implementation Status notes).
-- **Status = "New":** Create standard pattern beads per the decomposition tables
+- **Status = "New":** Create standard pattern beads
+- **Status = "Modify":** Create ONE focused modification bead with WHAT needs to change
+- **Status = "Exists" (no changes):** Create a lightweight verification bead. At 70-90%, existing code may have subtle mismatches that the gap analysis didn't catch at field level. Verification beads are small (checklist + grep) and prevent the "exists but broken" problem.
 
 **Verification Mode (>90% exists):** Create verification beads that check existing code against design, plus targeted modification beads for the few gaps. Feature gates focus on "verify existing flows still work after changes."
+
+**Verification bead template:**
+```markdown
+## Objective
+Verify {Element} matches the design specification.
+
+## Verification Checklist
+- [ ] Class/file exists at expected path
+- [ ] All properties/fields match design (names, types, constraints)
+- [ ] Relationships/dependencies match design
+- [ ] Pattern compliance (correct base class, correct conventions)
+
+## Success Criteria
+- All checklist items pass
+- If any item fails → create a follow-up "Modify {Element}" bead
+
+## Verification
+- **Command:** `{build command}` — confirms no regressions
+- **Commit:** No commit if all checks pass. If fixes needed, commit per fix.
+```
 
 **Step 1.2a — Identify entities and features:**
 
@@ -1082,18 +1127,34 @@ After individual assessment, review the full bead set against these themes:
 
 **Re-assess until ALL beads show "Ready" and cross-bead review passes.**
 
-**Step 4 — FR Coverage Check:**
+**Step 4 — FR Coverage Check (with Acceptance Criteria):**
 
 ```markdown
 ### FR Coverage
-| FR | Bead(s) | Status |
-|----|---------|--------|
-| FR-{MODULE}-{NAME} (Must) | bd-{id} | Covered |
-| FR-{MODULE}-{NAME} (Must) | bd-{id}, bd-{id} | Covered |
-| FR-{MODULE}-{NAME} (Should) | — | Deferred |
+| FR | Bead(s) | ACs Covered | Status |
+|----|---------|-------------|--------|
+| FR-{MODULE}-{NAME} (Must) | bd-{id} | AC1 ✅, AC2 ✅, AC3 ✅ | Covered |
+| FR-{MODULE}-{NAME} (Must) | bd-{id}, bd-{id} | AC1 ✅, AC2 ✅, AC3 ⚠ | Partial — AC3 (error case) not in any bead |
+| FR-{MODULE}-{NAME} (Should) | — | — | Deferred |
 ```
 
-All Must-Have FRs must be covered. Flag any gaps as blocking. If the project uses an issue tracker, offer to create tracked items for gaps.
+**Acceptance criteria level tracking:** For each Must-Have FR, read the PRD's Given/When/Then acceptance criteria. Verify each criterion maps to at least one bead's success criteria. An FR with 4 acceptance criteria where only 2 are addressed by beads is "Partial" not "Covered."
+
+All Must-Have FRs must be fully covered (all ACs addressed). Flag any gaps as blocking.
+
+**Step 4b — Design Decision Coverage Check:**
+
+Verify that every design decision (from the plan's Design Decision Coverage table) is propagated as a failure criterion in at least one bead.
+
+```markdown
+### Design Decision Coverage
+| Decision | Source | Bead(s) with Failure Criteria | Status |
+|----------|--------|-------------------------------|--------|
+| {decision} | decisions/{slug}.md | bd-{id}: "Do NOT use [rejected]" | ✅ Propagated |
+| {decision} | decisions/{slug}.md | — | ⚠ NOT propagated — add to relevant bead |
+```
+
+Unpropagated design decisions are blocking — an executing agent without the failure criterion may re-derive the rejected approach.
 
 **PAUSE 2:** Guided review of the full bead set.
 
@@ -1520,7 +1581,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.0*
+*Skill Version: 5.1*
+*v5.1: Full-pipeline adversarial review fixes. Hybrid mode (30-70%) decomposition instructions added. Verification beads for "Exists" elements at 70-90% (not just >90%). FR Coverage with acceptance criteria depth (ACs Covered column — Partial if any AC unaddressed). Design Decision Coverage table (verify every decision propagated as failure criteria). Decomposition Adaptation Algorithm for non-.NET projects (build from docs/patterns/ directory). Verification bead template added.*
 *v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*
 *v4.0: Phase 0 doc discovery — scans project docs tree to build a doc map instead of assuming hardcoded paths. Handles variance in project structure: flat vs nested patterns, decisions in adr/ or designs/{feature}/decisions/, numbered design prefixes, subfeature nesting. Decomposition tables use pattern keys resolved from the doc map. Gate beads load discovered decisions, architecture docs, and learnings into context. Pattern-granular decomposition — one bead per pattern artifact with Backend/Frontend/Test decomposition tables. Stage gate beads — `/review` + `/simplify` cycles at feature slice, use case, and module boundaries. Frontend beads depend on backend test gates, never on raw backend impl beads. Trust hierarchy for gate findings. Bead description format includes Pattern and Commit fields. Bead size heuristic rewritten around pattern alignment with grouping exceptions and never-combine rules. Bead count comparison showing impact.*
 *v3.5: Prerequisites expanded with design docs. Parallel Tracks cross-ref corrected (Step 1.5). Good Bead example references design doc instead of plan. PAUSE step labels scoped to avoid collision.*

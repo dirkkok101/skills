@@ -1,0 +1,327 @@
+# Chronicle: Autoresearch for Document Quality
+
+A chronological record of applying the Karpathy autoresearch technique to documentation quality across the NxGN Identity project. This is a factual account — what happened, in what order, what we observed, what we decided, and what the results were.
+
+---
+
+## Context
+
+**Project:** NxGN Identity Platform — an identity management system with 15 modules (Organizations, Users, Roles, Sessions, Authentication, API Keys, Identity Providers, Entitlements, Languages, Approvals, Portal, Role Templates, Audit, Cross-Cutting, and a shared portal shell).
+
+**Documentation suite:** Each module has a PRD (Product Requirements Document), a technical design (multi-file package), and an implementation plan. Total: ~45 documents across ~300+ files.
+
+**Skills:** The project uses Claude Code skills — prompt-based instructions that guide agents through structured workflows. The skills under refinement: `/prd` (generates PRDs), `/review-prd` (reviews PRDs), `/technical-design` (generates designs), `/review-design` (reviews designs), `/plan` (generates plans), `/review-plan` (reviews plans), and `/autoresearch` (convergence loop).
+
+**Starting point:** The skill-refinement-guide at ~/nxgn.patterns/main/docs/skill-refinement-guide.md described a Karpathy-style training loop for Claude Code skills. The user wanted to apply it to the PRD skill using the identity project's 15 PRDs as ground truth.
+
+**Date:** 2026-03-22 (single extended session).
+
+---
+
+## Phase 1: PRD Skill Autoresearch
+
+### 1.1 Ground Truth Analysis
+
+**What we did:** Read all 15 PRD documents from ~/nxgn.identity/main/docs/prd/. Used 4 parallel Explore agents to analyze structural patterns across all files.
+
+**What we found:** All 15 PRDs used COMPREHENSIVE scope. Remarkably consistent general structure but significant variation in details:
+- Languages PRD used `**Goals:**` persona format, Portal used `**Portal needs:**`
+- Most used `**A1:**` numbered assumptions, Portal used table format
+- Some had Glossary, Architecture Context, Kill Criteria sections — others didn't
+
+**Key discovery:** 23 of 24 structural conventions in the PRD skill were implicit — shown in template examples but never stated as rules.
+
+### 1.2 Evaluation Harness
+
+**What we built:**
+- `evaluate.sh` — 87 deterministic checks against the canonical structure
+- `semantic-diff.sh` — Jaccard fingerprint similarity between generated and ground truth
+- `score.sh` — combined scorer (60% checklist + 40% semantic)
+- 6 test cases across 4 difficulty tiers (Simple: Languages, Approvals; Intermediate: Roles, Entitlements; Hard: Authentication; Boss: Portal)
+- `canonical-structure.md` — the definitive structural specification
+
+**Validation:** Ran evaluate.sh against ground truth PRDs. Languages scored 100%. Portal scored 70%. The harness correctly identified where ground truth deviated from the canonical structure.
+
+### 1.3 Training Loop (3 iterations)
+
+**Iteration 1 (Skill v3.5, unmodified):**
+- Generated PRDs for all 4 test cases using sub-agents
+- Results: 97-100% checklist across all tiers
+- Findings: Approvals only produced 5 NFRs (minimum is 6), no audit NFR
+
+**Iteration 2 (Skill v3.5+nfr):**
+- Added 3 targeted changes: mandatory audit NFR, strict 6-NFR minimum, dependency graph arrows
+- Results: 98-100% checklist. Approvals fixed to 100%.
+
+**Iteration 3 (Skill v3.6):**
+- Added full Structural Conventions section (120 lines) codifying all 23 implicit conventions
+- Results: 98% checklist even without ground truth reference
+- Key insight: checklist is the real measure of structural consistency, not semantic similarity
+
+### 1.4 Ground Truth Alignment
+
+**What we did:** Scored all 14 PRDs against the canonical structure. Wrote targeted fix/rerun prompts. User executed them in the identity project.
+
+**Before → After:**
+- 6 PRDs at 100%, 5 at 97-98%, all 14 at 97%+ with zero FAILs
+- Common fix: adding `**A{n}:**` / `**C{n}:**` numbered prefixes (affected 12 of 14 PRDs)
+
+### 1.5 Review-PRD Sync
+
+**What we did:** Synced review-prd skill with prd v3.7 conventions. Rewrote Phase 1 checklist to check exact heading formats, numbering prefixes, heading levels, persona sub-fields, table columns.
+
+**Result:** review-prd v1.0 → v2.0
+
+---
+
+## Phase 2: Technical Design Skill Refinement
+
+### 2.1 Ground Truth Audit
+
+**What we did:** Built evaluate-design.sh (54 checks). Scored all 15 design directories.
+
+**Results:** Average 88%, range 77-100%. Entitlements was the only 100%.
+
+**Systemic issue:** Decision format — all ground truth designs used summary tables, but the skill template showed inline exploration. This was a structural mismatch between how the skill instructed decisions and how designs actually recorded them.
+
+### 2.2 Two-Layer Decision Pattern
+
+**What we decided:** Decisions should be recorded in two places:
+- **design.md** — summary table (scannable in 15 minutes)
+- **decisions/*.md** — full exploration with alternatives, pros/cons (depth for future readers)
+
+This matched what all 15 ground truth designs already did, but the skill hadn't codified it.
+
+### 2.3 Consistency Test
+
+**What we did:** Generated the Entitlements design twice with the same skill (v3.6) to test consistency.
+
+**What we found:** Two runs produced completely different output:
+- Run 1: 2 feature areas, 17 files, 87 test cases
+- Run 2: 3 feature areas, 19 files, 129 test cases
+- Different decision file names, different diagram coverage, different UI mockup inclusion
+
+**Root cause:** The skill let agents invent feature decomposition instead of deriving it from the PRD.
+
+### 2.4 Deterministic Decomposition (v3.7)
+
+**What we added:**
+- Feature areas must derive from PRD Epics (deterministic, not invented)
+- PRD Coverage Matrix mandatory (every Must Have FR → endpoint → test cases)
+- ADR Compliance table mandatory (scan ALL ADRs, classify each)
+- Endpoint table expanded to 5 columns (Verb | Route | Purpose | Maps To | Auth Policy)
+
+**Consistency test result (v3.7):** Third generation produced 4 feature areas matching the 4 PRD Epics exactly. PRD Coverage Matrix showed all 9 Must Have FRs as Covered. All 25 ADRs classified.
+
+### 2.5 Review-Design Sync and Generification
+
+**What we did:** Synced review-design with technical-design v3.7. Made ADR, pattern, and architecture checks generic (read from `docs/adr/`, `docs/patterns/`, `docs/architecture/`) instead of hardcoding NxGN-specific conventions.
+
+**Why:** Makes the review skill portable across projects.
+
+---
+
+## Phase 3: Design Review at Scale
+
+### 3.1 First Review (v1)
+
+**What we did:** Ran review-design against all 15 designs in parallel (15 agents).
+
+**Results:** 68 FAILs, 130 WARNs across all modules.
+
+**Key content findings:**
+- Sessions design contradicted ADR-0014 on language switch JWT behavior
+- API Keys PRD said pub/sub for cache invalidation, design chose direct KeyDelete
+- Role Templates / Cross-Cutting had a RESTRICT vs CASCADE delete policy conflict
+- Multiple modules used 400 for business rules where cross-cutting PRD specified 422
+
+### 3.2 Structural Fixes (13 parallel agents)
+
+**What we did:** Ran 13 parallel fix agents adding PRD Coverage Matrix, ADR Compliance table, endpoint columns, Learnings Applied heading, Self-Review table format to all designs.
+
+**Results:** Average structural score 91% → 96%.
+
+### 3.3 Content Decisions (12 decisions)
+
+**What we did:** Presented 12 content contradictions to the user via AskUserQuestion (3 batches of 4). User decided each.
+
+**Decisions made:**
+1. Sessions: follow ADR-0014 (language_id in JWT)
+2. API Keys: keep direct KeyDelete, update PRD
+3. PermissionType: CASCADE with audit, update cross-cutting PRD
+4. Business rules: 422 not 400
+5. FR-APP-LOOKUP: add test cases
+6. IdP runtime: document boundary (config vs runtime)
+7. IdP save response: minimal { Id }
+8. Organizations: align FR IDs to PRD
+9. Languages: 201/200 split
+10. Languages Code readonly: all languages
+11. RFC 7807: add acknowledgment to 6 modules
+12. Accessibility: add responsibility statement to 4 modules
+
+### 3.4 Content Fixes (8 parallel agents)
+
+**What we did:** Applied all 12 decisions across affected modules.
+
+**Results:** 106 files changed, 4543 insertions, 2794 deletions in the identity repo.
+
+### 3.5 Re-Review (v2) — 15 parallel agents
+
+**Results:** 68 → 47 FAILs. Some fixes resolved original issues but deeper review found new ones (stale cross-references, internal diagram contradictions, pattern deviations).
+
+### 3.6 Manual Fix Round 2
+
+**What we did:** Wrote targeted fix prompts for all 15 modules based on v2 findings. User executed them.
+
+### 3.7 Re-Review (v3) — 7 targeted agents
+
+**Results:** ~48 FAILs. **Plateau.** Manual fix rounds were no longer reducing FAILs — each fix exposed adjacent inconsistencies.
+
+---
+
+## Phase 4: CONVERGE Breakthrough
+
+### 4.1 The Plateau Problem
+
+Three manual rounds of review → fix → re-review produced diminishing returns:
+- v1: 68 FAILs
+- v2: 47 FAILs
+- v3: ~48 FAILs
+
+Each fix could introduce new inconsistencies. Cross-document references meant fixing one file could invalidate another. Manual agents didn't systematically check for cascading effects.
+
+### 4.2 Building the Autoresearch Skill
+
+**What we built:** `/autoresearch` skill implementing the Karpathy convergence loop:
+- Frozen metric: review skill FAIL count
+- Classification: MECHANICAL (auto-fix) vs JUSTIFIED_DEVIATION (verify rationale) vs DECISION (escalate)
+- Authority hierarchy for conflict resolution
+- Cascade check: grep after each fix
+- Max 5 rounds, revert on regression
+- Multi-module parallel mode
+
+### 4.3 CONVERGE Mode in Review Skills
+
+**What we decided:** Rather than a separate skill, merge the loop into the review skills as a CONVERGE mode. Keep `/autoresearch` as standalone for batch/parallel/custom use.
+
+### 4.4 Design CONVERGE — All 15 Modules
+
+**What we did:** Ran review-design CONVERGE + COMPREHENSIVE on all 15 designs in parallel.
+
+**Results:** Every module converged to 0 FAILs.
+- 54 findings found, 56 fixed (including 2 cascade catches)
+- Average 2.1 rounds
+- 7 decisions escalated (13%)
+- 0 false positives
+
+### 4.5 PRD CONVERGE — All 15 Modules
+
+**What we did:** Ran review-prd CONVERGE + COMPREHENSIVE on all 15 PRDs in parallel.
+
+**Results:** Every module converged to 0 FAILs.
+- 74 findings found, 73 fixed
+- Average 2.1 rounds
+- 5 decisions escalated
+- Languages passed clean on first review (0 findings)
+- Roles had the most findings (13)
+
+---
+
+## Phase 5: Production Feedback Cycles
+
+### 5.1 Entitlements Design CONVERGE (feedback cycle 1)
+
+**What the user reported:** Massive context loading phase. No severity calibration guidance. Audit finding exposed skill tension (pattern says "MUST NOT audit in commands" but design had reasoned SOC 2 deviation). Cross-document cascade tracking was manual.
+
+**What we fixed:** Progressive loading (3 waves). JUSTIFIED_DEVIATION classification. Cascade check instruction. Compact report format. Severity alignment note. Agent vs direct read guidance.
+
+**Skill versions:** autoresearch v1.0 → v1.1
+
+### 5.2 Applications Design CONVERGE (feedback cycle 2)
+
+**What the user reported:** Authority hierarchy gold — made MECHANICAL classification unambiguous. Phase 5 (To-Be Coherence) found all the real bugs. But: Phase 1 structural checklist too rigid on heading names. backend.md authority position unclear. FR ID aliasing flagged as mismatch.
+
+**What we fixed:** backend.md added to authority hierarchy. Substance over form for heading checks. FR aliasing guidance. Cascade scope bounded to module. Token budget estimate. Mockup states lowered from 3 to 2.
+
+**Skill versions:** review-design v2.3 → v2.5
+
+### 5.3 API Keys PRD CONVERGE (feedback cycle 3)
+
+**What the user reported:** Phase 1 checklist excellent (impossible to rubber-stamp). But: READ-ONLY vs CONVERGE contradiction. Phase 1 too large for single pass. WARNs in limbo after convergence. Phase 4 findings subjective.
+
+**What we fixed:** READ-ONLY scoped to non-CONVERGE. Phase 1 chunking strategy. WARN triage step. NFR-AUDIT template. Phase 4 severity guide. Rubber Stamp anti-pattern updated for revised PRDs.
+
+**Skill versions:** review-prd v2.2 → v2.3
+
+### 5.4 Plan Skill Production Runs (feedback cycles 4-6)
+
+**What we ran:** Generated fresh plans for Entitlements, Applications, Roles, then Sessions, Audit, Portal. Reviewed each with review-plan CONVERGE + COMPREHENSIVE.
+
+**What we discovered:** The plan skill had a greenfield bias. For modules that were 80-98% implemented, it produced full build plans instead of alignment plans. The gap analysis (Step 1.4d) was the most valuable step but was running too late in the process.
+
+**What we fixed across 4 skill versions (plan v3.6 → v4.0):**
+- v3.7: UC Coverage table, Design Coverage Matrix, Implementation Gap Analysis, mandatory Failure Criteria
+- v3.8: Non-greenfield fast path (gap analysis FIRST), structured gap checklist, gap-driven decomposition, scope-excluded UC handling, adaptive PAUSE 1, companion docs scope-aware
+- v3.9: Failure Criteria exemption for verification tasks
+- v4.0: Verification Mode (>90% exists), gap analysis as single source of truth, Design Feedback section, agent efficiency guidance
+
+**Review-plan evolved v1.0 → v2.3:**
+- v2.0: CONVERGE mode, UC/Design Coverage checks, Failure Criteria mandatory
+- v2.1: Severity aligned to FAIL/WARN, CONVERGE behavior explicit
+- v2.2: Embedded gap analysis, critical path severity, WARN triage, same-session awareness
+- v2.3: Phase 6 direct reads, critical path algorithm, non-greenfield agent prompts, PASS (CLEAN) vs PASS (CONVERGED)
+
+**Plan convergence results:** 6/6 modules converged to 0 FAILs, average 1.7 rounds, 0 decisions escalated.
+
+---
+
+## Phase 6: Documentation Quality Achievement
+
+### Final State
+
+| Document Type | Modules | FAILs | Method |
+|--------------|---------|-------|--------|
+| PRDs | 15 | 0 | CONVERGE + COMPREHENSIVE |
+| Technical Designs | 15 | 0 | CONVERGE + COMPREHENSIVE |
+| Implementation Plans | 6 (of 15) | 0 | CONVERGE + COMPREHENSIVE |
+
+### Skill Versions at End of Session
+
+| Skill | Start | End | Production Runs |
+|-------|-------|-----|-----------------|
+| prd | v3.5 | v3.7 | 15 modules |
+| review-prd | v1.0 | v2.3 | 15 modules |
+| technical-design | v3.5 | v3.7 | 15 modules |
+| review-design | v1.0 | v2.5 | 15 modules |
+| plan | v3.5 | v4.0 | 6 modules |
+| review-plan | v1.0 | v2.3 | 6 modules |
+| autoresearch | — | v1.4 | All of the above |
+
+### Total Impact
+
+- 128 document findings resolved (PRDs + designs)
+- 16 plan findings resolved
+- 12 content decisions made by user
+- 7 skills improved through production feedback
+- 0 false positives across all reviews
+- 100% convergence rate across all document types
+
+---
+
+## Key Observations (factual, not promotional)
+
+1. **Making implicit conventions explicit** was the single highest-impact change. The PRD skill had 23 conventions shown in templates but never stated as rules. Adding a Structural Conventions section produced immediate, measurable improvement.
+
+2. **Manual fix rounds plateau.** Three rounds of human-directed review→fix→re-review stuck at 47-48 FAILs. The automated CONVERGE loop got to 0 because it included cascade checks that humans forgot.
+
+3. **The MECHANICAL vs DECISION classification** was essential. 87% of findings could be auto-fixed using the authority hierarchy. Without this classification, every finding would need human review.
+
+4. **Non-greenfield work needs different treatment.** Plans for 90%+ complete modules were producing greenfield build plans. Running the gap analysis first and deriving tasks from gaps (not from the design's work decomposition) was the fix.
+
+5. **Production feedback is the best training signal.** Each run surfaced real friction points that theoretical review couldn't find. The skills improved most from "I ran it, here's what happened" feedback, not from spec analysis.
+
+6. **Parallel agents are practical.** We routinely ran 13-15 agents in parallel for reviews and fixes. The pattern: spawn independent agents per module, aggregate results, apply cross-cutting decisions.
+
+7. **The review skill found things the automated checker couldn't.** The checker tests structure (87 regex checks). The review skill tests meaning (ADR compliance, FR traceability, UC coverage, internal coherence). Both are needed — the checker is the fast gate, the review is the deep gate.
+
+8. **Same-session review has limited value.** Reviewing a document you just wrote catches internal consistency errors but is blind to systematic biases. Independent review (different agent, fresh context) is more valuable.

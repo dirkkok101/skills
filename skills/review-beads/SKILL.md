@@ -549,19 +549,20 @@ For each bead, review against all 11 categories. Not every category applies to e
 - [ ] Integration test infrastructure — bead references Testcontainers Postgres (not in-memory)
 - [ ] UI test infrastructure — bead references Vitest (not Jasmine/Karma)
 
-#### Category 7b: Stage Gate Beads
+#### Category 7b: Test & Verification Gates
 
-- [ ] Every feature slice has exactly 6 gates (2x `/review`, 2x `/simplify`, 2x test)
-- [ ] `/review` and `/simplify` are separate beads (different concerns)
-- [ ] Backend gates block frontend beads (frontend depends on backend test gate)
-- [ ] UC completion gates exist for each use case
-- [ ] Module completion gates exist (final `/review` + `/simplify`)
-- [ ] Cadence check — no more than 4-5 implementation beads between consecutive gates
-- [ ] Gate beads have specific scope (file paths, not just "review the feature")
-- [ ] Gate beads have executable verification commands
-- [ ] Gate beads have correct dependency wiring (review → simplify → test)
-- [ ] No empty gates — every gate bead specifies what to review and how to verify
+**Important:** The /beads skill (v5.2+) prohibits `/review` and `/simplify` gate beads between implementation beads. These skills treat preparatory code as "dead code" and delete it. Only test and verify gates are allowed.
+
+- [ ] **No `/review` or `/simplify` gate beads** between implementation beads — flag as FAIL if found
+- [ ] Backend test gate blocks frontend beads (frontend depends on backend test gate)
+- [ ] UC verification gates exist for each use case (verify scenario flow, not just code review)
+- [ ] Module verification gate exists as final bead in epic
+- [ ] Cadence check — no more than 4-5 implementation beads between consecutive test gates
+- [ ] Gate beads have executable verification commands (test commands, not vague "review code")
+- [ ] Gate beads have correct dependency wiring (impl → test → next phase)
+- [ ] No empty gates — every gate specifies what tests to run
 - [ ] No orphaned gates — every gate has downstream beads that depend on it
+- [ ] For Verification Mode (>90% exists): lightweight gates acceptable (test only, no UC/module verify for ≤10 impl beads)
 
 #### Category 8: Bead Quality
 
@@ -885,7 +886,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.2*
+*Skill Version: 2.3*
+*v2.3: Category 7b aligned with beads v5.2+ — /review and /simplify gates prohibited (was required). Test/verify gate checks updated. Non-greenfield granularity method noted as needing different approach from greenfield decomposition tables. From Entitlements production review feedback.*
 *v2.2: Removed /review and /simplify gate checks — these gate types no longer exist in beads v5.2. Updated cross-bead consistency to check for test/verify gates and flag any /review or /simplify gates as findings (they break the pipeline).*
 *v2.1: Full-pipeline adversarial review fixes. FR acceptance criteria depth check (each Given/When/Then must map to a bead success criterion). Design Decision Coverage cross-reference (failure criteria must trace to design decisions, not be generic). From end-to-end pipeline review covering PRD→design→plan→beads→review-beads.*
 *v2.0: CONVERGE mode with progressive loading, cascade check, same-session detection, WARN triage. Severity model aligned to FAIL/WARN (was class-only). Finding classification now includes default severity per class. Authority hierarchy aligned with siblings. Non-greenfield bead review guidance (verification beads, modify beads). Token budget estimate. Compact report format. From adversarial review against review-prd v2.3, review-design v2.5, and review-plan v2.6.*

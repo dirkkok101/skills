@@ -108,7 +108,26 @@ Review kill criteria from brainstorm output before investing in detailed plannin
 
 If a kill criterion is violated or at serious risk: "Kill criterion '{criterion}' appears at risk because decomposition reveals {reason}. Recommend returning to brainstorm to reassess scope before continuing to plan."
 
-**Step 1.1 — Choose Decomposition Strategy:**
+**Step 1.1 — Run Implementation Gap Analysis FIRST:**
+
+Before choosing a decomposition strategy, run the gap analysis (Step 1.4d) to determine whether this is greenfield or non-greenfield work. This changes everything about how the plan is structured.
+
+```
+IF Implementation Status shows > 70% "Exists":
+  → Non-Greenfield Fast Path (derive tasks from gaps, not from design work decomposition)
+  → Skip importing design's Work Decomposition section (it describes greenfield build)
+  → Tasks focus on "what to change" not "what to build"
+  → Companion docs focus on verification, not new behavior
+
+IF Implementation Status shows < 30% "Exists":
+  → Greenfield Path (standard decomposition from design)
+  → Import design Work Decomposition as starting point
+
+ELSE:
+  → Hybrid (some greenfield tasks, some modification tasks)
+```
+
+**Step 1.2 — Choose Decomposition Strategy:**
 
 Default to **vertical slicing** — each task delivers a thin, end-to-end slice of functionality across all layers. This produces testable increments at every step and de-risks integration.
 
@@ -119,10 +138,15 @@ Use **horizontal layering** only for genuine shared prerequisites that multiple 
 | **Vertical slice** | Feature work, user-facing capabilities | "Create widget: schema + endpoint + UI + test" as one task |
 | **Horizontal layer** | Shared infrastructure, platform changes | "Database migration for all new entities" as foundation |
 | **Hybrid** (most common) | Typical features with shared prereqs | Foundation layer first, then vertical feature slices |
+| **Gap-driven** (non-greenfield) | >70% exists, alignment/refactoring work | Tasks derived from gap analysis: "Fix result type pattern", "Add missing audit events" |
 
-**Step 1.2 — Import or Create Decomposition:**
+**Step 1.3 — Import or Create Decomposition:**
 
-**STANDARD+ mode:** If the technical design includes a Work Decomposition section, import it as the starting point. Restructure into vertical slices if it was decomposed horizontally.
+**Non-greenfield (>70% exists):** Skip the design's Work Decomposition section — it describes greenfield build. Instead, derive tasks directly from the Implementation Gap Analysis (Step 1.4d): each "Modify" or "New" element becomes a task or part of a task. Group related modifications into coherent change sets.
+
+**Greenfield (<30% exists):** Import the design's Work Decomposition section as the starting point. Restructure into vertical slices if decomposed horizontally.
+
+**Hybrid (30-70% exists):** Import design Work Decomposition for new elements, derive modification tasks from gap analysis for existing elements.
 
 **Align with design's feature decomposition:** If the design uses feature-first decomposition (`docs/designs/{feature}/features/{sub-feature}/`), sub-plans should mirror this structure. Each design feature area typically maps to one sub-plan (e.g., `features/applications/` → `02-application-feature.md`). This alignment ensures sub-plans can directly reference their feature's api-surface.md, test-plan.md, and ui-mockup.md without ambiguity.
 
@@ -131,7 +155,7 @@ Use **horizontal layering** only for genuine shared prerequisites that multiple 
 - Group related requirements into coherent behaviour units
 - Create a simple dependency order
 
-**Step 1.3 — Size Each Task:**
+**Step 1.4 — Size Each Task:**
 
 | Signal | Too Small | Right Size | Too Large |
 |--------|-----------|------------|-----------|
@@ -176,7 +200,10 @@ For Tier 1 UCs, verify:
 - Every business rule (BR-*) maps to a validation task
 - If UC tasks are parallelizable, the UC doesn't require them in sequence
 
-UC Coverage gaps for Tier 1 UCs are **blockers** — do not proceed until resolved. Tier 2 gaps may be deferred with explicit owner and rationale.
+UC Coverage gap handling:
+- **Tier 1 UC gap** → blocker, do not proceed until resolved
+- **Tier 2 UC gap** → may be deferred with explicit owner and rationale
+- **UC tied to scope-excluded FR** → mark as `Scope Exclusion` in the table, not as a gap or blocker. Reference the design's Scope Exclusions section. This is NOT a planning failure — it's an intentional design decision.
 
 **Step 1.4c — Design Coverage Matrix:**
 
@@ -196,27 +223,68 @@ Every design element (endpoint, entity, command, query, contract, mapper) must h
 
 Derive the element list from the design's api-surface files (endpoints, contracts, commands, queries) and data-model (entities, migrations). Flag gaps as blocking issues.
 
-**Step 1.4d — Implementation Gap Analysis (Non-Greenfield):**
+**Step 1.4d — Implementation Gap Analysis (Run FIRST — see Step 1.1):**
 
-For features where partial implementation exists, check what's already built before planning tasks. This prevents creating beads for work that's already done.
+Check what's already built before decomposing. This is the most important step for non-greenfield work — it determines whether the plan is a build plan or an alignment plan.
+
+**Structured checklist** — for each design element type, search the codebase:
+
+```
+For each entity in data-model.md:
+  [ ] Entity class exists? Schema matches?
+  [ ] EF Configuration exists? Indexes, constraints match?
+  [ ] Migration exists?
+
+For each feature area in api-surface.md:
+  [ ] Contracts (DTO, Request, Response) exist? Fields match?
+  [ ] EntityMapper exists? Uses correct pattern?
+  [ ] DTOMapper exists? Uses correct pattern?
+  [ ] Commands exist? Return types match design (OneOf vs flags)?
+  [ ] Queries exist? Include correct navigations?
+  [ ] Validators exist? Rules match design?
+  [ ] Endpoints exist? Routes, verbs, auth policies match?
+
+For each frontend feature in ui-mockup.md:
+  [ ] Models/interfaces exist?
+  [ ] Feature service exists?
+  [ ] List/grid page exists?
+  [ ] Capture/form page exists?
+  [ ] Routing configured?
+
+Cross-cutting:
+  [ ] DI registration exists?
+  [ ] Audit events wired?
+  [ ] Tests exist? Coverage sufficient?
+```
+
+Use targeted Grep/Glob for this — an Explore agent is overkill for element-by-element checks.
 
 ```markdown
 ### Implementation Status
-| Design Element | Status | Notes |
-|---------------|--------|-------|
-| Widget entity | ✅ Exists | Schema matches design |
-| WidgetDTO | ✅ Exists | Missing new field "Category" |
-| SaveWidgetCommand | ⚠ Partial | Exists but uses old pattern (HasConflict flags) |
-| GetWidgetQuery | ❌ New | Not yet implemented |
-| Widget grid UI | ❌ New | Not yet implemented |
+| Design Element | Type | Status | Notes |
+|---------------|------|--------|-------|
+| Widget entity | entity | ✅ Exists | Schema matches design |
+| WidgetDTO | contract | ✅ Exists | Missing new field "Category" |
+| SaveWidgetCommand | command | ⚠ Modify | Exists but uses HasConflict flags (need OneOf per ADR-0016) |
+| GetWidgetQuery | query | ❌ New | Not yet implemented |
+| Widget grid UI | frontend | ❌ New | Not yet implemented |
 ```
 
-Mark each task as:
+Mark each element as:
 - **New** — nothing exists, build from scratch per design
-- **Modify** — exists but needs changes to match design (specify what changes)
-- **Exists** — already matches design, skip or verify only
+- **Modify** — exists but needs changes to match design (specify WHAT changes)
+- **Exists** — already matches design, verify only (no bead needed unless verification fails)
 
-For greenfield features, every element is "New" — but still document the table to confirm nothing was assumed to exist. For features building on existing code, it prevents the most common execution drift: the agent copies existing patterns instead of following the design, because the plan never told it what already exists and what needs to change.
+For greenfield features, every element is "New" — but still document the table to confirm nothing was assumed to exist.
+
+**Task sizing for modifications** (different from greenfield):
+
+| Modification Type | Size | Example |
+|-------------------|------|---------|
+| Pattern replacement (same logic, new type) | S | Change `HasConflict` to `OneOf<>` return type |
+| Field addition (cascades to DTO + mapper + tests) | M | Add `Category` field across entity, DTO, mapper, validator |
+| Behavioral change (new logic path) | L | Add audit event wiring where none existed |
+| Architecture change (cascading rework) | XL | Move from commands to event-driven pattern |
 
 **Step 1.5 — Order by Risk and Dependency:**
 
@@ -258,9 +326,13 @@ T03 and T04 can run in parallel after T01.
 
 Verify: no circular dependencies. Every task has explicit "Depends on" and "Blocks" relationships.
 
-**PAUSE 1:** Guided Review Workflow (Pattern 5 from stage-gates.md) — walk the user through the decomposition section by section.
+**PAUSE 1:** Guided Review Workflow — adaptive depth based on task count.
 
-**Step 1:** Present the Task Summary table as formatted markdown (from Step 1.2/1.3 output).
+**For ≤ 8 tasks:** Present all tables in a single view (Task Summary + FR/UC/Design Coverage + Ordering) and use a single approval gate. The overhead of 4+ interactive steps is disproportionate for small plans.
+
+**For > 8 tasks:** Walk the user through the decomposition section by section using the multi-step flow below.
+
+**Step 1:** Present the Task Summary table as formatted markdown (from Step 1.3/1.4 output).
 
 **Step 2:** AskUserQuestion — Batch Review (Pattern 3) for task validation:
 
@@ -511,6 +583,11 @@ Update the overview to reflect what sub-plans actually contain, so the overview 
 ### Phase 3b: Companion Documents (COMPREHENSIVE only)
 
 For COMPREHENSIVE plans, produce these companion documents alongside the sub-plans. These are living documents — updated during implementation as tests are written and security findings are addressed.
+
+**Scope-aware companion docs:** For plans where >70% of Implementation Status is "Exists" (non-greenfield), companion docs should focus on **verification of existing behavior** rather than planning new behavior:
+- E2E test plans become smoke tests verifying existing flows still work after modifications
+- Security checklists become audit checklists verifying existing controls
+- Test matrices document existing test coverage and identify gaps, not plan all-new tests
 
 **Step 3b.1 — E2E Test Plan:**
 
@@ -797,8 +874,10 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.7*
-*v3.7: Adversarial review fixes. UC Coverage table includes Ordering column for parallel-safe verification. Tier 1 UC gaps are explicit blockers. Failure criteria extraction process defined (read decision records, quote rejected alternatives). Implementation Gap Analysis always required (not optional for greenfield — confirms "all new"). PAUSE 1 Step 3 validates all three coverage tables together (FR + UC + Design). Design Coverage verified at PAUSE gate, not just self-reported.*
+*Skill Version: 3.8*
+*v3.8: Production feedback from 3 runs (Entitlements, Applications, Roles). Non-greenfield fast path: run gap analysis FIRST (Step 1.1), reorder Phase 1 when >70% exists. Gap-driven decomposition strategy added. Structured gap analysis checklist (entity, contract, command, query, endpoint, frontend — use Grep/Glob not Explore agents). Task sizing table for modifications (pattern replacement/field addition/behavioral change/architecture change). Scope-excluded UC handling (not a blocker). PAUSE 1 adaptive: single gate for ≤8 tasks, multi-step for >8. Companion docs scope-aware for non-greenfield. Failure criteria extraction from decision records/*.md with step-by-step process.*
+
+*v3.7: Adversarial review fixes. UC Coverage Ordering column, Tier 1 blockers, failure criteria extraction, gap analysis always required, PAUSE 1 validates all 3 coverage tables.*
 
 *v3.6: UC Coverage table (Step 1.4b), Design Coverage Matrix (Step 1.4c), Implementation Gap Analysis (Step 1.4d), mandatory Failure Criteria.*
 *v3.5: Prerequisites expanded with use cases, browser E2E plans, ADRs, and patterns paths. Phase 3b added to collaborative model. BRIEF skip list made explicit. ASCII conventions path corrected.*

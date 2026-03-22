@@ -539,11 +539,22 @@ From plan overview.md, extract:
 
 **Non-greenfield detection:** Check the Implementation Status table:
 ```
-IF > 90% "Exists": Verification Mode — create verification/modify beads only
+IF > 90% "Exists": Verification Mode — fast path (see below)
 IF > 70% "Exists": Gap-driven — create beads only for "New" and "Modify" elements
 IF < 30% "Exists": Greenfield — use standard pattern decomposition
 ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 ```
+
+**Verification Mode fast path (>90% exists):** The plan's Design Coverage Matrix already has element-by-element status. Skip the decomposition analysis — map directly from the plan:
+- Each "Modify" element → 1 modification bead
+- Each cluster of "Exists" elements in the same feature → 1 verification bead per feature (not per element)
+- Test gates only (no UC/module verify gates for ≤5 implementation beads)
+- Skip reading full design docs — the plan already digested them. Spot-check only.
+
+**Checkpoint/resume:** Before creating beads, check if beads already exist for this feature (search by epic title or feature label). If found:
+- Present: "{N} beads already exist for {feature}. Delete and recreate, or resume?"
+- Resume: skip to Phase 3 (self-assessment) on existing beads
+- Delete: remove all existing beads, then proceed with full creation
 
 **Step 1.1b — Read Plan Sub-Plans and Design Docs:**
 
@@ -626,6 +637,8 @@ Review the bead list for trivially small beads that can be combined per the Grou
 ```
 IF total implementation beads ≤ 5 AND plan tasks ≤ 3:
   → BRIEF gates only (backend test + frontend test, no UC/module verify gates)
+IF Verification Mode (>90% exists) AND implementation beads ≤ 10:
+  → Lightweight gates (test gates only, skip UC/module verify — code mostly works already)
 ELSE:
   → Standard gate structure per Step 1.3
 ```
@@ -1327,7 +1340,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.2*
+*Skill Version: 5.3*
+*v5.3: Production feedback from Entitlements run. Verification Mode fast path (>90% exists → map directly from plan, skip decomposition analysis, 1 verification bead per feature not per element). Checkpoint/resume for interrupted runs (detect existing beads, offer resume vs delete). Gate scaling for verification mode (lightweight gates when ≤10 impl beads). Context efficiency: rely on plan's coverage tables, spot-check source docs only.*
 *v5.2: Removed /review and /simplify gate beads — they treat code built for future beads as "dead code" and delete it, breaking the pipeline. Replaced with test gates only (test at feature boundaries, verify at UC and module boundaries). Run /review and /simplify AFTER epic completes when all code exists. PAUSE 1 simplified to summary + single approval (user can't evaluate individual beads in detail — /review-beads handles that). Gate overhead reduced: 2 test + 1 UC verify + 1 module verify per feature (was 6 review/simplify + 2 test per feature).*
 *v5.1: Full-pipeline adversarial review fixes. Hybrid mode (30-70%) decomposition instructions added. Verification beads for "Exists" elements at 70-90% (not just >90%). FR Coverage with acceptance criteria depth (ACs Covered column — Partial if any AC unaddressed). Design Decision Coverage table (verify every decision propagated as failure criteria). Decomposition Adaptation Algorithm for non-.NET projects (build from docs/patterns/ directory). Verification bead template added.*
 *v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*

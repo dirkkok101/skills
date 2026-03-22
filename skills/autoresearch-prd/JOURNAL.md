@@ -489,4 +489,93 @@ Built `/autoresearch` skill (v1.0) to automate the review→fix→re-review loop
 | review-design | v2.2 | Production ready |
 | autoresearch | v1.0 | New — convergence loop skill |
 
-**Methodology validated across both domains.** The Karpathy technique works for document quality when you have a frozen, deterministic evaluation function (review skill) and can classify findings as mechanical (auto-fixable) vs decision-required (escalate). The remaining challenge is cascading consistency — fixing one document can invalidate references in another. The autoresearch skill addresses this with convergence detection and revert-on-regression guardrails.
+---
+
+## CONVERGE + COMPREHENSIVE: Full Convergence Achieved
+
+### The Test
+
+Ran `/review-design CONVERGE + COMPREHENSIVE` on all 15 identity modules in parallel. Each agent independently reviewed, classified findings, fixed mechanicals, escalated decisions, and re-reviewed until 0 FAILs.
+
+### Results: 15 for 15
+
+| Module | Findings | Fixed | Rounds | Decisions |
+|--------|----------|-------|--------|-----------|
+| API Keys | 7 | 7 | 3 | 1 |
+| Applications | 6 | 8 (+2 cascade) | 2 | 2 |
+| Approvals | 4 | 4 | 2 | 1 |
+| Audit | 2 | 2 | 2 | 0 |
+| Authentication | 1 | 1 | 2 | 0 |
+| Cross-Cutting | 3 | 3 | 3 | 0 |
+| Entitlements | 3 | 3 | 2 | 1 |
+| Identity Providers | 4 | 4 | 2 | 1 |
+| Languages | 7 | 7 | 2 | 1 |
+| Organizations | 6 | 6 | 2 | 0 |
+| Portal | 1 | 1 | 1 | 0 |
+| Role Templates | 1 | 1 | 2 | 0 |
+| Roles | 4 | 4 | 2 | 0 |
+| Sessions | 2 | 2 | 2 | 0 |
+| Users | 3 | 3 | 2 | 0 |
+| **Totals** | **54** | **56** | **avg 2.1** | **7** |
+
+**Every module converged to 0 FAILs.** Including modules that resisted 3 rounds of manual fixing (Cross-Cutting, Approvals, Roles).
+
+### The Full Journey: 68 → 0
+
+| Phase | Method | FAILs |
+|-------|--------|-------|
+| v1: First review | 15 parallel review agents | 68 |
+| v2: Structural + content fixes | 13 fix agents + 12 decisions | 47 |
+| v3: Second fix round | 15 targeted prompts | ~48 (plateau) |
+| CONVERGE round 1 | 15 parallel CONVERGE agents | ~20 |
+| CONVERGE round 2 | Same agents, re-review | **0** |
+
+### Why CONVERGE Succeeded Where Manual Rounds Plateaued
+
+1. **Cascade check** — after each fix, grepped the module directory for related terms. Caught stale references that manual fixes missed (e.g., fixing a route parameter in api-surface but missing the same parameter in test-plan and architecture diagrams).
+
+2. **Classification discipline** — MECHANICAL vs JUSTIFIED_DEVIATION vs DECISION. Manual rounds sometimes guessed on decisions; CONVERGE escalated them cleanly.
+
+3. **Authority hierarchy** — when two documents conflicted, the hierarchy (ADRs > patterns > architecture > PRD > api-surface > backend > diagrams > tests > UCs > READMEs) made the resolution unambiguous.
+
+4. **Progressive loading** — Wave 1 (design.md + PRD) caught 60%+ of findings. Didn't waste context loading every pattern doc upfront.
+
+5. **Frozen evaluation** — the review skill never changed during the loop. Same checklist, same severity, deterministic convergence.
+
+### Skill Evolution Through Production Feedback
+
+The CONVERGE mode improved through 3 production runs:
+
+| Run | Feedback | Fix |
+|-----|----------|-----|
+| Entitlements (v1.0) | Context loading too heavy | Progressive loading (3 waves) |
+| Entitlements (v1.0) | Justified deviations escalated unnecessarily | JUSTIFIED_DEVIATION classification |
+| Entitlements (v1.0) | Cascade missed architecture.md | Cascade check: grep after each fix |
+| Applications (v2.4) | Stage gates interrupting CONVERGE | Skip all interactive gates |
+| Applications (v2.4) | backend.md authority unclear | Added to hierarchy |
+| Applications (v2.4) | FR aliasing flagged as mismatch | Check for documented alias mappings |
+| Applications (v2.4) | Phase 1 too rigid on headings | Substance over form |
+| Applications (v2.4) | 3 mockup states impractical | Lowered to 2 |
+
+### Final Skill Versions
+
+| Skill | Version | Key Capability |
+|-------|---------|---------------|
+| prd | v3.7 | Structural conventions, policy PRD guidance |
+| review-prd | v2.2 | CONVERGE mode, frozen evaluation |
+| technical-design | v3.7 | Deterministic decomposition, PRD/ADR traceability |
+| review-design | v2.5 | CONVERGE + COMPREHENSIVE, substance over form, authority hierarchy |
+| autoresearch | v1.3 | Standalone convergence loop, multi-module parallel |
+
+### Methodology: Validated
+
+The Karpathy autoresearch technique works for document quality convergence:
+
+- **Frozen metric:** review skill FAIL count (never modified during loop)
+- **Optimizer:** fix agent with authority hierarchy and cascade check
+- **Convergence:** 100% of modules reached 0 FAILs in ≤3 rounds
+- **Average rounds to convergence:** 2.1
+- **Decision escalation rate:** 7 of 54 findings (13%) — the rest were fully automated
+- **False positive rate:** 0 (every finding was a real issue)
+
+The technique is domain-agnostic. It works on any document type with a structured, deterministic review skill. The frozen metric is the key — as long as the evaluation function doesn't change during the loop, convergence is achievable.

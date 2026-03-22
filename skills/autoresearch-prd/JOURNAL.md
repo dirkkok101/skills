@@ -636,3 +636,69 @@ The Karpathy autoresearch technique works for document quality convergence acros
 - **Skills improved through 4 production feedback cycles**
 
 The technique is domain-agnostic. It works on any document type with a structured, deterministic review skill. The frozen metric (review FAIL count) is the key — as long as the evaluation function doesn't change during the loop, convergence is achievable.
+
+---
+
+## Plan Skill Refinement
+
+### Adversarial Review
+
+First-principles review of plan v3.6 and review-plan v1.0 found 6 critical issues:
+1. Severity model mismatch (Critical/Major vs FAIL/WARN) — broke autoresearch
+2. Coverage tables self-reported, not verified at PAUSE gates
+3. Failure criteria extraction process undefined
+4. UC Coverage assumes sequential, beads supports parallel
+5. CONVERGE behavior underspecified
+6. Implementation Gap Analysis optional for greenfield
+
+All fixed in plan v3.7 + review-plan v2.1.
+
+### Production Testing: 3 Plan Generations + 3 Reviews
+
+Generated fresh plans from aligned PRDs + designs for Entitlements, Applications, Roles. Then ran review-plan CONVERGE + COMPREHENSIVE.
+
+| Module | Plan Findings | Review Findings | Rounds | Decisions |
+|--------|--------------|-----------------|--------|-----------|
+| Entitlements | 5 tasks, 9 files | 1 FAIL (mechanical) | 2 | 0 |
+| Applications | 9 tasks, 13 files | 2 FAILs (mechanical) | 2 | 0 |
+| Roles | 9 tasks, 13 files | 1 FAIL (mechanical) | 2 | 0 |
+
+**3 for 3 — all converged to 0 FAILs in 2 rounds.**
+
+### Key Insight: Greenfield Bias
+
+All 3 production runs surfaced the same core issue: **the plan skill has a greenfield bias that doesn't serve non-greenfield work.** With modules 80-98% implemented, the plan skill produced build plans when alignment plans were needed.
+
+### plan v3.7 → v3.9 (3 iterations from production feedback)
+
+| Version | Key Change |
+|---------|-----------|
+| v3.8 | Non-greenfield fast path: run gap analysis FIRST, reorder Phase 1 when >70% exists. Structured gap analysis checklist. Gap-driven decomposition. Scope-excluded UC handling. Adaptive PAUSE 1. Companion docs scope-aware. |
+| v3.9 | Failure Criteria exemption for verification/audit tasks. |
+
+### review-plan v2.0 → v2.2 (3 iterations)
+
+| Version | Key Change |
+|---------|-----------|
+| v2.1 | Severity aligned to FAIL/WARN. CONVERGE behavior explicit. |
+| v2.2 | Embedded gap analysis support. Critical path severity upgraded. WARN triage. Same-session awareness with confidence levels. Failure Criteria exemption. |
+
+### Full Pipeline Validation
+
+| Skill Pipeline | Modules | Convergence | Avg Rounds |
+|---------------|---------|-------------|------------|
+| PRD → review-prd CONVERGE | 15 | **100%** | 2.1 |
+| Design → review-design CONVERGE | 15 | **100%** | 2.1 |
+| Plan → review-plan CONVERGE | 3 | **100%** | 2.0 |
+
+### Final Skill Versions
+
+| Skill | Version | Production Tested |
+|-------|---------|-------------------|
+| prd | v3.7 | 15 modules |
+| review-prd | v2.3 | 15 modules |
+| technical-design | v3.7 | 15 modules |
+| review-design | v2.5 | 15 modules |
+| plan | v3.9 | 3 modules |
+| review-plan | v2.2 | 3 modules |
+| autoresearch | v1.4 | All of the above |

@@ -114,6 +114,20 @@ Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Patter
 
 **Agent finding classification:** Instruct agents to classify each finding AND provide reasoning. The reviewer validates or reclassifies — agents sometimes classify "missing from design because never designed" as MECHANICAL when it's actually a DECISION.
 
+**Agent sub-plan reading:** Add to agent prompts: "Before flagging any FR coverage as incomplete, read the full sub-plan body for the covering task(s). The overview table is a summary — the sub-plan is the authority."
+
+**Agent false positive rate:** Expect 30-40% false positive rate from review agents. Budget time for triage. For plans with ≤3 sub-plans, skip agents and do direct authority source reads + spot-checks instead — the reviewer's own reads are more efficient than filtering agent noise.
+
+**Companion doc depth:** Scale by plan complexity. For plans with ≤3 sub-plans, structural check is sufficient. For plans with >3 sub-plans, cross-reference companion docs against design test plans and security analysis.
+
+**Same-session spot-checks:** Increase from 3 to 5 minimum. Target gap analysis claims specifically: (a) does the test infrastructure exist where the plan says, (b) do existing files contain what the gap analysis claims, (c) do "Modify" elements actually have the claimed issues. Same-session generating agents consistently produce stale count/existence errors.
+
+**Phase ordering for CONVERGE:** Consider running Phase 6 (internal consistency / arithmetic) immediately after Phase 0, not last. Arithmetic errors are the cheapest fixes and most common MECHANICAL findings. Fixing them first reduces cascading corrections.
+
+**Test counts single source of truth:** The test-scenario-matrix should be the authoritative test count. Overview and sub-plans should reference it ("see test-scenario-matrix.md") instead of stating counts that drift.
+
+**Agent finding triage table:** Include in the review report: `## Agent Finding Triage` with a disposition column (Accepted / False Positive / Reclassified). Makes the review auditable.
+
 **Verification Mode phase collapsing:** For plans where >90% exists and the gap analysis IS the plan, Phases 2 (design fidelity) and 3 (gap analysis fidelity) collapse into a single check: "does the gap analysis correctly identify what needs to change?" Run them as one phase rather than separately. Phase 2's endpoint/contract verification is redundant when the plan's tasks are verification checklists, not construction blueprints. Without this, agents will produce false positives by assuming greenfield context.
 
 **Codebase spot-check:** For non-greenfield plans, the gap analysis claims about implementation state are the foundation of the decomposition. A 30-second Grep to verify key claims (e.g., confirm the named class exists, confirm the endpoint route is registered) significantly increases confidence. This is particularly valuable for Phase 3 (Gap Analysis Fidelity).
@@ -658,8 +672,10 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.5*
-*v2.5: Production feedback from 12 CONVERGE runs (+ Approvals, Identity Providers, Users). Trivial WARN auto-fix heuristic (additive-only, <10 lines). Comprehensive non-greenfield agent prompt (5 rules including upstream filtering and verification-is-sufficient). Agent context must include current gap analysis. Agent findings must include classification reasoning. Same-session: Phase 1 explicit reads, 3+ codebase spot-checks required.*
+*Skill Version: 2.6*
+*v2.6: Final production feedback from 15/15 CONVERGE runs (+ API Keys, Cross-Cutting, Role Templates). Agent false positive rate documented (30-40% — skip agents for ≤3 sub-plans). Same-session spot-checks increased to 5 minimum, targeted at gap analysis claims. Agent sub-plan reading mandate. Companion doc depth scales with plan complexity. Phase 6 first for CONVERGE (arithmetic errors are cheapest fixes). Test counts single source of truth (test-scenario-matrix). Agent finding triage table in report.*
+
+*v2.5: Trivial WARN auto-fix. Comprehensive non-greenfield prompt (5 rules). Agent context + classification reasoning. Same-session explicit reads + spot-checks.*
 
 *v2.4: MECHANICAL auto-fix regardless of severity. Verification Mode phase collapsing. Protocol exception. Same-session LOW confidence.*
 

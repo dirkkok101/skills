@@ -149,7 +149,9 @@ For large modules (20+ design elements): partition gap analysis agents by layer 
 
 Explore agents are useful for initial context loading (Phase 0) but not for the gap analysis itself.
 
-**Verify absence claims.** If an agent reports "file not found" or "tests missing," confirm with a targeted Grep before marking it as a gap. Agents miss files in non-obvious locations.
+**Verify ALL agent claims — absence AND modification.** If an agent reports "file not found" or "tests missing," confirm with a targeted Grep. If an agent reports "field X should be Y," verify against the design doc (not just the code). Agents miss files in non-obvious locations and confidently report modifications against invented requirements.
+
+**Test project discovery:** Do NOT assume test files are in `test/` or `tests/`. Search the entire repository for test projects (`*.Tests`, `*.Test`, `spec` directories). The gap analysis prompt should say "search the entire repository for test files related to {module}" not "search test/ directory."
 
 **Test mapping precision:** When test counts exceed design cases, note which mappings were verified vs inferred. Mark approximate counts with `~` and flag for verification during execution.
 

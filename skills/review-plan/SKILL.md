@@ -81,8 +81,15 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 3. **Fix** mechanical findings using minimum changes. **Cascade check:** after cross-cutting fixes, grep the plan directory for related terms before declaring fix complete. **Cascade scope is the plan directory only** — cross-module cascades noted as observations.
 4. **Re-review** — Run the review again on the fixed plan.
 5. **Compare** — Did Critical+Major findings decrease? If increased, revert and stop.
-6. **Repeat** until 0 Critical + 0 Major or max 5 rounds.
-7. **Observation triage** — After convergence, present remaining Minor findings to user for optional resolution.
+6. **Repeat** until 0 FAILs or max 5 rounds.
+7. **WARN triage** — After FAILs reach 0, present remaining WARNs to the user as a final batch via AskUserQuestion with "Fix / Accept as-is" options. Trivial WARNs (1-line fixes with zero ambiguity, like adding a missing prerequisite) may be auto-fixed alongside FAILs.
+
+**Same-session awareness:** If the plan was generated in the current conversation, note this in the report. Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
+
+**Confidence level:** Include in the convergence report:
+- **HIGH** — independent reviewer, fresh context, all authority sources loaded from disk
+- **MODERATE** — same-session review, non-greenfield plan with mostly verification tasks
+- **LOW** — same-session review, same agent, large plan with many judgment calls
 
 **Authority hierarchy for mechanical fixes:**
 ```
@@ -194,7 +201,7 @@ Verify conditional sections are present when applicable:
 - Pattern Reference (when established patterns exist)
 
 Verify mandatory sections:
-- Failure Criteria — REQUIRED per task (not optional). Must include explicit "do NOT" guidance derived from design decisions and rejected alternatives. Flag missing Failure Criteria as **WARN** (without them, the executing agent may re-derive the wrong approach).
+- Failure Criteria — REQUIRED for **implementation tasks**. Must include explicit "do NOT" guidance derived from design decisions and rejected alternatives. Flag missing Failure Criteria on implementation tasks as **WARN**. **Exception:** verification/audit tasks (tasks whose primary objective is confirming existing code matches a specification) may omit Failure Criteria — the success criteria checklist serves as the constraint.
 
 Flag missing required sections as **WARN**. Flag missing conditional sections (when clearly applicable) as **Minor**.
 
@@ -297,9 +304,9 @@ If companion docs exist, verify them against the design:
 
 ### Phase 3: Gap Analysis Fidelity
 
-**Skip this phase if no gap analysis document was found in Phase 0.3.**
+**Skip this phase if no gap analysis document was found in Phase 0.3.** However, check whether the plan's overview embeds a gap analysis (e.g., an Implementation Status table with New/Modify/Exists classifications). If embedded, treat the Implementation Status table as the gap analysis authority source and run Steps 3.1-3.2 against it.
 
-**Load:** Gap analysis document.
+**Load:** Gap analysis document (standalone or embedded in overview).
 
 **Step 3.1 — Gap Coverage:**
 
@@ -448,7 +455,7 @@ Flag inconsistencies as **Minor** (confusing but not blocking).
 
 Flag circular dependencies as **FAIL**.
 Flag invalid references as **WARN**.
-Flag incorrect critical path as **Minor**.
+Flag incorrect critical path in the overview (Task Summary / Dependency Graph) as **FAIL** — it directly affects /beads execution ordering. Flag incorrect critical path in prose descriptions as **WARN**.
 
 **Step 6.4 — Naming Consistency:**
 
@@ -624,8 +631,10 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.1*
-*v2.1: Severity model aligned to FAIL/WARN (was Critical/Major/Minor/Observation) for autoresearch compatibility. CONVERGE behavior explicit: MECHANICAL FAILs auto-fixed, DECISION FAILs escalated, WARNs never touched. Verdict simplified to PASS/PASS WITH CONDITIONS/FAIL. From adversarial review of both plan and review-plan skills.*
+*Skill Version: 2.2*
+*v2.2: Production feedback from 3 CONVERGE runs (Entitlements, Applications, Roles). Embedded gap analysis support (Implementation Status table as gap analysis authority). Critical path severity upgraded to FAIL when in overview (affects /beads ordering). WARN triage after convergence (trivial WARNs may be auto-fixed). Same-session awareness with confidence levels (HIGH/MODERATE/LOW). Failure Criteria exemption for verification/audit tasks. Compact report format for ≤3 findings.*
+
+*v2.1: Severity model aligned to FAIL/WARN. CONVERGE behavior explicit. Verdict simplified.*
 
 *v2.0: CONVERGE mode with COMPREHENSIVE depth option. UC Coverage table verification. Design Coverage Matrix verification. Failure Criteria mandatory. Substance-over-form. Progressive loading. Cascade check. Authority hierarchy. Learnings from review-prd v2.3 and review-design v2.5.*
 

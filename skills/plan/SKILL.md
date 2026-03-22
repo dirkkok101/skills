@@ -526,7 +526,7 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 **Success Criteria:**
 - {Testable assertion — what must be true when done}
 
-**Failure Criteria:** (REQUIRED for every task, not optional)
+**Failure Criteria:** (REQUIRED for implementation tasks. Verification/audit tasks may omit when there are no rejected alternatives — success criteria serve as the constraint.)
 - {What NOT to do — from design decisions: "Do NOT use HasConflict flags — use OneOf per ADR-0016"}
 - {Rejected alternative — from design: "Do NOT use pub/sub for cache invalidation — use direct KeyDelete per design decision"}
 - {Pattern constraint — "Do NOT inject DbContext directly — use IDbContextFactory per project pattern"}
@@ -874,7 +874,8 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 3.8*
+*Skill Version: 3.9*
+*v3.9: Failure Criteria exemption for verification/audit tasks (no rejected alternatives to quote — success criteria serve as constraint). From review-plan production feedback.*
 *v3.8: Production feedback from 3 runs (Entitlements, Applications, Roles). Non-greenfield fast path: run gap analysis FIRST (Step 1.1), reorder Phase 1 when >70% exists. Gap-driven decomposition strategy added. Structured gap analysis checklist (entity, contract, command, query, endpoint, frontend — use Grep/Glob not Explore agents). Task sizing table for modifications (pattern replacement/field addition/behavioral change/architecture change). Scope-excluded UC handling (not a blocker). PAUSE 1 adaptive: single gate for ≤8 tasks, multi-step for >8. Companion docs scope-aware for non-greenfield. Failure criteria extraction from decision records/*.md with step-by-step process.*
 
 *v3.7: Adversarial review fixes. UC Coverage Ordering column, Tier 1 blockers, failure criteria extraction, gap analysis always required, PAUSE 1 validates all 3 coverage tables.*

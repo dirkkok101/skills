@@ -641,7 +641,8 @@ After reviewing individual beads, check cross-cutting concerns:
 - [ ] No circular dependencies (`br dep cycles`)
 - [ ] Dependency graph is a DAG
 - [ ] First bead(s) have zero dependencies and are ready to execute
-- [ ] Epic depends on module `/simplify` gate (last bead)
+- [ ] Epic depends on `verify({module}): module complete` gate (last bead)
+- [ ] No `/review` or `/simplify` gate beads exist between implementation beads (these break future beads by deleting preparatory code)
 
 **Naming consistency:**
 - [ ] Entity names consistent across all beads (same casing, same abbreviation)
@@ -884,7 +885,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.1*
+*Skill Version: 2.2*
+*v2.2: Removed /review and /simplify gate checks — these gate types no longer exist in beads v5.2. Updated cross-bead consistency to check for test/verify gates and flag any /review or /simplify gates as findings (they break the pipeline).*
 *v2.1: Full-pipeline adversarial review fixes. FR acceptance criteria depth check (each Given/When/Then must map to a bead success criterion). Design Decision Coverage cross-reference (failure criteria must trace to design decisions, not be generic). From end-to-end pipeline review covering PRD→design→plan→beads→review-beads.*
 *v2.0: CONVERGE mode with progressive loading, cascade check, same-session detection, WARN triage. Severity model aligned to FAIL/WARN (was class-only). Finding classification now includes default severity per class. Authority hierarchy aligned with siblings. Non-greenfield bead review guidance (verification beads, modify beads). Token budget estimate. Compact report format. From adversarial review against review-prd v2.3, review-design v2.5, and review-plan v2.6.*
 *v1.0: Initial release. 11 review categories, 6-phase review process, severity calibration with examples, finding classification taxonomy, granularity decomposition with expected bead count derivation, FR/UC coverage matrices, stage gate analysis, batch execution support for multi-module reviews, anti-patterns.*

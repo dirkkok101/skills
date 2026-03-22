@@ -23,7 +23,7 @@ argument-hint: "[feature-name] or path to plan"
 3. **Self-contained** — an agent can execute without reading other beads
 4. **Traceable** — every bead maps to FRs from the PRD
 5. **Verifiable** — every bead has executable test commands
-6. **Stage gate cycles** — `/review` + `/simplify` at every semantic boundary
+6. **Test gates** — test verification at semantic boundaries (NOT /review or /simplify between beads)
 
 **Duration targets:** BRIEF ~10-15 minutes, STANDARD ~20-40 minutes, COMPREHENSIVE ~45-90 minutes. Most time should be spent on Phase 3 (self-assessment). If bead creation is fast but assessment reveals many "Needs" items, the plan's sub-plans may lack detail — consider going back to refine them.
 
@@ -230,75 +230,54 @@ Not every feature needs all 7. Check the discovered `ui-mockup` doc:
 
 | # | Bead Title Convention | Pattern Key | What It Produces | Depends On |
 |---|----------------------|-------------|------------------|------------|
-| 27 | `{Feature} Integration Tests` | per discovered test plan | Backend integration tests using Testcontainers Postgres | Backend `/simplify` gate |
-| 28 | `{Feature} UI Tests` | per discovered test plan | Vitest unit tests for components and service | Frontend `/simplify` gate |
+| 27 | `{Feature} Integration Tests` | per discovered test plan | Backend integration tests | Last backend impl bead |
+| 28 | `{Feature} UI Tests` | per discovered test plan | Frontend unit/component tests | Last frontend impl bead |
 
 ---
 
-## Stage Gate Beads
+## Test Gates (NOT Review/Simplify Gates)
 
-When creating beads from a plan, **automatically insert stage gate beads** at semantic boundaries. These are non-implementation beads that the `/execute` skill runs as first-class beads — loading the gate bead, running the specified skill, fixing any issues found, then proceeding.
+**Important: Do NOT insert `/review` or `/simplify` gate beads.** Earlier beads intentionally lay groundwork for later beads — review and simplify skills treat unused code as dead code and delete it, breaking the pipeline. Code review and simplification happen AFTER all beads in an epic are complete, not between beads.
 
-### The Review Cycle Pattern
+Instead, insert **test gates** at semantic boundaries. Test gates verify that code works correctly before downstream beads build on it.
 
-Each stage gate is a **two-step cycle**:
-
-1. **`/review` bead** — Multi-perspective adversarial code review. Finds defects: missing error handling, wrong patterns, broken contracts, security gaps, requirement drift. The executing agent fixes all findings before proceeding.
-2. **`/simplify` bead** — Code quality and efficiency pass. Finds reuse opportunities, dead code, over-engineering, naming issues, unnecessary complexity. The executing agent fixes all findings before proceeding.
-
-These must be **separate beads** because they have different concerns and produce different fix patterns. `/review` catches correctness; `/simplify` catches quality.
-
-### Stage Gate Placement Rules
-
-Insert gates at three levels:
-
-#### Level 1: Feature Slice Gates (per entity/feature)
-
-After all backend implementation beads for a feature:
+### Test Gate Placement
 
 ```
-[backend impl beads] → /review({feature}): backend → /simplify({feature}): backend
-  → test({feature}): integration tests
-    → [frontend impl beads] → /review({feature}): frontend → /simplify({feature}): frontend
-      → test({feature}): UI tests
+[backend impl beads] → test({feature}): integration tests
+  → [frontend impl beads] → test({feature}): UI tests
 ```
 
-| # | Bead Title Convention | Type | Depends On | Gates |
-|---|----------------------|------|------------|-------|
-| 1 | `/review({feature}): backend` | review | Last backend impl bead (service registration) | Blocks `/simplify` |
-| 2 | `/simplify({feature}): backend` | review | Backend `/review` bead | Blocks test gate |
-| 3 | `test({feature}): integration tests` | test | Backend `/simplify` bead | **Blocks ALL frontend beads** |
-| 4 | `/review({feature}): frontend` | review | Last frontend impl bead (routing) | Blocks `/simplify` |
-| 5 | `/simplify({feature}): frontend` | review | Frontend `/review` bead | Blocks test gate |
-| 6 | `test({feature}): UI tests` | test | Frontend `/simplify` bead | Blocks UC gate |
+| # | Bead Title Convention | Type | Depends On | Purpose |
+|---|----------------------|------|------------|---------|
+| 1 | `test({feature}): integration tests` | test | Last backend impl bead (service registration) | **Blocks ALL frontend beads** |
+| 2 | `test({feature}): UI tests` | test | Last frontend impl bead (routing) | Blocks UC gate |
 
-**Critical rule:** Frontend beads MUST depend on the backend test gate (#3), never on raw backend implementation beads. This ensures backend code is reviewed, simplified, and passing tests before frontend work begins.
+**Critical rule:** Frontend beads MUST depend on the backend test gate, never on raw backend implementation beads. This ensures backend code compiles and passes tests before frontend work begins.
 
-#### Level 2: Use Case Gates (per use case)
+### UC Verification Gates
 
 After all feature slices contributing to a use case are tested:
 
 ```
-test(A): UI tests + test(B): UI tests → /review({module}): UC-{ID} → /simplify({module}): UC-{ID}
+test(A): UI tests + test(B): UI tests → verify({module}): UC-{ID}
 ```
 
 | # | Bead Title Convention | Type | Depends On | Purpose |
 |---|----------------------|------|------------|---------|
-| 7 | `/review({module}): UC-{ID}` | review | All feature test gates for this UC | End-to-end correctness across features |
-| 8 | `/simplify({module}): UC-{ID}` | review | UC `/review` bead | Cross-feature deduplication and quality |
+| 3 | `verify({module}): UC-{ID}` | test | All feature test gates for this UC | End-to-end scenario flow verification |
 
-#### Level 3: Module Epic Gates
+### Module Completion Gate
 
-After all use case gates pass:
+After all UC gates pass:
 
 ```
-/simplify: UC-001 + /simplify: UC-002 → /review({module}): module complete → /simplify({module}): module complete
+verify: UC-001 + verify: UC-002 → verify({module}): module complete
 ```
 
 | # | Bead Title Convention | Type | Depends On | Purpose |
 |---|----------------------|------|------------|---------|
-| 9 | `/review({module}): module complete` | review | All UC `/simplify` gates | Final cross-feature consistency, DI, routing |
-| 10 | `/simplify({module}): module complete` | review | Module `/review` bead | Final quality pass. **Last bead in the epic.** |
+| 4 | `verify({module}): module complete` | test | All UC verify gates | Final integration test. **Last bead in the epic.** |
 
 ### Dependency Flow Visualization
 
@@ -309,26 +288,30 @@ Feature A:
   bd-a1 (entity) → bd-a2 (EF) → bd-a3 (contracts) → bd-a4 (mappers)
     → bd-a5 (commands) → bd-a6 (queries) → bd-a7 (endpoints)
     → bd-a8 (validators) → bd-a9 (registration)
-      → /review(A): backend → /simplify(A): backend → test(A): integration tests
+      → test(A): integration tests
         → bd-a10 (models) → bd-a11 (service) → bd-a12 (list page)
         → bd-a13 (capture) → bd-a14 (routing)
-          → /review(A): frontend → /simplify(A): frontend → test(A): UI tests
+          → test(A): UI tests
 
 Feature B:
   bd-b1 → ... → bd-b9
-    → /review(B): backend → /simplify(B): backend → test(B): integration tests
+    → test(B): integration tests
       → bd-b10 → ... → bd-b14
-        → /review(B): frontend → /simplify(B): frontend → test(B): UI tests
+        → test(B): UI tests
 
 UC + Module:
   test(A): UI tests + test(B): UI tests
-    → /review(module): UC-001 → /simplify(module): UC-001
-      → /review(module): module complete → /simplify(module): module complete [EPIC CLOSES]
+    → verify(module): UC-001
+      → verify(module): module complete [EPIC CLOSES]
 ```
+
+### When to Review Code
+
+Run `/review` and `/simplify` AFTER the epic's `verify({module}): module complete` gate passes — when all beads are implemented and tested. At that point, all code exists and nothing is "dead code waiting for a future bead."
 
 ### Trust Hierarchy
 
-When gate beads find issues, the fix priority follows this hierarchy (highest trust → lowest):
+When test or verification gates find issues, the fix priority follows this hierarchy (highest trust → lowest):
 
 1. **ADRs & Patterns** — architectural intent, non-negotiable
 2. **PRD** — business requirements
@@ -336,8 +319,6 @@ When gate beads find issues, the fix priority follows this hierarchy (highest tr
 4. **Plans & Sub-plans** — implementation breakdown
 5. **Beads** — must conform to everything above
 6. **Implementation code** — must conform to the bead's intent
-
-If `/review` finds code that contradicts a pattern or ADR, the **code is wrong**. If a bead contradicts the design, the **bead is wrong**. Gate beads enforce this hierarchy at every boundary.
 
 ---
 
@@ -648,32 +629,29 @@ ELSE:
   → Standard gate structure per Step 1.3
 ```
 
-**Step 1.3 — Insert Stage Gate Beads:**
+**Step 1.3 — Insert Test Gates:**
 
-After creating all implementation and test beads, insert stage gate beads:
+After creating all implementation beads, insert test and verification gates:
 
 1. **Identify feature slices** — group implementation beads by feature/entity
 2. **Identify the last backend bead** per feature (usually service registration)
 3. **Identify the last frontend bead** per feature (usually routing)
-4. **Create feature slice gates** (6 per feature: 2× `/review`, 2× `/simplify`, 2× test):
-   - `/review({feature}): backend` — depends on last backend impl bead
-   - `/simplify({feature}): backend` — depends on backend `/review` bead
-   - `test({feature}): integration tests` — depends on backend `/simplify` bead
-   - `/review({feature}): frontend` — depends on last frontend impl bead
-   - `/simplify({feature}): frontend` — depends on frontend `/review` bead
-   - `test({feature}): UI tests` — depends on frontend `/simplify` bead
-5. **Create UC gate beads** (2 per use case: `/review` + `/simplify`):
-   - Depend on all contributing feature test gates
-6. **Create module gate beads** (2: `/review` + `/simplify`):
-   - Depend on all UC gates
-   - Module `/simplify` gate is the epic's final dependency
+4. **Create test gates** (2 per feature):
+   - `test({feature}): integration tests` — depends on last backend impl bead
+   - `test({feature}): UI tests` — depends on last frontend impl bead
+5. **Create UC verification gates** (1 per use case):
+   - `verify({module}): UC-{ID}` — depends on all contributing feature test gates
+6. **Create module completion gate** (1):
+   - `verify({module}): module complete` — depends on all UC verify gates — **last bead in epic**
 
 **Wire dependencies:**
-- Gate beads depend on the last impl bead of their phase
+- Test gates depend on the last impl bead of their phase
 - Frontend impl beads depend on the backend test gate (NOT on backend impl beads)
-- UC gates depend on all contributing feature test gates
-- Module gates depend on all UC gates
-- Epic depends on the module `/simplify` gate (making it the last bead)
+- UC verify gates depend on all contributing feature test gates
+- Module verify gate depends on all UC verify gates
+- Epic depends on the module verify gate (making it the last bead)
+
+**Do NOT insert /review or /simplify gate beads between implementation beads.** These skills treat code built for future beads as "dead code" and delete it. Run /review and /simplify AFTER the epic completes.
 
 **Step 1.4 — Map Dependencies:**
 
@@ -682,7 +660,7 @@ Import dependencies from the plan's dependency graph. Beads inherit the ordering
 Within each feature's decomposed beads, wire internal dependencies following the decomposition tables:
 - entity → EF config → contracts → mappers → commands/queries → endpoints → validators → registration
 
-Review beads depend on the last implementation bead in their group and block the next group's first implementation bead. This creates natural quality gates in the dependency chain.
+Test gates depend on the last implementation bead in their group and block the next group's first implementation bead.
 
 **Step 1.5 — Identify Parallel Tracks:**
 
@@ -695,68 +673,37 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 - Tracks merge at: bd-007 (integration)
 ```
 
-**PAUSE 1:** Present the task-to-bead mapping for batch review.
+**PAUSE 1:** Present a summary of the bead mapping for approval. The user does not have enough context to evaluate individual beads in detail — that's what `/review-beads` is for. Present the high-level mapping and ask for a single approval.
 
-**Step 1:** Present the full mapping as formatted markdown:
+**Step 1:** Present the summary as formatted markdown:
 
 ```markdown
-## Task-to-Bead Mapping
+## Bead Mapping Summary
 
 **Feature:** {name}
-**Beads:** {N} implementation + {G} gates = {total} across {M} phases | {P} can run in parallel
+**Beads:** {N} implementation + {T} test gates + {V} verify gates = {total}
+**Parallel tracks:** {P} beads can run in parallel
+**Non-greenfield:** {Implementation Status summary — e.g., "12 Exists, 3 Modify, 2 New"}
 
-| Plan Task | Bead | Phase | Pattern Doc | Labels | Parallel Track |
-|-----------|------|-------|-------------|--------|----------------|
-| T01: {task title} | bd-{id}: {Entity} Entity + Enums | 0: Foundation | api/entity.md | model | A |
-| T01: {task title} | bd-{id}: {Entity} EF Configuration | 0: Foundation | api/ef-configuration.md | config | A |
-| T01: {task title} | bd-{id}: {Entity} Contracts | 0: Foundation | api/requests.md | contract | A |
-| — | bd-{id}: /review({feature}): backend | gate | — | review | — |
-| — | bd-{id}: /simplify({feature}): backend | gate | — | review | — |
-| — | bd-{id}: test({feature}): integration tests | gate | — | test | — |
-| T02: {task title} | bd-{id}: {Feature} Models + Enums | 1: Frontend | web/feature-service.md | ui | B |
-
-### Stage Gates
-
-| Level | Gates | Count |
-|-------|-------|-------|
-| Feature slice | {N} features × 6 gates | {N×6} |
-| Use case | {N} UCs × 2 gates | {N×2} |
-| Module | 1 × 2 gates | 2 |
-| **Total gate beads** | | {total} |
+| Plan Task | Beads | Type |
+|-----------|-------|------|
+| T01: {task title} | {N} beads (entity, EF, contracts...) | Greenfield |
+| T02: {task title} | {N} beads (modify command, verify endpoint) | Modify/Verify |
+| — | test + verify gates | {N} gates |
 ```
 
-**Step 2:** Use AskUserQuestion with multi-select to review beads in batches (max 4 per batch):
+**Step 2:** Single approval gate:
 
 ```
 AskUserQuestion:
-  question: "Which beads need granularity adjustment? (Unselected beads are approved)"
-  header: "Bead mapping"
-  multiSelect: true
-  options:
-    - label: "bd-{id}: {bead title}"
-      description: "Plan task T01 → Phase 0: Foundation, pattern: api/entity.md"
-    - label: "bd-{id}: {bead title}"
-      description: "Plan task T01 → Phase 0: Foundation, pattern: api/ef-configuration.md"
-    - label: "bd-{id}: {bead title}"
-      description: "Plan task T01 → Phase 0: Foundation, pattern: api/requests.md"
-    - label: "bd-{id}: {bead title}"
-      description: "Plan task T02 → Phase 1: Frontend, pattern: web/feature-service.md"
-```
-
-Repeat for additional batches if more than 4 beads. For flagged beads, collect revision notes and adjust granularity.
-
-**Step 3:** After all batches reviewed, use AskUserQuestion decision gate:
-
-```
-AskUserQuestion:
-  question: "Is the overall bead mapping correct?"
+  question: "Bead mapping looks right? Run /review-beads after creation for detailed validation."
   header: "Mapping"
   multiSelect: false
   options:
     - label: "Accept (Recommended)"
-      description: "Mapping is correct. Proceed to create beads."
-    - label: "Adjust mapping"
-      description: "Minor changes needed to specific bead granularity or grouping."
+      description: "Create beads. Run /review-beads CONVERGE for detailed review after."
+    - label: "Adjust count"
+      description: "Too many or too few beads for some tasks."
     - label: "Escalate"
       description: "Mapping reveals plan needs revision. Return to /plan."
 ```
@@ -858,100 +805,11 @@ feat({feature}): add {feature} capture page
 feat({feature}): add {feature} routing
 test({feature}): add {feature} integration tests
 test({feature}): add {feature} UI tests
-review({feature}): fix /review findings for backend
-refactor({feature}): apply /simplify improvements to backend
-review({feature}): fix /review findings for frontend
-refactor({feature}): apply /simplify improvements to frontend
 ```
 
-**Step 2.3 — Create Stage Gate Beads:**
+**Step 2.3 — Create Test and Verification Gate Beads:**
 
-For each gate identified in Step 1.3, create a gate bead. Gate beads follow the same format as implementation beads but with skill-specific content.
-
-**`/review` gate bead format:**
-
-```markdown
-## Objective
-Run `/review` on all backend code for the {feature} feature slice. Fix all Critical and High findings before proceeding.
-
-## Depends On
-- bd-{id}: {last backend/frontend impl bead — e.g., service registration}
-
-## In Scope
-- All files changed by implementation beads since last checkpoint
-- Correctness: missing error handling, wrong patterns, broken contracts
-- Security: injection, auth bypass, data exposure
-- Design conformance: does implementation match api-surface.md and data-model.md
-
-## Out of Scope
-- New feature work (that's the next implementation bead)
-- Architecture changes (escalate to /plan if needed)
-
-## Success Criteria
-- `/review` produces 0 Critical and 0 High findings (or all are fixed)
-- `dotnet build` succeeds after fixes
-- `dotnet test --filter "{Feature}"` passes after fixes
-
-## Failure Criteria
-- ❌ Do NOT skip findings rated Critical or High
-- ❌ Do NOT defer fixes to a later bead — fix them in this gate
-- ❌ Do NOT modify code outside this feature's scope to fix findings
-
-## Context to Load
-- **Review scope:** `Features/{Feature}/` — all files in this feature directory
-- **Pattern docs:** {resolved from doc map pattern keys used by this feature's beads}
-- **Design docs:** {resolved from `design.api-surface`, `design.data-model` in the doc map}
-- **Decisions:** {resolved from `decisions[]` in the doc map — include all feature-scoped and project-scoped decisions}
-- **Architecture:** {resolved from `architecture[]` in the doc map, if any}
-
-## Approach
-1. Run `/review` scoped to the feature directory
-2. For each Critical/High finding: fix the code, re-run affected tests
-3. Re-run `/review` to verify findings are resolved
-4. Proceed only when clean
-
-## Verification
-- **Command:** `dotnet build && dotnet test --filter "{Feature}"`
-- **Commit:** `review({feature}): fix /review findings for backend`
-```
-
-**`/simplify` gate bead format:**
-
-```markdown
-## Objective
-Run `/simplify` on all backend code for the {feature} feature slice. Fix reuse, quality, and efficiency issues.
-
-## Depends On
-- bd-{id}: {/review gate bead for this phase}
-
-## In Scope
-- Code quality: duplication, naming, abstraction opportunities
-- Pattern consistency with established codebase conventions
-- Dead code, unnecessary complexity, over-engineering
-- Reuse opportunities across features
-
-## Out of Scope
-- New feature work
-- Architecture changes
-
-## Success Criteria
-- `/simplify` findings applied or justified
-- `dotnet build` succeeds after changes
-- `dotnet test --filter "{Feature}"` passes after changes
-
-## Failure Criteria
-- ❌ Do NOT introduce new abstractions not warranted by actual duplication
-- ❌ Do NOT modify code outside this feature's scope
-
-## Context to Load
-- **Review scope:** `Features/{Feature}/` — all files in this feature directory
-- **Pattern docs:** {resolved from doc map pattern keys used by this feature's beads}
-- **Learnings:** {resolved from `learnings[]` in the doc map — check for relevant past gotchas}
-
-## Verification
-- **Command:** `dotnet build && dotnet test --filter "{Feature}"`
-- **Commit:** `refactor({feature}): apply /simplify improvements to backend`
-```
+For each gate identified in Step 1.3, create a gate bead.
 
 **UC gate beads** verify end-to-end scenario flows, not just code quality:
 
@@ -979,7 +837,7 @@ Verify use case UC-{ID} end-to-end: {scenario description from plan's UC Coverag
 
 UC gates depend on all contributing feature test gates. They verify SCENARIO FLOW (does the end-to-end user journey work?), not just code correctness (does each function work in isolation?).
 
-**Module gate beads** review the entire module for cross-feature consistency — include reference docs from `reference[]` in the doc map for cross-project alignment.
+**Module verification gate** runs the full integration test suite across all features. Include reference docs from `reference[]` in the doc map for cross-project alignment. This is the last bead in the epic.
 
 Label all gate beads with `review` or `test` tag to distinguish them from implementation beads.
 
@@ -1095,14 +953,13 @@ After individual assessment, review the full bead set against these themes:
 - [ ] FR coverage table has no Must-Have gaps?
 - [ ] Beads reference design decisions where relevant?
 
-**Stage Gate Completeness:**
-- [ ] Every feature slice has `/review` + `/simplify` + test gates for both backend and frontend?
-- [ ] Frontend beads never depend directly on backend impl beads?
-- [ ] Every use case has a completion cycle (`/review` + `/simplify`)?
-- [ ] Module epic ends with `/review` + `/simplify` as final beads?
-- [ ] No more than 4-5 implementation beads between any two gates?
-- [ ] Gate beads specify clear scope and file paths to review?
-- [ ] Gate beads have executable verification commands?
+**Test Gate Completeness:**
+- [ ] Every feature slice has test gates for both backend and frontend?
+- [ ] Frontend beads never depend directly on backend impl beads (depend on backend test gate)?
+- [ ] Every use case has a verification gate?
+- [ ] Module epic ends with `verify({module}): module complete` as final bead?
+- [ ] Test/verify gates have executable verification commands?
+- [ ] No `/review` or `/simplify` gate beads between implementation beads?
 
 **Step 3.5 — Record Assessment:**
 
@@ -1581,7 +1438,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.1*
+*Skill Version: 5.2*
+*v5.2: Removed /review and /simplify gate beads — they treat code built for future beads as "dead code" and delete it, breaking the pipeline. Replaced with test gates only (test at feature boundaries, verify at UC and module boundaries). Run /review and /simplify AFTER epic completes when all code exists. PAUSE 1 simplified to summary + single approval (user can't evaluate individual beads in detail — /review-beads handles that). Gate overhead reduced: 2 test + 1 UC verify + 1 module verify per feature (was 6 review/simplify + 2 test per feature).*
 *v5.1: Full-pipeline adversarial review fixes. Hybrid mode (30-70%) decomposition instructions added. Verification beads for "Exists" elements at 70-90% (not just >90%). FR Coverage with acceptance criteria depth (ACs Covered column — Partial if any AC unaddressed). Design Decision Coverage table (verify every decision propagated as failure criteria). Decomposition Adaptation Algorithm for non-.NET projects (build from docs/patterns/ directory). Verification bead template added.*
 *v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*
 *v4.0: Phase 0 doc discovery — scans project docs tree to build a doc map instead of assuming hardcoded paths. Handles variance in project structure: flat vs nested patterns, decisions in adr/ or designs/{feature}/decisions/, numbered design prefixes, subfeature nesting. Decomposition tables use pattern keys resolved from the doc map. Gate beads load discovered decisions, architecture docs, and learnings into context. Pattern-granular decomposition — one bead per pattern artifact with Backend/Frontend/Test decomposition tables. Stage gate beads — `/review` + `/simplify` cycles at feature slice, use case, and module boundaries. Frontend beads depend on backend test gates, never on raw backend impl beads. Trust hierarchy for gate findings. Bead description format includes Pattern and Commit fields. Bead size heuristic rewritten around pattern alignment with grouping exceptions and never-combine rules. Bead count comparison showing impact.*

@@ -84,7 +84,7 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 6. **Repeat** until 0 FAILs or max 5 rounds.
 7. **WARN triage** — After FAILs reach 0, present remaining WARNs to the user as a final batch via AskUserQuestion with "Fix / Accept as-is" options. Trivial WARNs (1-line fixes with zero ambiguity, like adding a missing prerequisite) may be auto-fixed alongside FAILs.
 
-**Same-session awareness:** If the plan was generated in the current conversation, note this in the report. Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
+**Same-session detection:** If the plan's creation date matches today AND the conversation contains /plan invocations or plan-writing activity, flag as same-session. Note this in the report. Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
 
 **Confidence level:** Include in the convergence report:
 - **HIGH** — independent reviewer, fresh context, all authority sources loaded from disk
@@ -95,6 +95,10 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 ```
 Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Pattern docs > Architecture docs > Plan overview > Sub-plans
 ```
+
+**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include in the prompt: "This is a non-greenfield plan. All design elements already exist in code. 'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps." Without this, agents will produce false positives by assuming greenfield context.
+
+**Codebase spot-check:** For non-greenfield plans, the gap analysis claims about implementation state are the foundation of the decomposition. A 30-second Grep to verify key claims (e.g., confirm the named class exists, confirm the endpoint route is registered) significantly increases confidence. This is particularly valuable for Phase 3 (Gap Analysis Fidelity).
 
 **Token budget:** COMPREHENSIVE reviews read the full plan + design + PRD + relevant ADRs/patterns. For plans with 10+ sub-plans, expect 30-50 documents. Models with <200K context may need two-pass approach.
 
@@ -222,7 +226,7 @@ Check for each anti-pattern defined in the `/plan` skill spec:
 |-------------|-----------------|----------|
 | **Horizontal-Only Decomposition** | All tasks scoped to a single layer (all DB, then all API, then all UI) with no end-to-end slice | FAIL |
 | **Deferred Risk** | High-risk or integration tasks appear only in late phases | WARN |
-| **Testing as Phase N** | A dedicated "write tests" phase/task with no per-task test expectations | WARN |
+| **Testing as Phase N** | A dedicated "write tests" phase/task with no per-task test expectations. **Exception:** for non-greenfield plans where existing code has zero tests, a dedicated test task for pre-existing code is legitimate. | WARN |
 | **200-Task Plan** | Excessive task count relative to feature scope; trivial tasks that should be merged | WARN |
 | **Plan-as-Design** | Sub-plans make architectural decisions not present in the design (new patterns, new entities, new API shapes) | FAIL |
 | **Copy-Paste Sub-Plans** | Large blocks of text duplicated verbatim from design docs instead of referenced | Minor |
@@ -457,6 +461,10 @@ Flag circular dependencies as **FAIL**.
 Flag invalid references as **WARN**.
 Flag incorrect critical path in the overview (Task Summary / Dependency Graph) as **FAIL** — it directly affects /beads execution ordering. Flag incorrect critical path in prose descriptions as **WARN**.
 
+**Phase 6 requires direct file reads.** Do NOT rely on agent summaries for internal consistency checks — dependency graphs, critical path text, and table cross-references need exact text. Read overview.md directly via the Read tool, not via agent summaries.
+
+**Critical path verification algorithm:** For each task, trace the longest dependency chain ending at it. The critical path is the longest chain ending at the final task. Compare against the plan's stated critical path. This makes the check mechanical rather than relying on mental graph traversal.
+
 **Step 6.4 — Naming Consistency:**
 
 - Entity names consistent across overview, sub-plans, and companion docs
@@ -484,9 +492,10 @@ Minor and observational issues are reported inline as notes, not as formal findi
 
 | Verdict | Criteria |
 |---------|----------|
-| **PASS** | 0 FAILs |
-| **PASS WITH CONDITIONS** | 0 FAILs after CONVERGE, WARNs noted |
-| **FAIL** | Any FAIL findings remaining |
+| **PASS (CLEAN)** | 0 FAILs on first review — plan needed no fixes |
+| **PASS (CONVERGED)** | 0 FAILs after CONVERGE rounds — plan was fixed to compliance |
+| **PASS WITH CONDITIONS** | 0 FAILs, WARNs noted as conditions for /beads |
+| **FAIL** | Any FAIL findings remaining after max rounds |
 
 **Step 7.3 — Write Review Report:**
 
@@ -631,8 +640,10 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.2*
-*v2.2: Production feedback from 3 CONVERGE runs (Entitlements, Applications, Roles). Embedded gap analysis support (Implementation Status table as gap analysis authority). Critical path severity upgraded to FAIL when in overview (affects /beads ordering). WARN triage after convergence (trivial WARNs may be auto-fixed). Same-session awareness with confidence levels (HIGH/MODERATE/LOW). Failure Criteria exemption for verification/audit tasks. Compact report format for ≤3 findings.*
+*Skill Version: 2.3*
+*v2.3: Production feedback from 6 CONVERGE runs (+ Sessions, Audit, Portal). Phase 6 mandates direct file reads (not agent summaries) for dependency/consistency checks. Critical path verification algorithm documented. Non-greenfield agent prompt guidance (prevents false positives from greenfield assumptions). Codebase spot-check recommended for gap analysis claims. PASS (CLEAN) vs PASS (CONVERGED) verdict distinction. Testing-as-Phase-N exception for non-greenfield plans with zero existing tests. Same-session detection criteria specified.*
+
+*v2.2: Embedded gap analysis support. Critical path severity. WARN triage. Same-session awareness. Failure Criteria exemption.*
 
 *v2.1: Severity model aligned to FAIL/WARN. CONVERGE behavior explicit. Verdict simplified.*
 

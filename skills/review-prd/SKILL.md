@@ -74,9 +74,15 @@ When selected, run the autoresearch convergence loop. CONVERGE can be combined w
 - **Replace Phase 5 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION. No per-finding AskUserQuestion for FAILs — present in batch, fix mechanicals directly.
 - **WARNs are listed** in the summary table but NOT presented interactively and NOT auto-fixed.
 
+**Phase 1 chunking strategy:** For PRDs over 300 lines, split Phase 1 into three passes:
+- Pass A: Metadata, Document History, Problem Statement, Goals, Non-Goals, Success Metrics, Personas
+- Pass B: Assumptions & Constraints, Use Cases, Functional Requirements, NFRs
+- Pass C: Prioritisation, Domain Validation, Document Approval
+Record findings per pass. This reduces cognitive load on large PRDs.
+
 **The loop:**
 
-1. **Review** — Run the review at the selected depth. For large PRDs or cross-cutting PRDs, chunked reading may be needed.
+1. **Review** — Run the review at the selected depth using the chunking strategy above.
 2. **Classify** findings:
    - **MECHANICAL** — wrong numbering prefix, stale count, missing section, format error, ambiguity word in acceptance criteria, internal contradiction where one side is clearly correct. Auto-fix these.
    - **JUSTIFIED_DEVIATION** — PRD deviates from a convention with explicit, documented rationale. Verify rationale is sound; if yes, mark as PASS.
@@ -85,22 +91,38 @@ When selected, run the autoresearch convergence loop. CONVERGE can be combined w
 4. **Re-review** — Run the review again on the fixed PRD.
 5. **Compare** — Did FAILs decrease? If increased, revert and stop. If same findings for 3 rounds, stop.
 6. **Repeat** until FAILs = 0 or max 5 rounds.
+7. **WARN triage** — After FAILs reach 0, present remaining WARNs to the user as a final batch via AskUserQuestion with "Fix / Accept as-is" options. This resolves WARNs that would otherwise sit in limbo.
 
-**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE fixes FAILs only.
+**Severity alignment:** The review's own FAIL/WARN classification is authoritative. CONVERGE fixes FAILs only. WARNs are triaged after convergence.
 
 **Authority hierarchy for mechanical fixes:**
 ```
 /prd skill Structural Conventions > cross-cutting PRD > ADRs > project personas > the PRD being reviewed
 ```
 
-**Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
+**Convergence report template:**
+```markdown
+## CONVERGE Report: {Module} PRD
+
+| Round | FAILs | Mechanical Fixes | Decisions | WARNs |
+|-------|-------|-----------------|-----------|-------|
+| 0 (baseline) | {n} | — | — | {n} |
+| 1 | {n} | {n} fixed | {n} escalated | {n} |
+| 2 | {n} | {n} fixed | — | {n} |
+
+Changes: {file} ({change}), {file} ({change}).
+Decisions: {finding} → {user choice}.
+WARNs triaged: {n} fixed, {n} accepted.
+```
+
+For quick convergences (≤3 rounds, ≤10 findings), use compact format:
 `{N} findings → {N} fixed in {N} rounds. {N} decisions escalated. WARNs: {N} (not fixed).`
 
 ---
 
 ## Important Rules
 
-1. **READ-ONLY** — Do not modify any files. This skill audits; it does not fix.
+1. **READ-ONLY** (non-CONVERGE modes) — Do not modify any files. This skill audits; it does not fix. **Exception:** CONVERGE mode modifies the PRD directly to fix mechanical findings.
 2. **Findings only** — Every finding cites a specific /prd template section or cross-cutting requirement. No opinions beyond documented standards.
 3. **Do not read source code** — This reviews documents against documents. Code does not exist yet.
 4. **Pattern docs and ADRs are constraints** — They are binding specifications, not suggestions.
@@ -244,7 +266,7 @@ Check every section the /prd skill template requires for the PRD's scope level. 
 | NFR body: Measurement | `Measurement:` line present | Fail per missing |
 | NFR body: Rationale | `Rationale:` line tracing to problem/metrics/persona | Fail per missing |
 | NFR count minimum | At least 2 (BRIEF), 4 (STANDARD), 6 (COMPREHENSIVE) | Fail if below minimum |
-| Mandatory audit NFR | `NFR-{MODULE}-AUDIT` or equivalent present for modules with state-changing operations | Fail if missing |
+| Mandatory audit NFR | `NFR-{MODULE}-AUDIT` or equivalent present for modules with state-changing operations. When fixing, use this template: `### NFR-{MODULE}-AUDIT: Lifecycle Audit Coverage` / `Category: Compliance` / `Target: 100% of create, update, delete, and status-change operations produce audit entries with actor ID, timestamp, entity ID, operation type, and event name ({entity_type}.{action})` / `Measurement: Integration tests verifying audit log entries for each mutation endpoint` / `Rationale: {trace to cross-cutting PRD audit requirements and SOC 2 compliance}` | Fail if missing |
 
 **1.8 Integration Points (COMPREHENSIVE only):**
 
@@ -411,6 +433,17 @@ Check the PRD against the cross-cutting PRD and project-wide standards. Each fin
 ### Phase 4: Adversarial Depth (COMPREHENSIVE only)
 
 Go beyond compliance into adversarial analysis. Ask: "Could this PRD lead to a wrong implementation that still technically satisfies the requirements?"
+
+**Phase 4 severity guide:**
+
+| Finding Type | Severity | Example |
+|-------------|----------|---------|
+| AC cannot distinguish correct from incorrect implementation | **FAIL** | "Data is saved" — doesn't say where, in what format, with what constraints |
+| Missing boundary values on Must Have FR | **WARN** | No max length on name field, no max items on list |
+| Assumption with no documented impact if wrong | **WARN** | "API can handle load" — what breaks if it can't? |
+| Non-goal too vague to enforce | **WARN** | "Won't over-engineer" vs "Won't support mobile" |
+| Security criteria missing on data-modifying Must Have FR | **FAIL** | FR modifies PII with no auth/validation criteria |
+| Failure path missing for critical UC step | **WARN** | No handling for concurrent modification |
 
 **Acceptance Criteria Discrimination:**
 
@@ -582,7 +615,7 @@ AskUserQuestion:
 
 ## Anti-Patterns
 
-**Rubber Stamp** — Accepting the PRD without actually reading it. Every section must be checked against the template requirements. If Phase 1 finds zero issues on a first-draft PRD, the review was not thorough enough.
+**Rubber Stamp** — Accepting the PRD without actually reading it. Every section must be checked against the template requirements. If Phase 1 finds zero issues on a **first-draft** PRD, the review was not thorough enough. However, PRDs that have been through multiple revision cycles (v1.2+, prior adversarial reviews) may legitimately have few Phase 1 findings — this is a positive quality signal, not a sign of insufficient review depth. In that case, Phase 4 (adversarial depth) becomes the primary value-add.
 
 **Scope Inflation** — Adding requirements the PRD does not need. The reviewer's job is to check what's there against what should be there, not to invent new features or requirements. If a section is intentionally absent (e.g., no Integration Points for a simple feature), that's fine — flag only what the template requires for the PRD's declared scope.
 
@@ -605,7 +638,9 @@ When approved: **"PRD approved. Run /technical-design to begin the design phase.
 
 ---
 
-*Skill Version: 2.2*
+*Skill Version: 2.3*
+*v2.3: Production feedback from API Keys CONVERGE + COMPREHENSIVE run. (1) READ-ONLY vs CONVERGE contradiction fixed — READ-ONLY scoped to non-CONVERGE modes. (2) Phase 1 chunking strategy for PRDs >300 lines (3 passes: metadata+problem, FRs+NFRs, prioritisation+validation). (3) WARN triage step after 0 FAILs — present remaining WARNs for user resolution. (4) NFR-AUDIT template content for mechanical fixes. (5) Phase 4 severity guide table (FAIL vs WARN per finding type). (6) Rubber Stamp anti-pattern updated — low Phase 1 findings on revised PRDs (v1.2+) is a quality signal, not insufficient depth. (7) Convergence report template for consistent round-by-round reporting.*
+
 *v2.2: CONVERGE mode refined — skip interactive stage gates, replace per-finding walkthrough with summary table, WARNs listed but not interactive. Chunked reading guidance for large PRDs.*
 
 *v2.1: CONVERGE mode added — autoresearch loop built into the review skill. Runs review at selected depth, classifies findings (MECHANICAL/JUSTIFIED_DEVIATION/DECISION), auto-fixes mechanical issues, re-reviews until 0 FAILs or convergence. Authority hierarchy specific to PRDs.*

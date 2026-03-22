@@ -265,7 +265,7 @@ For each feature area in api-surface.md:
   [ ] Contracts (DTO, Request, Response) exist? Fields match?
   [ ] EntityMapper exists? Uses correct pattern?
   [ ] DTOMapper exists? Uses correct pattern?
-  [ ] Commands exist? Return types match design (OneOf vs flags)?
+  [ ] Commands exist? Return types match design?
   [ ] Queries exist? Include correct navigations?
   [ ] Validators exist? Rules match design?
   [ ] Endpoints exist? Routes, verbs, auth policies match?
@@ -291,7 +291,7 @@ Use targeted Grep/Glob for this — an Explore agent is overkill for element-by-
 |---------------|------|--------|-------|
 | Widget entity | entity | ✅ Exists | Schema matches design |
 | WidgetDTO | contract | ✅ Exists | Missing new field "Category" |
-| SaveWidgetCommand | command | ⚠ Modify | Exists but uses HasConflict flags (need OneOf per ADR-0016) |
+| SaveWidgetCommand | command | ⚠ Modify | Exists but uses old return type pattern (need updated pattern per design decision) |
 | GetWidgetQuery | query | ❌ New | Not yet implemented |
 | Widget grid UI | frontend | ❌ New | Not yet implemented |
 ```
@@ -307,7 +307,7 @@ For greenfield features, every element is "New" — but still document the table
 
 | Modification Type | Size | Example |
 |-------------------|------|---------|
-| Pattern replacement (same logic, new type) | S | Change `HasConflict` to `OneOf<>` return type |
+| Pattern replacement (same logic, new type) | S | Change return type from old pattern to new per design decision |
 | Field addition (cascades to DTO + mapper + tests) | M | Add `Category` field across entity, DTO, mapper, validator |
 | Behavioral change (new logic path) | L | Add audit event wiring where none existed |
 | Architecture change (cascading rework) | XL | Move from commands to event-driven pattern |
@@ -560,9 +560,9 @@ These come from the design's api-surface.md — reference, don't reinvent.}
 - {Testable assertion — what must be true when done}
 
 **Failure Criteria:** (REQUIRED for implementation tasks. Verification/audit tasks may omit when there are no rejected alternatives — success criteria serve as the constraint.)
-- {What NOT to do — from design decisions: "Do NOT use HasConflict flags — use OneOf per ADR-0016"}
-- {Rejected alternative — from design: "Do NOT use pub/sub for cache invalidation — use direct KeyDelete per design decision"}
-- {Pattern constraint — "Do NOT inject DbContext directly — use IDbContextFactory per project pattern"}
+- {What NOT to do — from design decisions: "Do NOT use [rejected approach] — use [chosen approach] per [decision reference]"}
+- {Rejected alternative — from design: "Do NOT use [alternative B] for [concern] — use [alternative A] per design decision [slug]"}
+- {Pattern constraint — "Do NOT [anti-pattern] — use [correct pattern] per project pattern doc"}
 
 To extract failure criteria, read the design's decision records (decisions/*.md):
 1. For each task, identify which design decisions apply

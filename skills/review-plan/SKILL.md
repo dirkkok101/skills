@@ -65,8 +65,9 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 **CONVERGE changes to the normal review flow:**
 - **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
 - **Replace Phase 7 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
-- **WARNs are listed** but NOT auto-fixed. Triaged after FAILs reach 0.
-- **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly to fix MECHANICAL FAIL findings. FAIL findings with clear authority precedence are auto-fixed. FAIL findings requiring judgment are escalated as DECISION via AskUserQuestion. WARN findings are never auto-fixed.
+- **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly.
+- **MECHANICAL findings are auto-fixed regardless of severity.** Count errors, stale numbers, missing table rows, and arithmetic mismatches are the same class of issue whether they appear in a summary table (FAIL) or a companion doc (WARN). Auto-fix all MECHANICAL findings. Only DECISION-class findings are escalated.
+- **Non-MECHANICAL WARNs** (judgment calls, style preferences) are listed and triaged after FAILs reach 0.
 
 **The loop:**
 
@@ -84,7 +85,10 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 6. **Repeat** until 0 FAILs or max 5 rounds.
 7. **WARN triage** — After FAILs reach 0, present remaining WARNs to the user as a final batch via AskUserQuestion with "Fix / Accept as-is" options. Trivial WARNs (1-line fixes with zero ambiguity, like adding a missing prerequisite) may be auto-fixed alongside FAILs.
 
-**Same-session detection:** If the plan's creation date matches today AND the conversation contains /plan invocations or plan-writing activity, flag as same-session. Note this in the report. Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
+**Same-session detection:** If the plan's creation date matches today AND the conversation contains /plan invocations or plan-writing activity, flag as same-session. Note this in the report. For same-session reviews:
+- Phase 2 confidence is LOW (not MODERATE) — the reviewer shares the generating agent's blind spots
+- Phase 2 agents should use a deliberately adversarial prompt: "Assume the plan author has blind spots. Look for unstated assumptions, implicit design decisions, and coverage claims that rely on 'already implemented' without evidence."
+- Recommend independent spot-check on Phase 2 if the plan is used for production /beads Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
 
 **Confidence level:** Include in the convergence report:
 - **HIGH** — independent reviewer, fresh context, all authority sources loaded from disk
@@ -96,7 +100,9 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Pattern docs > Architecture docs > Plan overview > Sub-plans
 ```
 
-**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include in the prompt: "This is a non-greenfield plan. All design elements already exist in code. 'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps." Without this, agents will produce false positives by assuming greenfield context.
+**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include in the prompt: "This is a non-greenfield plan. All design elements already exist in code. 'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps. Concerns handled by the framework or platform (e.g., protocol mechanics, middleware, infrastructure services) are inherently compliant unless the plan explicitly modifies them — do NOT flag framework-managed concerns as uncovered."
+
+**Verification Mode phase collapsing:** For plans where >90% exists and the gap analysis IS the plan, Phases 2 (design fidelity) and 3 (gap analysis fidelity) collapse into a single check: "does the gap analysis correctly identify what needs to change?" Run them as one phase rather than separately. Phase 2's endpoint/contract verification is redundant when the plan's tasks are verification checklists, not construction blueprints. Without this, agents will produce false positives by assuming greenfield context.
 
 **Codebase spot-check:** For non-greenfield plans, the gap analysis claims about implementation state are the foundation of the decomposition. A 30-second Grep to verify key claims (e.g., confirm the named class exists, confirm the endpoint route is registered) significantly increases confidence. This is particularly valuable for Phase 3 (Gap Analysis Fidelity).
 
@@ -640,8 +646,10 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.3*
-*v2.3: Production feedback from 6 CONVERGE runs (+ Sessions, Audit, Portal). Phase 6 mandates direct file reads (not agent summaries) for dependency/consistency checks. Critical path verification algorithm documented. Non-greenfield agent prompt guidance (prevents false positives from greenfield assumptions). Codebase spot-check recommended for gap analysis claims. PASS (CLEAN) vs PASS (CONVERGED) verdict distinction. Testing-as-Phase-N exception for non-greenfield plans with zero existing tests. Same-session detection criteria specified.*
+*Skill Version: 2.4*
+*v2.4: Production feedback from 9 CONVERGE runs (+ Organizations, Authentication, Languages). MECHANICAL findings auto-fixed regardless of FAIL/WARN severity (count errors are count errors regardless of location). Verification Mode phase collapsing: Phases 2+3 merge for >90% exists plans. Protocol-level exception for non-greenfield agent prompts. Same-session Phase 2 confidence downgraded to LOW with adversarial prompt guidance.*
+
+*v2.3: Phase 6 direct reads. Critical path algorithm. Non-greenfield agent prompts. Codebase spot-check. PASS CLEAN/CONVERGED. Testing exception. Same-session detection.*
 
 *v2.2: Embedded gap analysis support. Critical path severity. WARN triage. Same-session awareness. Failure Criteria exemption.*
 

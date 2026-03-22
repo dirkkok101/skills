@@ -66,8 +66,9 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 - **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
 - **Replace Phase 7 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
 - **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly.
-- **MECHANICAL findings are auto-fixed regardless of severity.** Count errors, stale numbers, missing table rows, and arithmetic mismatches are the same class of issue whether they appear in a summary table (FAIL) or a companion doc (WARN). Auto-fix all MECHANICAL findings. Only DECISION-class findings are escalated.
-- **Non-MECHANICAL WARNs** (judgment calls, style preferences) are listed and triaged after FAILs reach 0.
+- **MECHANICAL findings are auto-fixed regardless of severity.** Count errors, stale numbers, missing table rows, and arithmetic mismatches are the same class of issue whether they appear in a summary table (FAIL) or a companion doc (WARN). Auto-fix all MECHANICAL findings.
+- **Trivial WARN auto-fix heuristic:** If the fix is additive-only (no deletions, no semantic changes) and under 10 lines, auto-fix it without escalation. Examples: adding a checklist item to a sub-plan, adding a verification task, fixing a count.
+- **Non-trivial WARNs** (judgment calls, scope decisions, authority source conflicts) are escalated via AskUserQuestion after FAILs reach 0.
 
 **The loop:**
 
@@ -88,6 +89,8 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 **Same-session detection:** If the plan's creation date matches today AND the conversation contains /plan invocations or plan-writing activity, flag as same-session. Note this in the report. For same-session reviews:
 - Phase 2 confidence is LOW (not MODERATE) — the reviewer shares the generating agent's blind spots
 - Phase 2 agents should use a deliberately adversarial prompt: "Assume the plan author has blind spots. Look for unstated assumptions, implicit design decisions, and coverage claims that rely on 'already implemented' without evidence."
+- Phase 1 should use explicit Read calls per section (not mental checklist from memory)
+- Verify at least 3 specific claims against the actual codebase using Grep/Read
 - Recommend independent spot-check on Phase 2 if the plan is used for production /beads Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
 
 **Confidence level:** Include in the convergence report:
@@ -100,7 +103,16 @@ When the user says "converge", "fix all issues", "autoresearch", or selects CONV
 Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Pattern docs > Architecture docs > Plan overview > Sub-plans
 ```
 
-**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include in the prompt: "This is a non-greenfield plan. All design elements already exist in code. 'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps. Concerns handled by the framework or platform (e.g., protocol mechanics, middleware, infrastructure services) are inherently compliant unless the plan explicitly modifies them — do NOT flag framework-managed concerns as uncovered."
+**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include ALL of these in the prompt:
+- "This is a non-greenfield plan. All design elements already exist in code."
+- "'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps."
+- "If a discrepancy exists between two authority sources (PRD says X, design says Y) and the plan follows one consistently, this is NOT a plan finding — note it as an observation only."
+- "Concerns handled by the framework or platform are inherently compliant unless the plan explicitly modifies them."
+- "If the plan says 'T02 verifies encryption' and the gap analysis says 'code exists,' that IS sufficient coverage. Do NOT flag it as insufficient because the plan doesn't describe HOW to verify — that's /beads territory."
+
+**Agent context:** Agents should receive both the plan files AND the current gap analysis (not just the authority source). This prevents agents from confusing old and new gap analyses.
+
+**Agent finding classification:** Instruct agents to classify each finding AND provide reasoning. The reviewer validates or reclassifies — agents sometimes classify "missing from design because never designed" as MECHANICAL when it's actually a DECISION.
 
 **Verification Mode phase collapsing:** For plans where >90% exists and the gap analysis IS the plan, Phases 2 (design fidelity) and 3 (gap analysis fidelity) collapse into a single check: "does the gap analysis correctly identify what needs to change?" Run them as one phase rather than separately. Phase 2's endpoint/contract verification is redundant when the plan's tasks are verification checklists, not construction blueprints. Without this, agents will produce false positives by assuming greenfield context.
 
@@ -646,8 +658,10 @@ When approved: **"Plan review complete. Run /beads to create executable work pac
 
 ---
 
-*Skill Version: 2.4*
-*v2.4: Production feedback from 9 CONVERGE runs (+ Organizations, Authentication, Languages). MECHANICAL findings auto-fixed regardless of FAIL/WARN severity (count errors are count errors regardless of location). Verification Mode phase collapsing: Phases 2+3 merge for >90% exists plans. Protocol-level exception for non-greenfield agent prompts. Same-session Phase 2 confidence downgraded to LOW with adversarial prompt guidance.*
+*Skill Version: 2.5*
+*v2.5: Production feedback from 12 CONVERGE runs (+ Approvals, Identity Providers, Users). Trivial WARN auto-fix heuristic (additive-only, <10 lines). Comprehensive non-greenfield agent prompt (5 rules including upstream filtering and verification-is-sufficient). Agent context must include current gap analysis. Agent findings must include classification reasoning. Same-session: Phase 1 explicit reads, 3+ codebase spot-checks required.*
+
+*v2.4: MECHANICAL auto-fix regardless of severity. Verification Mode phase collapsing. Protocol exception. Same-session LOW confidence.*
 
 *v2.3: Phase 6 direct reads. Critical path algorithm. Non-greenfield agent prompts. Codebase spot-check. PASS CLEAN/CONVERGED. Testing exception. Same-session detection.*
 

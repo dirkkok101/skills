@@ -271,7 +271,27 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 - v2.2: Embedded gap analysis, critical path severity, WARN triage, same-session awareness
 - v2.3: Phase 6 direct reads, critical path algorithm, non-greenfield agent prompts, PASS (CLEAN) vs PASS (CONVERGED)
 
-**Plan convergence results:** 6/6 modules converged to 0 FAILs, average 1.7 rounds, 0 decisions escalated.
+**Plan convergence results (batch 1):** 6/6 modules converged to 0 FAILs, average 1.7 rounds, 0 decisions escalated.
+
+### 5.5 Plan Production Runs (batch 2: Organizations, Authentication, Languages)
+
+**What we ran:** Generated fresh plans and reviewed with CONVERGE + COMPREHENSIVE.
+
+**Key findings:**
+- Organizations FR Coverage table only had 14 of 28 PRD FRs — review caught and fixed
+- Authentication had 12 issues (4 FAILs + 8 WARNs) — most of any plan, still converged in 2 rounds
+- Languages gap analysis agent over-reported ("no gaps") but manual Grep found real issues (missing IsSeeded field, auth policy gap)
+
+**What we fixed in plan v4.0 → v4.1:**
+- Gap analysis renamed to Step 1.0b (explicit named step, not buried)
+- "Do NOT use Explore agents for gap analysis" — use Grep/Glob instead
+- Re-planning guidance for overwriting existing plans
+- PAUSE 1 must show artifacts inline before AskUserQuestion
+- Test coverage as first-class step (precise counts, not estimates)
+
+**Plan convergence results (batch 2):** 3/3 converged to 0 FAILs, 0 decisions.
+
+**Combined:** 9/9 modules, 23 FAILs found, 11 WARNs fixed in triage, avg 1.7 rounds, 0 decisions.
 
 ---
 
@@ -283,7 +303,7 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 |--------------|---------|-------|--------|
 | PRDs | 15 | 0 | CONVERGE + COMPREHENSIVE |
 | Technical Designs | 15 | 0 | CONVERGE + COMPREHENSIVE |
-| Implementation Plans | 6 (of 15) | 0 | CONVERGE + COMPREHENSIVE |
+| Implementation Plans | 9 (of 15) | 0 | CONVERGE + COMPREHENSIVE |
 
 ### Skill Versions at End of Session
 
@@ -293,8 +313,8 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 | review-prd | v1.0 | v2.3 | 15 modules |
 | technical-design | v3.5 | v3.7 | 15 modules |
 | review-design | v1.0 | v2.5 | 15 modules |
-| plan | v3.5 | v4.0 | 6 modules |
-| review-plan | v1.0 | v2.3 | 6 modules |
+| plan | v3.5 | v4.1 | 9 modules |
+| review-plan | v1.0 | v2.3 | 9 modules |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact

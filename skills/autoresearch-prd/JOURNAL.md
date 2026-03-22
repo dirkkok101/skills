@@ -689,7 +689,7 @@ All 3 production runs surfaced the same core issue: **the plan skill has a green
 |---------------|---------|-------------|------------|
 | PRD → review-prd CONVERGE | 15 | **100%** | 2.1 |
 | Design → review-design CONVERGE | 15 | **100%** | 2.1 |
-| Plan → review-plan CONVERGE | 6 | **100%** | 1.7 |
+| Plan → review-plan CONVERGE | 9 | **100%** | 1.7 |
 
 ### Final Skill Versions
 
@@ -699,6 +699,6 @@ All 3 production runs surfaced the same core issue: **the plan skill has a green
 | review-prd | v2.3 | 15 modules |
 | technical-design | v3.7 | 15 modules |
 | review-design | v2.5 | 15 modules |
-| plan | v4.0 | 6 modules |
-| review-plan | v2.3 | 6 modules |
+| plan | v4.1 | 9 modules |
+| review-plan | v2.3 | 9 modules |
 | autoresearch | v1.4 | All of the above |

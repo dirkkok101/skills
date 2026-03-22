@@ -324,6 +324,46 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 
 ---
 
+## Phase 7: Beads Skill Refinement
+
+### Adversarial Review
+
+Full-pipeline adversarial review (PRD → design → plan → beads → review-beads) found:
+- Beads skill: 2 CRITICAL (plan tables not consumed, no non-greenfield handling), 4 MAJOR
+- Review-beads skill: 2 CRITICAL (no CONVERGE mode, wrong severity model), 12 MAJOR
+
+### Key Fixes (beads v4.0 → v5.4, review-beads v1.0 → v2.2)
+
+**beads:**
+- Plan integration: reads FR/UC/Design Coverage + Implementation Status before decomposition
+- Non-greenfield: gap-driven beads, Verification Mode, Hybrid mode
+- Removed /review and /simplify gate beads (they delete code built for future beads)
+- Removed intermediate PAUSE (user can't evaluate individual beads)
+- FR acceptance criteria depth tracking (per Given/When/Then)
+- Design Decision Coverage table
+- Portability: decomposition adaptation algorithm
+- Dry-run option (beads.md first, br after approval)
+- Lighter verification bead descriptions
+- Checkpoint/resume for interrupted runs
+
+**review-beads:**
+- CONVERGE mode with FAIL/WARN severity
+- Flags /review and /simplify gates as findings
+- FR acceptance criteria depth check
+- Design Decision Coverage cross-reference
+
+### Production Test
+
+Entitlements beads: PASS (CLEAN) — 0 FAILs on first review, 2 WARNs.
+
+### Full Pipeline Validated
+
+```
+PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Ready for /execute
+```
+
+---
+
 ## Phase 6: Documentation Quality Achievement
 
 ### Final State
@@ -342,18 +382,21 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 | review-prd | v1.0 | v2.3 | 15 modules |
 | technical-design | v3.5 | v3.7 | 15 modules |
 | review-design | v1.0 | v2.5 | 15 modules |
-| plan | v3.5 | v4.2 | 15 modules |
-| review-plan | v1.0 | v2.5 | 15 modules |
+| plan | v3.5 | v4.3 | 15 modules |
+| review-plan | v1.0 | v2.6 | 15 modules |
+| beads | v4.0 | v5.4 | 1 module (Entitlements) |
+| review-beads | v1.0 | v2.2 | 1 module (Entitlements) |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact
 
-- 191 findings resolved across 45 documents (74 PRD + 54 design + 63 plan)
+- 191+ findings resolved across 45+ documents (74 PRD + 54 design + 63 plan + beads)
 - 16 content decisions made by user (8.4% of findings)
-- 7 skills improved through 12+ production feedback cycles
+- 9 skills improved through 15+ production feedback cycles
 - 0 false positives across all reviews
 - 100% convergence rate across all document types
 - Average 1.97 rounds to convergence
+- Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute-ready
 
 ---
 

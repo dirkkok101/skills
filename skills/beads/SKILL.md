@@ -149,7 +149,13 @@ Do not re-derive information that exists in these artifacts. Import it, referenc
 
 ---
 
-## Backend Bead Decomposition (per entity/feature)
+## Bead Decomposition Tables
+
+The tables below show decomposition for a typical .NET/Angular vertical-slice architecture. **For other tech stacks, adapt the tables to your project's pattern docs.** The principle is the same: one bead per pattern artifact, resolved from the doc map built in Phase 0.
+
+If your project uses different patterns (e.g., Python/FastAPI handlers, Go services, React components), build your decomposition table from your `docs/patterns/` directory — each pattern doc becomes a potential bead type.
+
+### Backend Bead Decomposition (per entity/feature)
 
 Each entity/feature in a module produces these beads, each aligned to ONE pattern doc. The "Pattern Key" column identifies which pattern to look up in the doc map built by Phase 0 — the actual file path comes from the map, not from a hardcoded location.
 
@@ -516,51 +522,86 @@ Before creating beads, review brainstorm kill criteria. As you map tasks to bead
 - Plan estimated {N} tasks → bead mapping produces {M} beads
 - If M > N × 1.5, flag: "Bead count ({M}) significantly exceeds plan task count ({N}). This suggests the work is larger than estimated. Kill criterion '{criterion}' may be at risk. Continue or return to plan?"
 
-**Step 1.1 — Read Plan Structure and Design Docs:**
+**Step 1.1 — Read Plan Coverage Tables (BEFORE decomposition):**
 
-Read the plan overview, sub-plans, AND design documents using paths from the Phase 0 doc map. For each task, capture:
+Read the plan's authoritative coverage tables. These are the source of truth — do NOT re-derive from design docs.
+
+```
+From plan overview.md, extract:
+  FR Coverage table      → which FRs are covered by which tasks
+  UC Coverage table      → which UCs are covered, with ordering constraints
+  Design Coverage Matrix → which design elements (endpoints, entities, commands, queries) map to tasks
+  Implementation Status  → gap analysis: New / Modify / Exists per element
+  Failure Criteria       → per-task "Do NOT" guidance from design decisions
+```
+
+**Non-greenfield detection:** Check the Implementation Status table:
+```
+IF > 90% "Exists": Verification Mode — create verification/modify beads only
+IF > 70% "Exists": Gap-driven — create beads only for "New" and "Modify" elements
+IF < 30% "Exists": Greenfield — use standard pattern decomposition
+ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
+```
+
+**Step 1.1b — Read Plan Sub-Plans and Design Docs:**
+
+For each task in the plan, capture:
 - Title and phase
-- Objective (from sub-plan's "Intent" section)
+- Objective (from sub-plan)
 - Dependencies (from plan's dependency graph)
-- FR references (from plan's FR coverage table)
+- FR references (from FR Coverage table — not re-derived)
 - Acceptance criteria (from sub-plan or PRD)
 - Scope boundaries (from sub-plan's in/out scope)
+- **Failure Criteria** (from sub-plan — extracted from design decisions, "Do NOT" rules)
 
-Additionally, read the design docs (using paths from `design.*` in the doc map) to identify pattern-level work:
-- `design.api-surface` — which endpoints exist per entity
-- `design.data-model` — which entities exist, lifecycle states, relationships
-- `design.ui-mockup` — which pages exist per feature
+Additionally, read design docs (using paths from `design.*` in the doc map) to identify pattern-level detail:
+- `design.api-surface` — endpoint routes, response codes, contract shapes
+- `design.data-model` — entity fields, relationships, constraints
+- `design.ui-mockup` — component hierarchy, form fields
 
 **Step 1.2 — Decompose into Pattern-Aligned Beads:**
 
-For each task in the plan, decompose into one bead per pattern artifact.
+The decomposition strategy depends on the Implementation Status from Step 1.1:
+
+**Greenfield path (<30% exists):** For each task in the plan, decompose into one bead per pattern artifact using the Backend/Frontend Bead Decomposition tables below.
+
+**Gap-driven path (>70% exists):** For each design element in the plan's Design Coverage Matrix:
+- **Status = "Exists" (no changes):** Skip — no bead needed
+- **Status = "Modify":** Create ONE focused modification bead. The bead title should be "Modify {Element}" not "Add {Element}". Include in the bead description WHAT needs to change (from Implementation Status notes).
+- **Status = "New":** Create standard pattern beads per the decomposition tables
+
+**Verification Mode (>90% exists):** Create verification beads that check existing code against design, plus targeted modification beads for the few gaps. Feature gates focus on "verify existing flows still work after changes."
 
 **Step 1.2a — Identify entities and features:**
-- Read `design.data-model` from the doc map for entities
-- Read `design.api-surface` from the doc map for endpoints per entity
-- Read `design.ui-mockup` from the doc map for pages per feature
 
-**Step 1.2b — Create backend beads per entity:**
-For each entity, create beads from the Backend Bead Decomposition table. Resolve each bead's pattern doc from the doc map's pattern keys.
-Only create beads for artifacts that exist in the design:
-- Check `design.api-surface`: does this entity have a Save endpoint? → SaveCommand + Save Endpoint beads
-- Check `design.api-surface`: does this entity have a Delete endpoint? → DeleteCommand + Delete Endpoint beads
-- Check `design.api-surface`: does this entity have lifecycle transitions? → Lifecycle Commands + Endpoints beads
-- Check `design.api-surface`: does this entity have a Lookup endpoint? → LookupQuery + Lookup Endpoint beads
+For greenfield: Read design docs to identify all entities and features.
+For gap-driven: Read the plan's Design Coverage Matrix — it already lists every element with its status. Only create beads for "New" and "Modify" elements.
 
-**Step 1.2c — Create frontend beads per feature:**
-For each feature, create beads from the Frontend Bead Decomposition table. Resolve each bead's pattern doc from the doc map's pattern keys.
-Only create beads for pages that exist in the design:
-- Check `design.ui-mockup`: does this feature have a list page? → List Page bead
-- Check `design.ui-mockup`: does this feature have a capture page? → Capture Page + Capture State beads
-- Check `design.ui-mockup`: does this feature have embedded child lists? → Embedded List bead(s)
+**Step 1.2b — Create backend beads:**
+
+For greenfield: Create beads per entity from the Backend Bead Decomposition table.
+For gap-driven: Create beads only for elements marked "New" or "Modify" in the plan's Design Coverage Matrix. Resolve each bead's pattern doc from the doc map.
+
+**Step 1.2c — Create frontend beads:**
+
+For greenfield: Create beads from the Frontend Bead Decomposition table.
+For gap-driven: Create beads only for frontend elements marked "New" or "Modify".
 
 **Step 1.2d — Create test beads:**
 - One backend integration test bead per feature (depends on backend `/simplify` gate)
 - One frontend UI test bead per feature (depends on frontend `/simplify` gate)
+- For gap-driven: test beads verify BOTH new code AND that existing flows still work
 
 **Step 1.2e — Apply grouping exceptions:**
 Review the bead list for trivially small beads that can be combined per the Grouping Exceptions list in the Bead Size Heuristic section. Only combine when BOTH beads would be under ~20 lines of implementation.
+
+**Step 1.2f — Auto-detect gate scale:**
+```
+IF total implementation beads ≤ 5 AND plan tasks ≤ 3:
+  → BRIEF gates only (backend review + simplify, no UC/module gates)
+ELSE:
+  → Standard gate structure per Step 1.3
+```
 
 **Step 1.3 — Insert Stage Gate Beads:**
 
@@ -718,12 +759,17 @@ For each implementation bead, create a work item with the full bead description.
 - {Observable outcome}
 
 ## Failure Criteria
-- ❌ {Anti-pattern to avoid}
+- ❌ {Design decision constraint: "Do NOT use [rejected approach] — use [chosen approach] per [decision ref]"}
+- ❌ {Pattern constraint: "Do NOT [anti-pattern] — use [correct pattern] per project pattern doc"}
+- ❌ {Scope constraint: "Do NOT modify code outside this feature's scope"}
+
+Failure criteria are propagated from the plan's sub-plan Failure Criteria section (extracted from design decisions). They encode the design's rejected alternatives as explicit "Do NOT" rules. Do NOT use generic criteria — every failure criterion should trace to a specific design decision or ADR.
 
 ## Context to Load
 - **Read:** `{file path}` — {why}
 - **Pattern:** `{file path}` — {why}
 - **Reference:** `{doc path}` — {what to check}
+- **First bead in module?** Also load: `docs/designs/{module}/design.md`, `docs/designs/{module}/data-model.md`, `docs/prd/{module}/prd.md`
 
 ## Approach
 {Brief guidance on HOW to approach the work — not implementation code.
@@ -862,9 +908,33 @@ Run `/simplify` on all backend code for the {feature} feature slice. Fix reuse, 
 - **Commit:** `refactor({feature}): apply /simplify improvements to backend`
 ```
 
-**UC and Module gate beads** follow the same pattern with broader scope:
-- UC gates review all features contributing to the use case — include all discovered decisions and architecture docs in context
-- Module gates review the entire module for cross-feature consistency — include reference docs from `reference[]` in the doc map for cross-project alignment
+**UC gate beads** verify end-to-end scenario flows, not just code quality:
+
+```markdown
+## Objective
+Verify use case UC-{ID} end-to-end: {scenario description from plan's UC Coverage table}
+
+## Scenario Verification
+{Derive from plan's UC Coverage table — the Ordering column shows which tasks must execute sequentially}
+
+### Main Scenario
+1. {UC step 1} → verify {expected state}
+2. {UC step 2} → verify {expected state}
+3. {UC step N} → verify {postcondition}
+
+### Error Paths
+- {UC failure path 1} → verify {error handling}
+- {UC failure path 2} → verify {recovery}
+
+## Verification
+- **Scenario test:** `{test command filtering UC-specific tests}`
+- **Review:** `/review` on all contributing features
+- **Build:** `{build command}`
+```
+
+UC gates depend on all contributing feature test gates. They verify SCENARIO FLOW (does the end-to-end user journey work?), not just code correctness (does each function work in isolation?).
+
+**Module gate beads** review the entire module for cross-feature consistency — include reference docs from `reference[]` in the doc map for cross-project alignment.
 
 Label all gate beads with `review` or `test` tag to distinguish them from implementation beads.
 
@@ -1450,7 +1520,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 4.0*
+*Skill Version: 5.0*
+*v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*
 *v4.0: Phase 0 doc discovery — scans project docs tree to build a doc map instead of assuming hardcoded paths. Handles variance in project structure: flat vs nested patterns, decisions in adr/ or designs/{feature}/decisions/, numbered design prefixes, subfeature nesting. Decomposition tables use pattern keys resolved from the doc map. Gate beads load discovered decisions, architecture docs, and learnings into context. Pattern-granular decomposition — one bead per pattern artifact with Backend/Frontend/Test decomposition tables. Stage gate beads — `/review` + `/simplify` cycles at feature slice, use case, and module boundaries. Frontend beads depend on backend test gates, never on raw backend impl beads. Trust hierarchy for gate findings. Bead description format includes Pattern and Commit fields. Bead size heuristic rewritten around pattern alignment with grouping exceptions and never-combine rules. Bead count comparison showing impact.*
 *v3.5: Prerequisites expanded with design docs. Parallel Tracks cross-ref corrected (Step 1.5). Good Bead example references design doc instead of plan. PAUSE step labels scoped to avoid collision.*
 *v3.4: AskUserQuestion stage gates — PAUSE 1 uses batch review (Pattern 3) for bead mapping with multi-select granularity adjustment. PAUSE 2 uses guided review workflow (Pattern 5) walking through beads created, self-assessment, and FR coverage before a decision gate. Fallback to prose-based patterns when AskUserQuestion is unavailable.*

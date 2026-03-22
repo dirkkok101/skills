@@ -548,8 +548,11 @@ ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 **Verification Mode fast path (>90% exists):** The plan's Design Coverage Matrix already has element-by-element status. Skip the decomposition analysis — map directly from the plan:
 - Each "Modify" element → 1 modification bead
 - Each cluster of "Exists" elements in the same feature → 1 verification bead per feature (not per element)
-- Test gates only (no UC/module verify gates for ≤5 implementation beads)
-- Skip reading full design docs — the plan already digested them. Spot-check only.
+- Test gates only (no UC/module verify gates for ≤10 implementation beads)
+- Rely on plan's coverage tables for FR/UC/Design traceability. Spot-check source docs for file paths only (confirm they exist, don't re-read content).
+- **Lighter bead descriptions:** For verification beads, use a compact format: objective + checklist + verification command. Skip the full template (In Scope, Out of Scope, Approach, Given/When/Then) — a verification bead is a checklist, not a construction blueprint.
+
+**Dry-run option:** Write all bead descriptions to a `beads.md` file first (Phase 2). Present the summary at PAUSE. Only create beads in the issue tracker (br) AFTER approval. This prevents creating beads that need to be deleted if the self-assessment reveals structural problems.
 
 **Checkpoint/resume:** Before creating beads, check if beads already exist for this feature (search by epic title or feature label). If found:
 - Present: "{N} beads already exist for {feature}. Delete and recreate, or resume?"
@@ -1340,7 +1343,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.3*
+*Skill Version: 5.4*
+*v5.4: Production feedback round 2. Dry-run option: write beads.md first, create in br AFTER approval (prevents delete+recreate cycles). Lighter verification bead descriptions (checklist format, not full template). Gate scaling: skip UC/module verify for ≤10 impl beads in Verification Mode. Context efficiency: rely on plan tables, spot-check file paths only.*
 *v5.3: Production feedback from Entitlements run. Verification Mode fast path (>90% exists → map directly from plan, skip decomposition analysis, 1 verification bead per feature not per element). Checkpoint/resume for interrupted runs (detect existing beads, offer resume vs delete). Gate scaling for verification mode (lightweight gates when ≤10 impl beads). Context efficiency: rely on plan's coverage tables, spot-check source docs only.*
 *v5.2: Removed /review and /simplify gate beads — they treat code built for future beads as "dead code" and delete it, breaking the pipeline. Replaced with test gates only (test at feature boundaries, verify at UC and module boundaries). Run /review and /simplify AFTER epic completes when all code exists. PAUSE 1 simplified to summary + single approval (user can't evaluate individual beads in detail — /review-beads handles that). Gate overhead reduced: 2 test + 1 UC verify + 1 module verify per feature (was 6 review/simplify + 2 test per feature).*
 *v5.1: Full-pipeline adversarial review fixes. Hybrid mode (30-70%) decomposition instructions added. Verification beads for "Exists" elements at 70-90% (not just >90%). FR Coverage with acceptance criteria depth (ACs Covered column — Partial if any AC unaddressed). Design Decision Coverage table (verify every decision propagated as failure criteria). Decomposition Adaptation Algorithm for non-.NET projects (build from docs/patterns/ directory). Verification bead template added.*

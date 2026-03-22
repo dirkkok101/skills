@@ -291,7 +291,22 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 
 **Plan convergence results (batch 2):** 3/3 converged to 0 FAILs, 0 decisions.
 
-**Combined:** 9/9 modules, 23 FAILs found, 11 WARNs fixed in triage, avg 1.7 rounds, 0 decisions.
+**Combined (batch 2):** 9/9 modules, 23 FAILs found, 11 WARNs fixed in triage, avg 1.7 rounds, 0 decisions.
+
+### 5.6 Plan Production Runs (batch 3: Approvals, Identity Providers, Users)
+
+**What we ran:** Generated fresh plans and reviewed with CONVERGE + COMPREHENSIVE.
+
+**What we fixed in plan v4.1 → v4.2:**
+- Verification Mode clarified for >90% exists with non-trivial remaining work
+- Gap analysis agent partitioning by layer (data/backend/contracts/frontend/cross-cutting)
+- Agent absence claim verification (always Grep to confirm "not found")
+- PAUSE 1 always shows FR Coverage inline
+- Test mapping precision (mark approximate with ~)
+
+**Plan convergence results (batch 3):** 3/3 converged to 0 FAILs, 0 decisions.
+
+**Combined (all 4 batches):** 12/12 modules, 40 FAILs found and fixed, avg 1.75 rounds, 0 decisions escalated across all 12 plans.
 
 ---
 
@@ -303,7 +318,7 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 |--------------|---------|-------|--------|
 | PRDs | 15 | 0 | CONVERGE + COMPREHENSIVE |
 | Technical Designs | 15 | 0 | CONVERGE + COMPREHENSIVE |
-| Implementation Plans | 9 (of 15) | 0 | CONVERGE + COMPREHENSIVE |
+| Implementation Plans | 12 (of 15) | 0 | CONVERGE + COMPREHENSIVE |
 
 ### Skill Versions at End of Session
 
@@ -313,8 +328,8 @@ Each fix could introduce new inconsistencies. Cross-document references meant fi
 | review-prd | v1.0 | v2.3 | 15 modules |
 | technical-design | v3.5 | v3.7 | 15 modules |
 | review-design | v1.0 | v2.5 | 15 modules |
-| plan | v3.5 | v4.1 | 9 modules |
-| review-plan | v1.0 | v2.3 | 9 modules |
+| plan | v3.5 | v4.2 | 12 modules |
+| review-plan | v1.0 | v2.4 | 12 modules |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact

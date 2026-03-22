@@ -51,6 +51,7 @@ Module: {module-name}
 Project Root: ${PROJECT_ROOT} (from git rev-parse --show-toplevel)
 Review Skill: /review-prd (for PRDs) or /review-design (for designs)
 Max Rounds: 5 (default) — hard stop to prevent infinite loops
+Duration: ~10-30 min per module (STANDARD), ~20-60 min (COMPREHENSIVE). Multi-module runs execute in parallel.
 ```
 
 ---
@@ -322,6 +323,50 @@ This is how we ran 15 parallel reviews — the same pattern, automated.
 
 ---
 
+## Example Invocations
+
+**Single module, default depth:**
+```
+/autoresearch design entitlements
+```
+Runs CONVERGE with STANDARD depth on the Entitlements design.
+
+**Single module, comprehensive:**
+```
+/autoresearch prd authentication --comprehensive
+```
+Runs CONVERGE with COMPREHENSIVE depth on the Authentication PRD.
+
+**All modules in parallel:**
+```
+/autoresearch design all
+```
+Runs CONVERGE independently on every design directory found in `docs/designs/`.
+
+**Custom evaluation:**
+```
+/autoresearch --review-skill ~/skills/skills/review-plan/SKILL.md --doc docs/plans/entitlements/plan.md
+```
+Runs CONVERGE using a custom review skill on a plan document.
+
+---
+
+## Anti-Patterns
+
+**Spinning Without Escalating** — Running 3+ rounds without escalating DECISION findings to the user. If the same finding persists across 2 rounds, it's almost certainly a DECISION, not a MECHANICAL fix that failed. Escalate after 2 rounds of no progress on a specific finding.
+
+**Fixing WARNs in the Loop** — CONVERGE fixes FAILs only. WARNs are quality improvements, not compliance gaps. Fixing WARNs during the loop wastes rounds and can introduce regressions. Triage WARNs after convergence.
+
+**Modifying the Review Skill** — The evaluation function is FROZEN during the loop. If the review skill produces false positives, stop the loop, fix the skill between runs, then restart. Modifying the skill mid-loop invalidates all prior rounds.
+
+**Fixing Decision Records** — Decision files (`decisions/*.md`) are historical context. They document why a choice was made at a specific point in time. Changing them during cascade fixes rewrites history. Only fix normative files (api-surface, design.md, test plans).
+
+**Guessing on Decisions** — The MECHANICAL vs DECISION classification exists for a reason. When two authoritative documents genuinely conflict (PRD says one thing, ADR says another), the agent cannot determine which is correct — the user must decide. Guessing creates a fix that resolves one conflict while creating another.
+
+**Single-Pass Assumptions** — Expecting convergence in 1 round. Fixes often expose adjacent issues (cascade effect). Budget 2-3 rounds as normal. If round 1 finds 5 FAILs and round 2 finds 3 new FAILs, that's the loop working correctly, not a sign of failure.
+
+---
+
 ## Adapting to Other Document Types
 
 The loop works for any document with a review skill:
@@ -337,7 +382,9 @@ The key requirement: the review skill must produce **structured, deterministic f
 
 ---
 
-*Skill Version: 1.3*
+*Skill Version: 1.4*
+*v1.4: Anti-patterns section added (6 patterns: spinning without escalating, fixing WARNs, modifying review skill, fixing decision records, guessing on decisions, single-pass assumptions). Example invocations section with 4 usage patterns. Duration estimates added.*
+
 *v1.3: Authority hierarchy: added backend.md, ui-mockup.md ranking. FR ID aliasing guidance. Cascade scope bounded to module directory. Cross-module cascades noted as WARNs. Aligned with review-design v2.5.*
 
 *v1.2: Skip interactive stage gates during loop. Decision records excluded from cascade scope. WARNs listed but not interactive.*

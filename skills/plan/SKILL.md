@@ -108,9 +108,9 @@ Review kill criteria from brainstorm output before investing in detailed plannin
 
 If a kill criterion is violated or at serious risk: "Kill criterion '{criterion}' appears at risk because decomposition reveals {reason}. Recommend returning to brainstorm to reassess scope before continuing to plan."
 
-**Step 1.1 — Run Implementation Gap Analysis FIRST:**
+**Step 1.0b — Implementation Gap Analysis (run BEFORE decomposition):**
 
-Before choosing a decomposition strategy, run the gap analysis (Step 1.4d) to determine whether this is greenfield or non-greenfield work. This changes everything about how the plan is structured.
+This is the most important step for any module where code may already exist. Run it BEFORE choosing a decomposition strategy — the results determine whether this is a greenfield plan, an alignment plan, or a verification checklist.
 
 ```
 IF Implementation Status shows > 90% "Exists":
@@ -136,7 +136,22 @@ ELSE:
 
 **Design feedback:** If the gap analysis or decomposition reveals a design-level issue (architectural tension, missing specification, contradicted assumption), document it as a `## Design Feedback` section in the overview — not buried in sub-plan context paragraphs. This surfaces issues that should go back to `/technical-design` without blocking plan completion.
 
-**Agent efficiency:** When launching agents for gap analysis, instruct them to "report gaps and differences only, not full file contents." Use targeted Grep/Glob to verify agent findings for critical claims — agents can over-report or miss items. The structured checklist in Step 1.4d should be the agent's mandate, not open-ended exploration.
+**Agent efficiency:** Do NOT use Explore agents for gap analysis — they over-report existence without catching field-level gaps. Use targeted Grep/Glob for element-by-element checks:
+- Grep for class names to confirm existence
+- Read specific files to compare properties/fields against design
+- Count test attributes (`[Fact]`, `[Theory]`, `it(`) to get precise test coverage
+
+Explore agents are useful for initial context loading (Phase 0) but not for the gap analysis itself.
+
+**Re-planning (overwriting existing plans):** When a plan directory already exists:
+1. Read the old plan's overview to understand prior state
+2. Run gap analysis against current code (not old plan)
+3. Remove old sub-plan files before writing new ones
+4. Note in the overview what changed from the prior plan and why
+
+**PAUSE 1 presentation:** Show the FR Coverage table, UC Coverage table, and Dependency Graph as formatted markdown BEFORE the AskUserQuestion. The user cannot approve what they cannot see. For non-greenfield plans with ≤8 tasks, present task summary + gap highlights + dependency graph inline, with full coverage tables in overview.md.
+
+**Test coverage as first-class step:** For non-greenfield plans, count existing tests precisely (grep for test attributes, map to design test cases) rather than estimating. The gap between "~37 tests" and "32 tests" matters when planning test tasks.
 
 **Step 1.2 — Choose Decomposition Strategy:**
 
@@ -892,8 +907,10 @@ For ASCII diagram conventions: `../_shared/references/ascii-conventions.md`
 
 ---
 
-*Skill Version: 4.0*
-*v4.0: Production feedback from Sessions, Audit, Portal runs. Verification Mode for >90% exists (single checklist instead of full sub-plans). Gap analysis as single source of truth (don't duplicate across files). Design Feedback section for issues to escalate to /technical-design. Agent efficiency guidance (concise prompts, Grep verification). PAUSE 1 lighter for non-greenfield (task summary + gaps only in chat, full tables in overview.md). Implementation Status always present (not conditional).*
+*Skill Version: 4.1*
+*v4.1: Production feedback from Organizations, Authentication, Languages runs. Gap analysis renamed to Step 1.0b (explicit named step before decomposition, not buried in Step 1.4d). "Do NOT use Explore agents for gap analysis" — use Grep/Glob for element-by-element checks. Re-planning guidance (overwrite existing plans: read old, compare, remove stale files, note delta). PAUSE 1 must show artifacts inline before AskUserQuestion. Test coverage as first-class step (precise counts, not estimates).*
+
+*v4.0: Verification Mode (>90% exists). Gap analysis as single source of truth. Design Feedback section. Agent efficiency. PAUSE 1 lighter for non-greenfield.*
 
 *v3.9: Failure Criteria exemption for verification/audit tasks.*
 *v3.8: Production feedback from 3 runs (Entitlements, Applications, Roles). Non-greenfield fast path: run gap analysis FIRST (Step 1.1), reorder Phase 1 when >70% exists. Gap-driven decomposition strategy added. Structured gap analysis checklist (entity, contract, command, query, endpoint, frontend — use Grep/Glob not Explore agents). Task sizing table for modifications (pattern replacement/field addition/behavioral change/architecture change). Scope-excluded UC handling (not a blocker). PAUSE 1 adaptive: single gate for ≤8 tasks, multi-step for >8. Companion docs scope-aware for non-greenfield. Failure criteria extraction from decision records/*.md with step-by-step process.*

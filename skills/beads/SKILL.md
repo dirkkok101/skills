@@ -74,11 +74,12 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 ```
 Phase 0: Discover Project Documentation (build doc map)
 Phase 1: Load Plan & Decompose into Pattern-Aligned Beads
-  ── PAUSE 1: "Here's the mapping. Right beads? Right granularity?" ──
 Phase 2: Create Beads (epic, tasks, gates, dependencies)
 Phase 3: Self-Assessment Gate (per-bead readiness + cross-bead review)
-  ── PAUSE 2: "All beads assessed and ready. Approve for /execute?" ──
+  ── PAUSE: "Beads created and assessed. Approve for /execute or run /review-beads?" ──
 ```
+
+**No intermediate user approval.** The user approved the plan — beads are a mechanical decomposition. Create them, self-assess, present the finished set. The user's choice is: approve for /execute, or run /review-beads CONVERGE for adversarial validation.
 
 ---
 
@@ -673,40 +674,9 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 - Tracks merge at: bd-007 (integration)
 ```
 
-**PAUSE 1:** Present a summary of the bead mapping for approval. The user does not have enough context to evaluate individual beads in detail — that's what `/review-beads` is for. Present the high-level mapping and ask for a single approval.
+**PAUSE 1:** Skip. Do NOT ask the user to review individual beads — they don't have enough context to evaluate bead content during creation. The user already approved the plan; beads are a mechanical decomposition of that plan. Create all beads, run self-assessment (Phase 3), then present the final summary at PAUSE 2.
 
-**Step 1:** Present the summary as formatted markdown:
-
-```markdown
-## Bead Mapping Summary
-
-**Feature:** {name}
-**Beads:** {N} implementation + {T} test gates + {V} verify gates = {total}
-**Parallel tracks:** {P} beads can run in parallel
-**Non-greenfield:** {Implementation Status summary — e.g., "12 Exists, 3 Modify, 2 New"}
-
-| Plan Task | Beads | Type |
-|-----------|-------|------|
-| T01: {task title} | {N} beads (entity, EF, contracts...) | Greenfield |
-| T02: {task title} | {N} beads (modify command, verify endpoint) | Modify/Verify |
-| — | test + verify gates | {N} gates |
-```
-
-**Step 2:** Single approval gate:
-
-```
-AskUserQuestion:
-  question: "Bead mapping looks right? Run /review-beads after creation for detailed validation."
-  header: "Mapping"
-  multiSelect: false
-  options:
-    - label: "Accept (Recommended)"
-      description: "Create beads. Run /review-beads CONVERGE for detailed review after."
-    - label: "Adjust count"
-      description: "Too many or too few beads for some tasks."
-    - label: "Escalate"
-      description: "Mapping reveals plan needs revision. Return to /plan."
-```
+If the self-assessment (Phase 3) reveals issues, resolve them before presenting to the user. The user should only see the finished, assessed bead set.
 
 ---
 
@@ -1013,104 +983,43 @@ Verify that every design decision (from the plan's Design Decision Coverage tabl
 
 Unpropagated design decisions are blocking — an executing agent without the failure criterion may re-derive the rejected approach.
 
-**PAUSE 2:** Guided review of the full bead set.
+**PAUSE (single gate):** Present the completed, self-assessed bead set. The user sees the summary and decides whether to approve or run /review-beads for detailed validation.
 
-**Step 1:** Present Beads Created table as formatted markdown:
+Present as formatted markdown:
 
 ```markdown
-## Beads Created
+## Beads Complete
 
 **Feature:** {name}
-**Epic:** {epic-id}
-**Beads:** {N} implementation + {G} gates + {T} tests = {total} work packages
-**Parallel tracks:** {P} beads can run in parallel
+**Beads:** {N} implementation + {T} test/verify gates = {total}
+**Non-greenfield:** {summary — e.g., "3 New, 5 Modify, 12 Verify"}
+**Self-Assessment:** {N} Ready, {N} Resolved, {N} Split
+**FR Coverage:** {N}/{N} Must-Have FRs fully covered (all ACs addressed)
+**UC Coverage:** {N}/{N} UCs with end-to-end scenario flow
+**Design Decision Coverage:** {N}/{N} decisions propagated as failure criteria
 
-| # | Title | Phase | Pattern Doc | Labels | Status |
-|---|-------|-------|-------------|--------|--------|
-| bd-{id} | {Entity} Entity + Enums | 0: Foundation | api/entity.md | model | Ready |
-| bd-{id} | {Entity} EF Configuration | 0: Foundation | api/ef-configuration.md | config | Ready |
-| bd-{id} | {Entity} Contracts | 0: Foundation | api/requests.md | contract | Ready |
-| bd-{id} | {Entity} EntityMapper | 1: Core | api/entity-mapper.md | mapper | Ready |
-| bd-{id} | {Entity} DTOMapper | 1: Core | api/dto-mapper.md | mapper | Ready |
-| bd-{id} | {Entity} SaveCommand | 1: Core | api/commands.md | command | Ready |
-| bd-{id} | {Entity} GetQuery | 1: Core | api/queries.md | query | Ready |
-| bd-{id} | {Entity} Save Endpoint | 2: API | api/endpoints.md | endpoint | Ready |
-| bd-{id} | {Entity} Get Endpoint | 2: API | api/endpoints.md | endpoint | Ready |
-| bd-{id} | {Entity} Service Registration | 2: API | api/service-registration.md | config | Ready |
-| bd-{id} | /review({feature}): backend | gate | — | review | Ready |
-| bd-{id} | /simplify({feature}): backend | gate | — | review | Ready |
-| bd-{id} | test({feature}): integration tests | gate | — | test | Ready |
-| bd-{id} | {Feature} Models + Enums | 3: Frontend | web/feature-service.md | ui | Ready |
-| bd-{id} | {Feature} Feature Service | 3: Frontend | web/feature-service.md | ui | Ready |
-| bd-{id} | {Feature} List Page | 3: Frontend | web/list-page.md | ui | Ready |
-| bd-{id} | {Feature} Capture Page | 3: Frontend | web/capture-page.md | ui | Ready |
-| bd-{id} | {Feature} Routing | 3: Frontend | web/routing.md | ui | Ready |
-| bd-{id} | /review({feature}): frontend | gate | — | review | Ready |
-| bd-{id} | /simplify({feature}): frontend | gate | — | review | Ready |
-| bd-{id} | test({feature}): UI tests | gate | — | test | Ready |
-| bd-{id} | /review({module}): UC-{ID} | gate | — | review | Ready |
-| bd-{id} | /simplify({module}): UC-{ID} | gate | — | review | Ready |
-| bd-{id} | /review({module}): module complete | gate | — | review | Ready |
-| bd-{id} | /simplify({module}): module complete | gate | — | review | Ready |
+### Dependency Flow
+{Compact ASCII showing bead phases and test gates}
 
-### Stage Gates
-
-| Level | Gates | Count |
-|-------|-------|-------|
-| Feature slice | {N} features × 6 gates | {N×6} |
-| Use case | {N} UCs × 2 gates | {N×2} |
-| Module | 1 × 2 gates | 2 |
-| **Total gate beads** | | {total} |
-
-### Dependency Tree
-{Visual hierarchy of bead dependencies including gate beads}
-
-### Parallel Tracks
-{From Step 1.5}
-```
-
-**Step 2:** Present Self-Assessment Summary and Resolutions Applied:
-
-```markdown
-### Self-Assessment Summary
-| Category | Count |
-|----------|-------|
-| Ready | {N} |
-| Resolved | {N} (details below) |
-| Split | {N} into {M} sub-beads |
-
-### Resolutions Applied
-**bd-{id}:** {What was resolved and how}
-**bd-{id}:** {Split into bd-{id}a, bd-{id}b — reason}
-```
-
-**Step 3:** Present FR Coverage table:
-
-```markdown
-### FR Coverage
-| FR | Bead(s) | Status |
-|----|---------|--------|
-| FR-{MODULE}-{NAME} (Must) | bd-{id} | Covered |
-| FR-{MODULE}-{NAME} (Must) | bd-{id}, bd-{id} | Covered |
-| FR-{MODULE}-{NAME} (Should) | — | Deferred |
+### Issues Resolved During Self-Assessment
+- {bd-{id}: what was fixed}
+- {bd-{id}: what was split and why}
 ```
 
 **Step 4:** Use AskUserQuestion decision gate:
 
 ```
 AskUserQuestion:
-  question: "All beads assessed as Ready. Approve for /execute?"
+  question: "Beads created and self-assessed. What next?"
   header: "Beads"
   multiSelect: false
   options:
-    - label: "Beads approved (Recommended)"
-      description: "All beads are ready. Proceed to /execute."
-    - label: "Adjust specific bead"
-      description: "Modify a specific bead — I'll specify which one."
-    - label: "Reassess"
-      description: "Re-run the self-assessment gate on all beads."
+    - label: "Approve for /execute (Recommended)"
+      description: "All beads passed self-assessment. Proceed to implementation."
+    - label: "Run /review-beads CONVERGE"
+      description: "Adversarial review with auto-fix before executing. Recommended for complex or critical modules."
     - label: "Back to plan"
-      description: "Plan needs revision before beads can proceed."
+      description: "Decomposition reveals plan needs revision."
 ```
 
 ---

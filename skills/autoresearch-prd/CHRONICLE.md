@@ -352,9 +352,19 @@ Full-pipeline adversarial review (PRD → design → plan → beads → review-b
 - FR acceptance criteria depth check
 - Design Decision Coverage cross-reference
 
-### Production Test
+### Production Tests
 
-Entitlements beads: PASS (CLEAN) — 0 FAILs on first review, 2 WARNs.
+| Module | Beads FAILs | Review Rounds | /review gates? | AskUserQuestion used? | Status |
+|--------|------------|---------------|----------------|----------------------|--------|
+| Entitlements | 0 | 1 | No | Yes (old context) | PASS (CLEAN) |
+| Applications | 0 | 1 | Yes (6 removed) | Yes (old context) | PASS (CONVERGED) |
+| Roles | 0 | 1 | **No** (fix landed) | Yes (old context) | PASS (CONVERGED) |
+
+Key findings across 3 production runs:
+- /review and /simplify gate fix: worked on Roles (not on Applications due to older skill version in context)
+- AskUserQuestion removal: not effective — agents used old context. Need clean session.
+- Path verification: Applications had wrong paths, Roles got them right (path map fix worked)
+- Beads quality: all 3 modules passed review-beads CONVERGE with 0 FAILs
 
 ### Full Pipeline Validated
 

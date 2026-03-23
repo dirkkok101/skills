@@ -202,7 +202,7 @@ When multiple agents execute on the same branch simultaneously (e.g., parallel m
 
 **Shared file conflicts:** Other agents may break files you depend on (test files, shared components). **Fix:** Do NOT fix other agents' files. If their broken code blocks your tests, use module-scoped tests (`--filter "YourModule"`) instead of the full suite.
 
-**File reservation (default when agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This is the **default** when agent-mail is available, not optional. Without reservation, other agents commit YOUR unstaged files during the window between `git add` and `git commit` (the pre-commit hook runs in between, creating a race window). This has caused lost work across multiple modules (Organizations, Languages, Entitlements, Identity Providers).
+**File reservation (default when agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This is the **default** when agent-mail is available, not optional. Without reservation, other agents commit YOUR unstaged files during the window between `git add` and `git commit` (the pre-commit hook runs in between, creating a race window). This has caused lost work across multiple modules. **Exception:** Skip reservation for beads modifying ≤2 files where the edit takes <30 seconds — the reservation overhead exceeds the risk.
 
 **Pre-commit hook transience:** Pre-commit hooks that run builds (e.g., `dotnet build`) may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
 
@@ -378,7 +378,12 @@ If any item fails, fix the issue, re-run tests, then re-review.
 
 **Step 2.8 — Commit:**
 
-**Verification-only fast path:** If the bead was a verification-only pass (all checks passed, zero code changes), skip commit and push. Just close the bead in the issue tracker with a comment: "Verified — no changes needed." This avoids empty commits and unnecessary push cycles.
+**Verification-only fast path:** Does the existing code already satisfy this bead's objective? If YES (all checks pass, zero code changes needed):
+1. Skip commit and push — no empty commits
+2. Close the bead with comment: "Verified — no changes needed"
+3. Proceed to next bead
+
+This is the correct path for verification beads where the codebase already matches the design.
 
 **If code was changed:** Track which files you created or modified. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting. Close the bead in the issue tracker.
 
@@ -746,8 +751,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.11*
-*v4.11: Entitlements + Identity Providers feedback. File reservation default when agent-mail available. Test verification inlined at Step 2.6 (solo vs concurrent, per-class fallback for Testcontainers collisions).*
+*Skill Version: 4.12*
+*v4.12: Authentication feedback. File reservation ≤2 file exception. Verification fast path made explicit (checklist question format). Clearer verification-only bead handling.*
+*v4.11: Entitlements + IdP feedback. File reservation default. Test verification inlined. Per-class fallback.*
 *v4.10: Users feedback. Legacy review/simplify gate handling. E2E/Aspire deferral.*
 *v4.9: Applications feedback. Flat execution plan. Verification-only fast path. Pre-commit hook retry. File reservation.*
 *v4.8: Languages feedback. Multi-Agent section. Module-scoped tests. Self-review multi-agent acknowledgment.*

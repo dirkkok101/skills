@@ -252,6 +252,8 @@ Not every feature needs all 7. Check the discovered `ui-mockup` doc:
 | 27 | `{Feature} Integration Tests` | per discovered test plan | Backend integration tests | Last backend impl bead |
 | 28 | `{Feature} UI Tests` | per discovered test plan | Frontend unit/component tests | Last frontend impl bead |
 
+**Test bead sizing:** Each test bead should target **≤15 new tests**. If the design's test plan specifies 40+ test cases, decompose into per-area test beads (e.g., "MFA tests", "password flow tests", "magic link tests"). A 40-test bead is a mini-project, not a focused work package — the executing agent will either rush through it or close it incomplete.
+
 ---
 
 ## Test Gates (NOT Review/Simplify Gates)
@@ -799,11 +801,16 @@ Failure criteria are propagated from the plan's sub-plan Failure Criteria sectio
 - **Pattern:** `{file path}` — {why}
 - **Reference:** `{doc path}` — {what to check}
 - **Tests:** `{test file path}` — {tests that assert on this bead's changed behavior}
+- **Downstream consumers:** `{file path}` — {files that import/reference types this bead changes}
 - **First bead in module?** Also load: `docs/designs/{module}/design.md`, `docs/designs/{module}/data-model.md`, `docs/prd/{module}/prd.md`
+
+**Contract change beads** (DTOs, request/response types, models) must list downstream consumers — components, endpoints, or services that import the changed type. A model shape change that breaks 3 consumers is in-scope for the bead, or the consumers must be listed in "Out of Scope" with a note saying which bead handles them.
 
 **Always include test files** that assert on the behavior being changed. For modification/migration beads, this means the test files for the endpoints or services being modified — not just the implementation files. A bead that changes a status code from 400→422 needs to list the test file that asserts on 400, or the executing agent will miss the test regression.
 
 **Path validation (Phase 3):** During self-assessment, verify every file path in every bead's "Context to Load" section actually exists in the codebase using glob/grep. Wrong paths are a common source of execution friction — the executing agent wastes time finding the right file. If a path doesn't exist, check for common mismatches: flat vs nested feature structure (e.g., `Features/Applications/Save/` vs `Features/Applications/Shared/Mappers/`), renamed files, or moved directories. Fix the path before finalizing the bead.
+
+**Dependency validation (Phase 3):** For each bead, verify that referenced fields, types, and infrastructure actually exist in the codebase. If a bead references `Organization.BootstrapCompletedAt` and that field doesn't exist, the bead has an unmet dependency — it cannot be marked "Ready." Either add a prerequisite bead to create the missing infrastructure, or flag the bead as blocked.
 
 ## Approach
 {Brief guidance on HOW to approach the work — not implementation code.
@@ -1392,8 +1399,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.13*
-*v5.13: Entitlements + Identity Providers feedback. Compilation unit check (can codebase compile after only this bead?). Frontend beads coarser than backend (feature works end-to-end, not one component per bead). Verification beads can be batched. Removed frontend items from never-combine list (List+Capture, Service+Component, Routing+Components).*
+*Skill Version: 5.14*
+*v5.14: Authentication feedback. Test bead sizing (≤15 tests per bead). Dependency validation in Phase 3 (verify referenced fields/types exist). Contract change beads must list downstream consumers. Downstream consumers field added to Context to Load template.*
+*v5.13: Entitlements + IdP feedback. Compilation unit check. Frontend beads coarser. Verification beads batchable.*
 *v5.12: Users feedback. Small feature slice grouping. EF migration in entity scope. E2E execution-context tagging.*
 *v5.11: Applications feedback. Context path validation via glob in Phase 3.*
 *v5.10: Languages feedback. "Exists" elements only get verification beads if gap analysis flags mismatches.*

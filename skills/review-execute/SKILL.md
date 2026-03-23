@@ -108,7 +108,10 @@ When implementation contradicts a higher-trust source, the implementation is wro
 
 **Same-session detection:** If execution occurred in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW — the reviewer shares the executing agent's blind spots.
 
-**Same-session fresh-eyes mitigation:** Load at least one upstream doc the executing agent did NOT read during execution and spot-check 2 claims against it. For example: if the agent didn't read the PRD during execution, load it and verify 2 Must-Have FR acceptance criteria against code. If the agent didn't read the design's data-model.md, load it and check 2 entity property lists. This catches blind spots the executing agent carried forward. The goal is not full traceability (that's COMPREHENSIVE Phase 3) but a targeted check from a doc the agent hasn't seen.
+**Same-session fresh-eyes mitigation:** Same-session reviews share the executing agent's context and biases. To compensate:
+1. **Re-read design docs from scratch** — do NOT rely on conversation context. Re-read the api-surface.md and data-model.md line-by-line against the implementation. The Organizations review found F1 (bootstrap 409→400) only by forcing a line-by-line re-read.
+2. **Load one doc the executing agent didn't read** — spot-check 2 claims against it (e.g., if the agent didn't read the PRD, verify 2 FR ACs against code).
+3. **For COMPREHENSIVE mode, recommend deferring to a fresh session** — same-session COMPREHENSIVE has limited additional value over STANDARD because the reviewer's blind spots are the same as the executor's.
 
 **Non-greenfield execution review:** If the execution manifest or plan's Implementation Status shows >70% of design elements already existed before execution:
 - **Verification beads** ("verify X matches design") — the AC is "confirm existing code matches spec." Review by reading the code and checking against the spec, not by looking for newly written code.
@@ -142,6 +145,11 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 | `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately; create `br` issue) |
 
 **Severity model:** FAIL = blocks PR/merge. WARN = quality improvement, doesn't block. Aligned with review-prd, review-design, review-plan, review-beads.
+
+**Pre-existing vs introduced:** For non-greenfield reviews, design drift may exist in code the execution did NOT modify. Apply this rule:
+- **Introduced by execution** (code was changed by a bead) → default severity from table above
+- **Pre-existing in unmodified code** → **WARN** regardless of class, tagged `PRE_EXISTING`. The execution didn't introduce it, and fixing it may be out of bead scope. Create a `br` issue (p3) for follow-up.
+- **Edge case — bead touched the file but not the drifting code path:** Still **WARN** + `PRE_EXISTING` unless the bead's scope explicitly included that code path.
 
 ---
 
@@ -189,15 +197,16 @@ Read `docs/execution/{feature}/manifest.md`.
 - Design elements implemented per bead
 - Commit hashes per bead
 
-**If manifest is missing (fallback):** Reconstruct from git history + bead descriptions:
-1. Identify the epic: `br search "{feature}"` or `br list --status closed`
-2. Get the bead list: `br dep tree {epic-id}`
-3. Map commits to beads: `git log --oneline` — match commit messages to bead titles
-4. For each bead, derive files changed: `git diff {commit}^..{commit} --stat`
-5. Build a minimal manifest in memory (don't write it — the executing agent should have)
-6. Note `MANIFEST_STALE` as a WARN finding: "/execute did not write the required manifest"
+**If manifest is missing or is a stub (fallback):** Flag immediately before proceeding:
+1. Note `MANIFEST_STALE` as a WARN finding: "/execute did not write the required manifest"
+2. Ask the user: "No execution manifest found. Proceed with degraded review (reconstruct from git), or wait for manifest?" If proceeding:
+3. Identify the epic: `br search "{feature}"` or `br list --status closed`
+4. Get the bead list: `br dep tree {epic-id}`
+5. Map commits to beads: `git log --oneline` — match commit messages to bead titles
+6. For each bead, derive files changed: `git diff {commit}^..{commit} --stat`
+7. Build a minimal manifest in memory
 
-This fallback is slower and less precise than a proper manifest. Flag the gap so the team knows to enforce manifest writing.
+This fallback is slower and less precise. Phase 2 per-bead verification is harder without per-bead file lists — the reviewer must infer which files belong to which bead from commit diffs.
 
 **Step 0.2 — Load Bead Descriptions:**
 
@@ -299,6 +308,26 @@ If the bead references a pattern doc:
 Compare the bead's objective + in/out of scope against the actual changes:
 1. Are there files changed that aren't related to the bead's objective? → `SCOPE_CREEP`
 2. Is there functionality added beyond what the bead specified? → `SCOPE_CREEP`
+
+**Step 2.6 — Authorization Test Coverage (for endpoint beads):**
+
+For every endpoint with org-scoped or dual-policy authorization (e.g., PlatformAdmin + OrgAdmin own-org), verify these tests exist:
+- [ ] **Cross-org 403:** OrgAdmin on org-A accessing org-B's resource → 403
+- [ ] **Own-org success:** OrgAdmin on org-A accessing org-A's resource → success
+- [ ] **PlatformAdmin bypass:** PlatformAdmin accessing any org → success
+
+This is a recurring pattern, not a one-off. Every module with org-scoped endpoints needs these tests. Flag missing cross-org tests as `TEST_GAP`.
+
+---
+
+### Common CONVERGE Fix Patterns
+
+When CONVERGE mode fixes DESIGN_DRIFT findings on status codes, the most common fix pattern is:
+1. Add a new case to the command's union return type (e.g., add `ValidationFailed` to the OneOf)
+2. Map the new case in the endpoint handler with field-based routing (e.g., `Field=="Organization"` → 400, `Field=="Slug"` → 422)
+3. Update tests to assert the correct status code
+
+This pattern recurs across modules — the same OneOf return type change fixes multiple status code mismatches.
 
 ---
 
@@ -624,8 +653,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.4*
-*v1.4: Production feedback from Languages review. Verification-mode recommendation: STANDARD for >70% pre-existing (COMPREHENSIVE rarely adds value for modification-only beads). Clean pass abbreviated output when 0 FAILs. Same-session fresh-eyes mitigation: load one upstream doc the executing agent didn't read. UPSTREAM_DOC tracking: create br issues for upstream doc mismatches so they don't get re-discovered.*
+*Skill Version: 1.5*
+*v1.5: Production feedback from Organizations review. Pre-existing vs introduced distinction: unmodified code drift is WARN+PRE_EXISTING, not FAIL. Same-session: re-read design docs from scratch (not conversation context), recommend fresh session for COMPREHENSIVE. Manifest validation moved to Phase 0 with user prompt on missing. Cross-org authorization test checklist (Step 2.6). Common CONVERGE fix pattern: OneOf return type + field-based routing for status code drift.*
+*v1.4: Verification-mode STANDARD recommendation. Clean pass abbreviated output. Same-session fresh-eyes doc. UPSTREAM_DOC tracking via br issues.*
 *v1.3: CONVERGE skip when prior STANDARD passed clean. Agent prompts include bead scope and design exemptions.*
 *v1.2: Explicit manifest-missing fallback. Agent pattern context in prompts. 10-20% false positive rate expected.*
 *v1.1: UC scenario verification, architecture compliance, ADR in STANDARD+, non-greenfield awareness, cross-module deps, bead re-read requirement, CONVERGE manifest update.*

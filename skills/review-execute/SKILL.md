@@ -61,7 +61,9 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 | **BRIEF** | ≤6 beads, single module, low-risk | Manifest check + spot-check 3 beads |
 | **STANDARD** | Typical feature, 7-20 beads | Full bead-by-bead verification + design traceability |
 | **COMPREHENSIVE** | Multi-module, 20+ beads, or critical path | Full verification + FR acceptance criteria depth + upstream cross-reference |
-| **CONVERGE** | Fix all issues until 0 FAILs | Selected depth + auto-fix loop |
+| **CONVERGE** | **Default.** Fix all issues until 0 FAILs | Selected depth + auto-fix loop |
+
+**CONVERGE is the default mode.** Unless the user explicitly says "no converge" or "review only", always run with CONVERGE enabled. The whole point of review-execute is to leave the code in a passing state — finding issues without fixing them is half the job.
 
 **Verification-mode recommendation:** For verification-mode executions (>70% pre-existing, gap-closure/modification beads), recommend STANDARD unless the user explicitly requests COMPREHENSIVE. The extra UC/FR depth in COMPREHENSIVE rarely finds issues in modification-only bead sets — it loads 8+ design docs but typically produces the same verdict as STANDARD in twice the context.
 
@@ -653,8 +655,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.5*
-*v1.5: Production feedback from Organizations review. Pre-existing vs introduced distinction: unmodified code drift is WARN+PRE_EXISTING, not FAIL. Same-session: re-read design docs from scratch (not conversation context), recommend fresh session for COMPREHENSIVE. Manifest validation moved to Phase 0 with user prompt on missing. Cross-org authorization test checklist (Step 2.6). Common CONVERGE fix pattern: OneOf return type + field-based routing for status code drift.*
+*Skill Version: 1.6*
+*v1.6: CONVERGE is now the default mode — finding issues without fixing them is half the job.*
+*v1.5: Organizations feedback. Pre-existing vs introduced distinction. Same-session hardening. Manifest validation in Phase 0. Cross-org auth test checklist. Common CONVERGE fix pattern.*
 *v1.4: Verification-mode STANDARD recommendation. Clean pass abbreviated output. Same-session fresh-eyes doc. UPSTREAM_DOC tracking via br issues.*
 *v1.3: CONVERGE skip when prior STANDARD passed clean. Agent prompts include bead scope and design exemptions.*
 *v1.2: Explicit manifest-missing fallback. Agent pattern context in prompts. 10-20% false positive rate expected.*

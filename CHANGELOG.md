@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.0] - 2026-03-23
+
+### Added
+- **review-execute** (v1.0): Post-execution bead satisfaction verification. Bead-by-bead acceptance criteria verification, failure criteria checking, design traceability (API surface, data model, ADR compliance), FR acceptance criteria depth. CONVERGE mode with auto-fix loop. Consumes execution manifest from /execute. Complements /review (code quality) with bead-level traceability. Finding classification aligned with sibling review skills (FAIL/WARN).
+
+### Changed
+- **execute** (v4.2): Pipeline alignment — removed /review and /simplify gate bead handling (beads v5.6 only produces test gates). Execution manifest written to `docs/execution/{feature}/manifest.md` for /review-execute consumption. Structured per-bead completion entries with FR/AC/design traceability. beads.md as preferred bead source. Lightweight self-review (deep verification deferred to /review-execute). Removed "user-approved beads" prerequisite. Removed dead Phase 4.5 push gate. Removed hardcoded dotnet commands.
+
 ## [4.0.0] - 2026-03-20
 
 ### Added

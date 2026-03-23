@@ -1,12 +1,12 @@
 ---
 name: execute
 description: >
-  Execute approved beads autonomously. Each bead is a self-contained work
-  package — the agent loads surgical context, designs the implementation from
-  codebase patterns, implements, verifies, and commits. Context resets between
-  beads to prevent drift. The agent runs autonomously, only stopping for
-  blockers or when all beads are complete. Use when beads are approved, user
-  says "execute", "start implementation", or ready beads exist.
+  Execute beads autonomously. Each bead is a self-contained work package — the
+  agent loads surgical context, designs the implementation from codebase patterns,
+  implements, verifies, and commits. Context resets between beads to prevent drift.
+  The agent runs autonomously, only stopping for blockers or when all beads are
+  complete. Use when beads exist (/beads completed), user says "execute", "start
+  implementation", or ready beads exist.
 argument-hint: "[epic-id] or [feature-name]"
 ---
 
@@ -30,8 +30,8 @@ A well-written bead tells the agent what to build and how to verify it. But exec
 ## Trigger Conditions
 
 Run this skill when:
-- Beads have been approved (`/beads` completed)
-- User says "beads approved", "start implementation", "execute"
+- Beads exist (`/beads` completed — beads are a mechanical decomposition of an approved plan, not separately user-approved)
+- User says "start implementation", "execute", "run beads"
 - Ready beads exist in the issue tracker
 
 ## Stage Gates — AskUserQuestion
@@ -61,12 +61,10 @@ In COMPREHENSIVE mode, beads tagged as high-risk in the plan get a user check-in
 ```
 Phase 1: Verify Baseline
 Phase 2: Execute Beads (loop until all complete)
-  ├─ Implementation beads: Orient → Load → Design → Implement → Verify → Commit → Reset
-  ├─ Review beads: Run /simplify on changed files → Fix issues → Commit → Reset
+  ├─ Orient → Load → Design → Implement → Verify → Commit → Push → Reset
   └─ (if blocker) PAUSE: "Blocker encountered. How to proceed?"
 Phase 3: Blocker Handling (as needed)
-Phase 4: Feature Completion
-  ── PAUSE: "Feature complete. Ready to push?" ──
+Phase 4: Feature Completion — write execution manifest, close epic
 ```
 
 ---
@@ -74,11 +72,13 @@ Phase 4: Feature Completion
 ## Prerequisites
 
 Before starting, verify:
-- Beads exist for the feature and have been approved by user
-- All beads assessed as "Ready" during /beads
-- Tests pass before starting (run project test command)
-- Build succeeds (run project build command)
+- Beads exist for the feature (`/beads` completed — the plan approval is the approval, beads are not separately user-approved)
+- All beads assessed as "Ready" during /beads self-assessment
+- Tests pass before starting (run project build and test commands)
+- Build succeeds
 - If no beads exist, run `/beads` first
+
+**Bead source:** If `docs/beads/{feature}/beads.md` exists, read bead descriptions from there (single source of truth, richer than issue tracker comments). Fall back to `br show bd-{id}` if beads.md doesn't exist.
 
 ---
 
@@ -176,7 +176,7 @@ Track overall progress so you (and the user) can see what's been completed and w
 
 When multiple beads are ready simultaneously (no dependency between them), they can be executed in any order. Prefer: data model beads before service beads, service beads before integration beads. Execute each bead fully before starting the next.
 
-**Review beads:** When the next bead is a `/simplify` review bead (tagged `review`), execute it by running `/simplify` on all files changed since the last review checkpoint. Fix any issues found, commit with `refactor({scope}): simplify {what}`, then close the review bead and proceed to the next implementation bead.
+**Test gate beads:** When the next bead is a test/verify gate (tagged `gate`), run the verification commands specified in the gate bead. If all pass, close the gate and proceed. If any fail, fix the failing beads before continuing.
 
 #### For Each Bead:
 
@@ -198,7 +198,7 @@ Mark the next available bead as in-progress to track state.
 
 **Step 2.2 — Orient (Read Bead):**
 
-Read the full bead description and parse:
+Read the full bead description from `docs/beads/{feature}/beads.md` (preferred) or `br show bd-{id}`. Parse:
 - **Objective** — what to achieve
 - **Success Criteria** — how to know it's done
 - **Failure Criteria** — what to avoid
@@ -278,41 +278,24 @@ Run the bead's specific verification commands, then run the full test suite. All
 
 **Step 2.7 — Self-Review:**
 
-Before committing, verify implementation quality:
+Before committing, run a lightweight self-review. This is a fast sanity check — deep adversarial verification is done by `/review-execute` after all beads complete.
 
 ```
-Per-Bead Self-Review:
+Per-Bead Self-Review (lightweight):
 - [ ] Re-read bead objective — does the implementation achieve it?
 - [ ] Each success criterion met (check specifically)
 - [ ] No failure criterion violated (check specifically)
 - [ ] No scope creep (nothing added beyond the objective)
 - [ ] Implementation follows the referenced pattern
 - [ ] Code style matches existing codebase
-- [ ] No obvious bugs, hardcoded values, or missing error handling
 - [ ] Tests verify application logic, not framework guarantees
-- [ ] Tests use the project's test infrastructure (check existing test files for patterns)
-- [ ] Tests are deterministic (no random, no time-dependent assertions)
-- [ ] No object serialization in log messages
-- [ ] Integration tests use the project's test factory/fixture patterns
 - [ ] Run both the specific test AND the full suite before committing
 - [ ] Staged specific files (not git add -A)
-
-### Design & Spec Alignment
-- [ ] Implementation matches the module's design doc (api-surface, data-model)
-- [ ] Implementation satisfies the PRD functional requirements (FRs referenced in bead)
-- [ ] All referenced ADRs are followed (check docs/adr/)
-- [ ] Patterns from docs/patterns/ are applied correctly
-- [ ] Architecture constraints from docs/architecture/ are respected
-
-### How to verify
-1. Read the bead's "Implements" or "FR" references
-2. Find the corresponding design doc in docs/designs/{module}/
-3. Compare your implementation against the api-surface.md endpoint spec
-4. Check the data-model.md for entity field correctness
-5. If any mismatch → FIX before committing (the design is the source of truth)
 ```
 
 If any item fails, fix the issue, re-run tests, then re-review.
+
+**Note:** Deep design/spec alignment (api-surface match, data-model match, ADR compliance, FR acceptance criteria) is verified by `/review-execute` post-execution. The self-review catches obvious mismatches but does not replace adversarial review.
 
 **Step 2.8 — Upstream Verification (STANDARD+):**
 
@@ -343,12 +326,17 @@ This prevents work loss on crash.
 
 **Step 2.10 — Summarise & Reset:**
 
-Record a brief per-bead completion note:
+Record a structured per-bead completion entry. These entries accumulate into the execution manifest (written in Phase 4):
 ```markdown
-**bd-{id}: {title}** — Completed
-- Files changed: {list}
-- Tests added: {count}
-- Key implementation choice: {one sentence}
+### bd-{id}: {title}
+- **Status:** Completed
+- **Files changed:** {list of file paths}
+- **Tests added:** {count} ({list of test file paths})
+- **FRs addressed:** {FR IDs from bead's "Implements" field}
+- **ACs claimed:** {which acceptance criteria this bead satisfies}
+- **Design elements implemented:** {api-surface endpoint, data-model entity, etc.}
+- **Commit:** {commit hash} — {commit message}
+- **Key implementation choice:** {one sentence}
 ```
 
 Update progress tracking. Then reset:
@@ -465,7 +453,47 @@ Check the issue tracker: all task beads should be closed, only the epic should r
 
 Close the feature epic in the issue tracker.
 
-**Step 4.4 — Report Completion:**
+**Step 4.4 — Write Execution Manifest:**
+
+Write a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is consumed by `/review-execute` for bead-by-bead verification.
+
+```markdown
+# Execution Manifest: {Feature Name}
+
+> **Date:** {date}
+> **Epic:** {epic-id}
+> **Beads Completed:** {N} of {N}
+> **Build:** Passing
+> **Tests:** All passing
+
+## Bead Completion Log
+
+{All structured per-bead entries from Step 2.10}
+
+## Commits
+
+{git log --oneline for this feature's commits}
+
+## Files Changed
+
+{git diff main --stat}
+
+## FR Coverage Claimed
+
+| FR ID | Bead(s) | ACs Claimed | Files |
+|-------|---------|-------------|-------|
+| {FR-ID} | {bd-ids} | {AC list} | {file paths} |
+
+## Design Elements Implemented
+
+| Design Element | Source Doc | Bead | Status |
+|---------------|-----------|------|--------|
+| {endpoint/entity/component} | {api-surface.md / data-model.md} | {bd-id} | Implemented |
+```
+
+**Step 4.5 — Report Completion:**
+
+Present a summary to the user:
 
 ```markdown
 ## Execution Complete
@@ -478,40 +506,18 @@ Close the feature epic in the issue tracker.
 ### Implementation Summary
 {Brief description of what was built}
 
-### Per-Bead Notes
-{Completion notes from Step 2.10 for each bead}
+Execution manifest: `docs/execution/{feature}/manifest.md`
 
-### Commits Made
-{git log --oneline for this feature's commits}
-
-### Files Changed
-{git diff main --stat}
-
----
-
-Feature complete. Verify with `dotnet build && dotnet test`.
+Feature complete. Run `/review-execute` for bead-by-bead verification, or `/review` for general code review.
 ```
 
-**Step 4.5 — Push (with user confirmation):**
-
-Use AskUserQuestion (Decision Gate — Pattern 1):
-```
-AskUserQuestion:
-  question: "Feature complete. Ready to push to remote?"
-  header: "Push"
-  multiSelect: false
-  options:
-    - label: "Push (Recommended)"
-      description: "Push all commits to remote."
-    - label: "Hold"
-      description: "Keep changes local for further review first."
-```
+Note: Each bead was pushed individually (Step 2.9a). All commits are already on remote.
 
 ---
 
 ## Re-Entry: Review Fix Cycle
 
-When /review identifies issues and the user returns to /execute to fix them:
+When `/review-execute` or `/review` identifies issues and the user returns to /execute to fix them:
 
 **Step R.1 — Load Review Findings:**
 
@@ -640,13 +646,14 @@ Each bead is self-contained — no need to reload plan documents.
 | User says "stop" | Commit current work, report progress |
 | Execution health critical | Stop, assess whether to continue or revise |
 
-When all beads complete: **"Feature complete. Verify with `dotnet build && dotnet test`."**
+When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-bead verification, or `/review` for general code review."**
 
 ---
 
-*Skill Version: 4.1*
-*v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work. Prevents wasting sessions on work blocked by codebase-level issues (broken migrations, missing dependencies).*
-*v4.0: Crash resilience — per-bead push, git stash checkpointing for large beads. Explicit file staging enforced (never git add -A). Design/PRD/ADR verification added to self-review. Tier ordering check prevents out-of-order module execution. Module spec loading from docs/ folders on first bead. Project-agnostic testing standards. Removed /review suggestion (inline self-review handles quality).*
-*v3.5: Collaborative model added. Review-bead handling for /simplify checkpoints. COMPREHENSIVE mode per-bead check-in implemented with AskUserQuestion. PRD path added to upstream verification. Use case path added for BDD scenarios.*
-*v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for blocker handling and push confirmation, Batch Review for review fix learnings*
-*v3.1: Duration targets, execution health circuit breaker, issue tracker commands framed as operations (tool-agnostic), review fix cycle as explicit re-entry section, parallel beads and auto-recovery folded into Phase 2, merged quality standards into self-review, per-bead completion summaries, removed hardcoded Co-Authored-By (defer to CLAUDE.md), generalized progress tracking, structured blocker response options, anti-patterns explain WHY*
+*Skill Version: 4.2*
+*v4.2: Pipeline alignment — removed /review and /simplify gate bead handling (beads v5.6 only produces test gates). Execution manifest written to docs/execution/{feature}/manifest.md for /review-execute consumption. Structured per-bead completion entries with FR/AC/design traceability. beads.md as preferred bead source (single source of truth). Lightweight self-review (deep verification deferred to /review-execute). Removed "user-approved beads" prerequisite (plan approval is the approval). Removed dead Phase 4.5 push gate (per-bead push already handles this). Removed hardcoded dotnet commands.*
+*v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work.*
+*v4.0: Crash resilience — per-bead push, git stash checkpointing. Explicit file staging (never git add -A). Design/PRD/ADR verification in self-review. Tier ordering check. Module spec loading from docs/ folders.*
+*v3.5: Collaborative model. COMPREHENSIVE mode per-bead check-in. PRD path in upstream verification. Use case path for BDD scenarios.*
+*v3.4: AskUserQuestion stage gates — Decision Gate for blockers, Batch Review for learnings.*
+*v3.1: Duration targets, execution health circuit breaker, review fix re-entry section, auto-recovery, per-bead summaries, anti-patterns.*

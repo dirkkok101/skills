@@ -1,0 +1,501 @@
+---
+name: review-execute
+description: >
+  Adversarial post-execution review that verifies implemented code against bead
+  acceptance criteria, failure criteria, design decisions, and upstream docs.
+  Unlike /review (general code quality), this skill performs bead-by-bead
+  traceability verification — did the executed code actually satisfy what each
+  bead specified? Consumes the execution manifest from /execute. Use after
+  /execute completes, user says "review execution", "verify beads", or before
+  creating a PR for executed work.
+argument-hint: "[feature-name] or path to execution manifest"
+---
+
+# Review-Execute: Adversarial Post-Execution Verification
+
+**Philosophy:** Execution is where intent becomes code. The general `/review` skill checks code quality — bugs, patterns, security. This skill checks something different: **did the code actually implement what the beads specified?** Every bead carries acceptance criteria, failure criteria, FR references, and design decisions. This skill verifies each claim in the execution manifest against the actual codebase. A bead marked "Completed" means nothing if the acceptance criteria aren't satisfied in the code.
+
+**Duration targets:** BRIEF ~15-20 minutes (≤6 beads, single module), STANDARD ~30-60 minutes (typical feature, 7-20 beads), COMPREHENSIVE ~60-120 minutes (multi-module, 20+ beads, full upstream traceability). Most time is Phase 3 (bead-by-bead verification) — this is where real issues are found.
+
+## Why This Matters
+
+The execution agent self-reviews each bead before committing (lightweight check). But self-review has blind spots: the implementing agent believes its own code is correct. An independent review with fresh context catches:
+- Acceptance criteria claimed as met but not actually satisfied in code
+- Failure criteria violations the implementing agent didn't notice
+- Design decisions silently reversed during implementation
+- FR coverage gaps where the bead was "completed" but the FR's Given/When/Then aren't testable
+- Pattern deviations where the agent chose a different approach than the referenced pattern
+- Scope creep where implementation went beyond the bead's objective
+
+Real-world execution reviews have caught: endpoints with wrong HTTP verbs vs design, missing entity properties that the data model specified, tests that verify framework behavior instead of application logic, and beads marked complete where the success criteria were only partially met.
+
+---
+
+## Trigger Conditions
+
+Run this skill when:
+- Execution is complete (`/execute` finished, manifest written)
+- User says "review execution", "verify beads", "check the implementation"
+- Before creating a PR for executed work
+- After significant post-execution fixes
+
+Do NOT use for:
+- General code quality review (use `/review` — bugs, security, patterns)
+- Reviewing beads before execution (use `/review-beads`)
+- Reviewing designs or plans (use `/review-design` or `/review-plan`)
+
+## Stage Gates — AskUserQuestion
+
+At every PAUSE point in this skill, **call the `AskUserQuestion` tool** to present structured options to the user. Do not present options as plain markdown text — use the tool. The YAML blocks at each PAUSE point show the exact parameters to pass.
+
+For pattern details and examples: `../_shared/references/stage-gates.md`
+
+> **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
+
+---
+
+## Mode Selection
+
+| Mode | When | Scope |
+|------|------|-------|
+| **BRIEF** | ≤6 beads, single module, low-risk | Manifest check + spot-check 3 beads |
+| **STANDARD** | Typical feature, 7-20 beads | Full bead-by-bead verification + design traceability |
+| **COMPREHENSIVE** | Multi-module, 20+ beads, or critical path | Full verification + FR acceptance criteria depth + upstream cross-reference |
+| **CONVERGE** | Fix all issues until 0 FAILs | Selected depth + auto-fix loop |
+
+### CONVERGE Mode
+
+When the user says "converge", "fix all issues", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
+
+- `CONVERGE` alone → uses STANDARD depth
+- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth
+- `CONVERGE + BRIEF` → uses BRIEF depth
+
+**CONVERGE changes to the normal review flow:**
+- **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
+- **Replace interactive findings presentation** with a summary table classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
+- **WARNs are listed** but NOT auto-fixed unless trivial (additive-only, <10 lines).
+- **Code fixes are applied directly** — CONVERGE mode modifies implementation files to fix MECHANICAL findings.
+
+**The loop:**
+
+1. **Review** — Run at the selected depth. Use progressive loading:
+   - Wave 1: Execution manifest + bead descriptions + changed files (catches most issues)
+   - Wave 2: Design docs (api-surface, data-model) for beads with findings
+   - Wave 3: PRD acceptance criteria + ADRs for deep traceability checks
+2. **Classify** findings:
+   - **MECHANICAL** — wrong HTTP verb, missing entity property, test verifying wrong thing, missing import. Auto-fix.
+   - **JUSTIFIED_DEVIATION** — implementation differs from design with documented rationale. Verify and PASS.
+   - **DECISION** — design contradiction, scope question, architectural choice needs user input. Escalate via AskUserQuestion.
+3. **Fix** MECHANICAL findings. **Cascade check:** after fixing a file, run the project's build and test commands. If tests fail, the fix is wrong — revert and reclassify as DECISION.
+4. **Re-review** — Run again on fixed code.
+5. **Compare** — Did FAILs decrease? If increased, revert and stop.
+6. **Repeat** until 0 FAILs or max 5 rounds.
+
+**Authority hierarchy for verification:**
+```
+ADRs > Pattern docs > Architecture docs > Design (api-surface, data-model) > PRD (FRs, ACs) > Plan > Beads > Implementation
+```
+
+When implementation contradicts a higher-trust source, the implementation is wrong.
+
+**Same-session detection:** If execution occurred in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW — the reviewer shares the executing agent's blind spots.
+
+---
+
+## Finding Classification
+
+Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
+
+| Class | Meaning | Default Severity |
+|-------|---------|-----------------|
+| `AC_NOT_MET` | Acceptance criterion claimed but not satisfied in code | **FAIL** |
+| `FC_VIOLATED` | Failure criterion is violated by implementation | **FAIL** |
+| `DESIGN_DRIFT` | Implementation contradicts design doc (api-surface, data-model) | **FAIL** |
+| `PATTERN_DEVIATION` | Implementation doesn't follow referenced pattern doc | **FAIL** |
+| `SCOPE_CREEP` | Implementation includes work beyond bead objective | **WARN** |
+| `TEST_GAP` | Success criterion has no corresponding test | **FAIL** |
+| `TEST_QUALITY` | Test exists but doesn't verify the right thing | **WARN** |
+| `MISSING_IMPL` | Bead marked complete but core functionality absent | **FAIL** |
+| `FR_GAP` | FR acceptance criteria not satisfied despite bead claiming coverage | **FAIL** |
+| `MANIFEST_STALE` | Manifest claims don't match actual git state | **WARN** |
+| `ADR_VIOLATION` | Implementation violates an architectural decision record | **FAIL** |
+| `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately) |
+
+**Severity model:** FAIL = blocks PR/merge. WARN = quality improvement, doesn't block. Aligned with review-prd, review-design, review-plan, review-beads.
+
+---
+
+## Severity Calibration
+
+**Every finding gets a severity. Calibrate carefully — inflation kills trust.**
+
+### FAIL Examples
+
+- Bead AC says "returns 404 when not found" but endpoint returns 200 with empty body
+- Bead failure criterion says "Do NOT use SaveRequest pattern" but implementation uses SaveRequest
+- Design api-surface specifies `PATCH /api/v1/entities/{id}` but implementation uses `PUT`
+- Data-model specifies `DisabledReason` property but entity class doesn't have it
+- Test asserts `response.StatusCode == 200` but doesn't check response body shape
+- ADR-0014 says "enums over string constants" but implementation uses string constants
+- Bead marked complete but the endpoint isn't registered in DI/routing
+
+### WARN Examples
+
+- Implementation adds a helper method not mentioned in bead scope (minor scope creep)
+- Test uses hardcoded values instead of test factory patterns
+- Manifest says "3 tests added" but git shows 4 test files (manifest stale, not harmful)
+- Bead references pattern doc but implementation uses a slightly different variant that still works
+
+---
+
+## Critical Sequence
+
+### Phase 0: Load Execution Context
+
+**Step 0.1 — Load Execution Manifest:**
+
+Read `docs/execution/{feature}/manifest.md`. If it doesn't exist, read the conversation's execution summary or reconstruct from git log + bead descriptions.
+
+Parse from the manifest:
+- List of completed beads with IDs
+- Files changed per bead
+- FRs addressed per bead
+- ACs claimed per bead
+- Design elements implemented per bead
+- Commit hashes per bead
+
+**Step 0.2 — Load Bead Descriptions:**
+
+Read all bead descriptions from `docs/beads/{feature}/beads.md` (preferred) or via `br show bd-{id}` for each bead in the manifest. Parse:
+- Objective
+- Success Criteria (each criterion individually)
+- Failure Criteria (each criterion individually)
+- Context to Load
+- Pattern references
+- FR references
+- Design references
+
+**Step 0.3 — Identify Changed Files:**
+
+```bash
+git log --oneline {first-commit}..{last-commit}  # commits from execution
+git diff {pre-execution-commit}..HEAD --stat       # all files changed
+```
+
+Cross-reference against manifest file lists. Flag discrepancies.
+
+**Step 0.4 — Determine Mode:**
+
+If user hasn't specified:
+- ≤6 beads, single module → BRIEF
+- 7-20 beads, typical feature → STANDARD
+- 20+ beads or multi-module → COMPREHENSIVE
+
+---
+
+### Phase 1: Manifest Integrity Check
+
+**Step 1.1 — Verify Manifest Completeness:**
+
+| Check | Method | Severity |
+|-------|--------|----------|
+| All beads in issue tracker are in manifest | `br list --status closed` vs manifest bead list | FAIL if missing |
+| All manifest commits exist in git | `git log --oneline` vs manifest commit hashes | FAIL if missing |
+| File lists match actual git changes | `git diff --stat` per commit vs manifest file lists | WARN if mismatch |
+| FR coverage table is complete | Every FR from bead descriptions appears in table | WARN if missing |
+
+**Step 1.2 — Verify Build & Tests Pass:**
+
+Run the project's build and test commands. If they fail, this is a **FAIL** finding before any bead verification begins. Record test count and pass rate.
+
+---
+
+### Phase 2: Bead-by-Bead Verification
+
+**This is the core phase.** For each bead in the manifest, verify the implementation against the bead's specification.
+
+**BRIEF mode:** Spot-check 3 beads (pick: first bead, a middle bead, last bead). For each, run the full checklist below.
+
+**STANDARD/COMPREHENSIVE mode:** Verify every bead.
+
+#### Per-Bead Verification Checklist
+
+For each bead:
+
+**Step 2.1 — Read Implementation:**
+
+Read all files listed in the manifest for this bead. Understand what was actually implemented.
+
+**Step 2.2 — Acceptance Criteria Verification:**
+
+For each success criterion in the bead:
+1. Find the code that satisfies it
+2. Find the test that verifies it
+3. If no code → `MISSING_IMPL`
+4. If code but no test → `TEST_GAP`
+5. If test exists but tests the wrong thing → `TEST_QUALITY`
+
+Record per-criterion status:
+```markdown
+| Bead | AC | Code Location | Test Location | Status |
+|------|----|--------------|---------------|--------|
+| bd-{id} | AC1: returns 404 when not found | src/Endpoints/Get.cs:45 | tests/GetTests.cs:78 | PASS |
+| bd-{id} | AC2: includes audit trail entry | — | — | FAIL (AC_NOT_MET) |
+```
+
+**Step 2.3 — Failure Criteria Verification:**
+
+For each failure criterion in the bead:
+1. Grep the changed files for the prohibited pattern
+2. If found → `FC_VIOLATED`
+
+Example: Failure criterion "Do NOT use SaveRequest pattern" → grep for `SaveRequest` in changed files.
+
+**Step 2.4 — Pattern Compliance:**
+
+If the bead references a pattern doc:
+1. Read the pattern doc
+2. Compare implementation structure against the pattern
+3. Key checks: file naming, class structure, DI registration, method signatures
+4. If implementation uses a different pattern → `PATTERN_DEVIATION`
+
+**Step 2.5 — Scope Check:**
+
+Compare the bead's objective + in/out of scope against the actual changes:
+1. Are there files changed that aren't related to the bead's objective? → `SCOPE_CREEP`
+2. Is there functionality added beyond what the bead specified? → `SCOPE_CREEP`
+
+---
+
+### Phase 3: Design Traceability (STANDARD+)
+
+**Load:** Design documents from `docs/designs/{feature}/`.
+
+**Step 3.1 — API Surface Verification:**
+
+For each bead that implements an endpoint:
+1. Read `api-surface.md` for the endpoint spec
+2. Compare: HTTP verb, route, request shape, response shape, error responses, auth policy
+3. Flag mismatches as `DESIGN_DRIFT`
+
+```markdown
+| Endpoint | Design Spec | Implementation | Match? |
+|----------|------------|----------------|--------|
+| GET /api/v1/entitlements | api-surface.md:34 | EntitlementsEndpoint.cs:12 | Yes/No |
+```
+
+**Step 3.2 — Data Model Verification:**
+
+For each bead that implements an entity:
+1. Read `data-model.md` for the entity spec
+2. Compare: properties, types, constraints, relationships, indexes
+3. Flag missing properties or wrong types as `DESIGN_DRIFT`
+
+**Step 3.3 — ADR Compliance (COMPREHENSIVE):**
+
+Read all ADRs referenced by beads. For each:
+1. Extract the decision and its implications
+2. Verify implementation follows the decision
+3. Flag violations as `ADR_VIOLATION`
+
+**Step 3.4 — FR Acceptance Criteria Depth (COMPREHENSIVE):**
+
+For each Must-Have FR referenced by any bead:
+1. Read the PRD's Given/When/Then acceptance criteria
+2. For each criterion, find the implementing code AND the verifying test
+3. An FR is "covered" only if ALL acceptance criteria have both code and tests
+4. Flag partial coverage as `FR_GAP`
+
+```markdown
+## FR Coverage Verification
+
+| FR ID | Priority | ACs Total | ACs Verified | Code | Tests | Status |
+|-------|----------|-----------|-------------|------|-------|--------|
+| FR-ENT-ENABLE | Must | 10 | 10 | ✅ | ✅ | Full |
+| FR-ENT-DISABLE | Must | 5 | 3 | ✅ | ⚠ 2 missing | Partial — FAIL |
+```
+
+---
+
+### Phase 4: Cross-Bead Consistency
+
+**Step 4.1 — Dependency Verification:**
+
+Beads with dependencies should build on each other. Verify:
+- Does bead B (depends on A) use the artifacts created by bead A?
+- Are there implicit dependencies not captured in the bead graph?
+
+**Step 4.2 — Integration Points:**
+
+For beads that create separate components (backend endpoint + frontend page):
+- Do they use matching contracts (same DTOs, same routes)?
+- Does the frontend call the endpoint with the right verb and path?
+
+**Step 4.3 — Test Gate Verification:**
+
+For each test gate bead in the manifest:
+- Were the verification commands actually run?
+- Do the tests referenced in the gate actually exist and pass?
+
+---
+
+### Phase 5: Present Findings
+
+**Step 5.1 — Build Finding Summary:**
+
+Aggregate all findings from Phases 1-4:
+
+```markdown
+## Review-Execute Summary: {Feature Name}
+
+> **Date:** {date}
+> **Reviewer:** /review-execute skill ({mode})
+> **Beads reviewed:** {N}
+> **Upstream docs loaded:** {N}
+
+### Verdict: {PASS | PASS WITH FINDINGS | FAIL}
+
+| Severity | Count |
+|----------|-------|
+| FAIL | {N} |
+| WARN | {N} |
+
+### AC Verification Matrix
+
+| Bead | ACs | Verified | Gaps |
+|------|-----|----------|------|
+| bd-{id}: {title} | {N} | {N} | {list or "none"} |
+
+### Findings
+
+#### FAIL ({N})
+
+| # | Bead | Class | Description | File:Line |
+|---|------|-------|-------------|-----------|
+| F1 | bd-{id} | AC_NOT_MET | {description} | {file:line} |
+
+#### WARN ({N})
+
+| # | Bead | Class | Description | File:Line |
+|---|------|-------|-------------|-----------|
+| W1 | bd-{id} | SCOPE_CREEP | {description} | {file:line} |
+
+### Design Traceability
+
+| Design Element | Source | Bead | Implementation | Match? |
+|---------------|--------|------|----------------|--------|
+| {endpoint} | api-surface.md:34 | bd-{id} | EndpointFile.cs:12 | Yes/No |
+```
+
+**Step 5.2 — Write Review Report:**
+
+Write the full review to `docs/reviews/review-execute-{feature}-{date}.md`.
+
+**Step 5.3 — Present to User (non-CONVERGE):**
+
+Present the executive summary and finding counts. Use AskUserQuestion:
+
+```
+AskUserQuestion:
+  question: "Review-execute found {N} FAILs and {M} WARNs. How should we proceed?"
+  header: "Findings"
+  multiSelect: false
+  options:
+    - label: "Fix all (Recommended)"
+      description: "Return to /execute re-entry to fix all findings."
+    - label: "Fix FAILs only"
+      description: "Fix FAIL findings, accept WARNs as-is."
+    - label: "Approved as-is"
+      description: "Accept implementation without fixes."
+    - label: "Another round"
+      description: "Re-run review for a fresh perspective."
+```
+
+---
+
+## Finding Quality Standards
+
+These standards are non-negotiable. Every finding must meet ALL of them:
+
+1. **Read the actual code** before writing any finding — do not flag based on file names or manifest claims alone
+2. **Quote the specific defect** — "the code at {file}:{line} does X" or "the code omits X"
+3. **Cite the authority source** — "bead AC2 says Y" or "api-surface.md line 34 specifies Z"
+4. **The issue must cause a concrete problem** — "this means the endpoint returns the wrong shape" or "this test doesn't catch the failure mode"
+5. **Verify the finding against the actual codebase state** — grep to confirm before flagging
+
+### What NOT to Flag
+
+- **Code style issues** — that's `/review`'s job, not this skill's
+- **Missing tests for code not covered by any bead** — only verify bead-scoped work
+- **Design decisions made outside the bead scope** — if the bead didn't reference it, don't flag it
+- **Upstream doc issues** — tag as `UPSTREAM_DOC` and list separately; not implementation defects
+- **Performance or optimization concerns** — unless a bead AC specifically mentions performance
+- **Cosmetic differences from pattern docs** — if the pattern intent is followed, minor structural variations are fine
+
+---
+
+## Trust Hierarchy
+
+When verifying implementation, check against sources in this order (highest trust first):
+
+1. **ADRs & Pattern docs** — architectural decisions, non-negotiable
+2. **Design docs** (api-surface, data-model) — the technical contract
+3. **PRD** — business requirements, acceptance criteria
+4. **Bead specifications** — what the executing agent was told to build
+5. **Plan** — implementation decomposition (lower trust — may have drifted)
+6. **Execution manifest** — claims about what was built (lowest trust — verify everything)
+
+If implementation contradicts a higher-trust source, the implementation is wrong — even if the manifest claims it's correct.
+
+---
+
+## Anti-Patterns
+
+**Reviewing Code Quality** — This skill reviews bead satisfaction, not code quality. Don't flag variable naming, error handling patterns, or DRY violations — that's `/review`. If you catch yourself writing "this could be refactored to..." you're in the wrong review mode.
+
+**Manifest-Only Review** — Reading the manifest and checking boxes without reading actual code. The manifest is the executing agent's claim — the code is the truth. Always `Read` the implementation files.
+
+**Flagging Upstream Issues as Implementation Bugs** — If the design api-surface says "returns 200" but should say "returns 201", that's an `UPSTREAM_DOC` finding, not an implementation bug. The implementation correctly followed a wrong spec.
+
+**Pattern Perfectionism** — Flagging every minor deviation from a pattern doc as `PATTERN_DEVIATION`. Patterns are guidance, not byte-for-byte templates. If the intent is followed and the code works, minor structural variations are acceptable.
+
+**Testing the Framework** — Flagging missing tests for framework behavior (DI registration, middleware pipeline, route matching). Tests should verify application logic, not that ASP.NET Core works.
+
+**Scope-Blind Review** — Reviewing files changed by the execution that aren't part of any bead's scope. Focus on bead-scoped work only. If adjacent code was modified, that should have been flagged as scope creep, not reviewed as bead work.
+
+---
+
+## Relationship to /review
+
+| Concern | `/review` | `/review-execute` |
+|---------|-----------|-------------------|
+| **Focus** | Code quality, bugs, security | Bead satisfaction, design traceability |
+| **Scope** | Git diff (all changed files) | Per-bead (files claimed by each bead) |
+| **Authority** | Code patterns, security best practices | Bead ACs, design docs, PRD FRs |
+| **Agents** | 6-9 specialized parallel agents | Single reviewer (no agent delegation) |
+| **Output** | `docs/reviews/review-{timestamp}.md` | `docs/reviews/review-execute-{feature}-{date}.md` |
+| **When** | After /execute OR after /review-execute fixes | After /execute, before /review |
+| **CONVERGE** | No (read-only review) | Yes (fixes implementation) |
+
+**Recommended pipeline:** `/execute` → `/review-execute` (bead satisfaction) → `/review` (code quality) → `/compound` (learnings).
+
+**Do NOT delegate finding generation to Explore agents.** Agents cannot read actual code with the same precision as the main context. Generate findings in the main context where you can Read files, grep for patterns, and verify line-by-line. Use agents only for loading upstream docs (design, PRD, ADRs), not for reviewing implementation.
+
+---
+
+## Exit Signals
+
+| Condition | Action |
+|-----------|--------|
+| 0 FAILs | Report PASS, suggest `/review` for code quality |
+| FAILs found | Present findings, offer fix options |
+| CONVERGE complete | Report convergence, suggest `/review` |
+| User says "stop" | Write partial report, note unreviewed beads |
+
+When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `/compound` to capture learnings."**
+
+---
+
+*Skill Version: 1.0*
+*v1.0: Initial release — bead-by-bead acceptance criteria verification, failure criteria checking, design traceability (API surface, data model, ADR compliance), FR acceptance criteria depth, execution manifest consumption, CONVERGE mode with auto-fix loop, finding classification aligned with sibling review skills (FAIL/WARN), anti-agent-delegation policy, trust hierarchy, relationship to /review clearly delineated.*

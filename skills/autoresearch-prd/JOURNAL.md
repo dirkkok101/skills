@@ -817,15 +817,17 @@ Even with the prohibition in the skill, /review-beads correctly caught and flagg
 | review-plan | v2.5 | 15 modules |
 | beads | v5.6 | 15 modules |
 | review-beads | v2.7 | 15 modules |
+| execute | v4.2 | — |
+| review-execute | v1.0 | — |
 | autoresearch | v1.4 | All of the above |
 
 ### Total Impact
 
 - 215+ findings resolved across 60+ documents (74 PRD + 54 design + 63 plan + 24 beads)
 - 16 content decisions made by user (8.4% of findings)
-- 9 skills improved through 15+ production feedback cycles
+- 11 skills improved or created through 15+ production feedback cycles
 - 0 false positives across all reviews
 - 100% convergence rate across all document types
 - Average 1.7 rounds to convergence (weighted across all stages)
 - 231 beads created across 15 modules, all execute-ready
-- Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute-ready
+- Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute → Review-Execute

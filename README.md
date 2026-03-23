@@ -20,6 +20,7 @@ A complete feature development workflow for Claude Code with structured SDLC pha
 | `/workflow:review-design` | Adversarial design review against PRD/ADRs/patterns | Findings via AskUserQuestion (READ-ONLY) |
 | `/workflow:review-plan` | Adversarial plan review against 6 authority sources | `docs/reviews/plan-review-{module}.md` |
 | `/workflow:review-beads` | Adversarial bead compliance review (11 categories) | `docs/reviews/bead-review-{module}.md` |
+| `/workflow:review-execute` | Post-execution bead satisfaction verification | `docs/reviews/review-execute-{feature}-{date}.md` |
 | `/workflow:compound` | Structured learning capture by phase/domain | `docs/learnings/{category}.md` |
 | `/workflow:diagnose` | Bug investigation with root cause analysis | Fix, beads, or design handoff |
 
@@ -28,8 +29,8 @@ A complete feature development workflow for Claude Code with structured SDLC pha
 ## Pipeline
 
 ```
-research ─> brainstorm ─> discovery ─> prd ────────> technical-design ──> plan ─────> beads ────> execute ─> review ─> compound
-(optional)                 (COMP only)    └─review-prd─┘       └─review-design─┘  └─review-plan─┘ └─review-beads─┘
+research ─> brainstorm ─> discovery ─> prd ────────> technical-design ──> plan ─────> beads ────> execute ──────> review ─> compound
+(optional)                 (COMP only)    └─review-prd─┘       └─review-design─┘  └─review-plan─┘ └─review-beads─┘ └─review-execute─┘
 ```
 
 The `review-*` skills are optional quality gates between pipeline stages. Each reviews the output of the preceding stage before proceeding to the next.

@@ -439,13 +439,15 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 | review-plan | v1.0 | v2.6 | 15 modules |
 | beads | v4.0 | v5.6 | 15 modules |
 | review-beads | v1.0 | v2.7 | 15 modules |
+| execute | v4.0 | v4.2 | — |
+| review-execute | — | v1.0 | — |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact
 
 - 215+ findings resolved across 60+ documents (74 PRD + 54 design + 63 plan + 24 beads)
 - 16 content decisions made by user (8.4% of findings)
-- 9 skills improved through 15+ production feedback cycles
+- 11 skills improved or created through 15+ production feedback cycles
 - 0 false positives across all reviews
 - 100% convergence rate across all document types
 - Average 1.97 rounds to convergence
@@ -456,10 +458,11 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 
 ### Adjacent Skill Updates
 
-Two additional skills were updated based on learnings from the full pipeline validation:
+Skills updated based on learnings from the full pipeline validation:
 
-- **execute v4.1**: Systemic blocker circuit breaker — Phase 1 baseline check now distinguishes isolated test failures (1-10 tests, proceed) from systemic failures (>10 tests across modules, STOP with AskUserQuestion). Prevents wasting sessions on codebase-level blockers.
+- **execute v4.1→v4.2**: Systemic blocker circuit breaker (v4.1). Pipeline alignment (v4.2): removed /review and /simplify gate bead handling, execution manifest for /review-execute consumption, structured per-bead entries with FR/AC/design traceability, beads.md as preferred source, lightweight self-review (deep verification deferred to /review-execute), removed "user-approved beads" prerequisite and hardcoded dotnet commands.
 - **review v3.6**: ADR consistency check — when changed files include new/modified ADRs, the design-intent agent reads all existing ADRs and flags contradictions (criticality 8-10).
+- **review-execute v1.0** (new): Purpose-built post-execution review that verifies code against bead ACs, failure criteria, design docs, and PRD FRs. Unlike /review (code quality), this verifies bead satisfaction. CONVERGE mode with auto-fix loop. Consumes execution manifest. Finding classification: AC_NOT_MET, FC_VIOLATED, DESIGN_DRIFT, PATTERN_DEVIATION, SCOPE_CREEP, TEST_GAP, FR_GAP, ADR_VIOLATION.
 
 ---
 

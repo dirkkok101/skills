@@ -97,10 +97,14 @@ Identify all files changed relative to the base branch (typically main). Gather:
 
 **Step 1.2 — Determine Mode:**
 
-Count changed files and assess scope. If the user hasn't specified a mode:
-- 1-5 files, single concern → BRIEF
-- 5-20 files, typical feature → STANDARD
-- 20+ files, multi-service, or pre-release → COMPREHENSIVE
+Assess scope using BOTH file count AND diff size. If the user hasn't specified a mode:
+
+| Signal | BRIEF | STANDARD | COMPREHENSIVE |
+|--------|-------|----------|---------------|
+| File count | 1-4 files | 5-19 files | 20+ files |
+| Diff size | <200 lines | 200-799 lines | 800+ lines |
+
+Use `max(file_count_mode, diff_size_mode)` as the effective mode. A 200-line change across 3 files is more complex than 10 one-line changes across 10 files.
 
 **Step 1.3 — Locate Upstream Documents:**
 
@@ -156,6 +160,10 @@ Files changed:
 
 Focus on:
 - {agent-specific focus from table above}
+- AI slop detection: unnecessary wrapper classes with no added behavior, docstrings restating
+  the method signature, defensive null checks against structurally impossible states (type
+  system guarantees non-null), premature configuration (extracting a constant used once into
+  a config file), over-commenting self-evident code
 
 Rate each finding:
 - Criticality (1-10): 8-10 must fix, 5-7 should consider, 1-4 observation
@@ -171,6 +179,8 @@ Return findings in this format:
 **Issue:** {description}
 **Suggestion:** {how to fix}
 ```
+
+**Agent output cap:** Each agent should report at most 15 findings (BRIEF: 10, STANDARD: 15, COMPREHENSIVE: 25). If more exist, keep only the highest-criticality findings and note "N additional findings omitted (highest omitted criticality: X)" at the end. This prevents noise flooding while ensuring the consolidation agent knows if important findings were truncated.
 
 **Design-Intent Agent Prompt Template:**
 ```
@@ -386,9 +396,19 @@ Consolidation rules:
    Note which agents flagged it (more agents = higher confidence).
 2. FILTER: Drop findings with confidence < 70.
 3. SORT by criticality: Must Fix (8-10), Should Consider (5-7), Observations (1-4).
-4. PRESERVE exact file paths and line numbers.
-5. Keep suggestions actionable and specific.
-6. Include a PRAISE section for well-written code worth highlighting.
+4. CLASSIFY each finding as MECHANICAL or JUDGMENT:
+   - MECHANICAL: Dead code, missing import, wrong HTTP verb, stale comment, unused variable,
+     missing null check on external input, formatting inconsistency.
+     → Tag as [AUTO-FIX] — these are applied without asking.
+   - JUDGMENT: Security concern, race condition, design deviation, architecture question,
+     N+1 query fix (may involve architectural choices), test logic correction,
+     anything where reasonable people could disagree.
+     → Tag as [ASK] — these are batched for user decision.
+   - **When uncertain, classify as JUDGMENT.** False ASK is a minor inconvenience;
+     false AUTO-FIX can introduce bugs.
+5. PRESERVE exact file paths and line numbers.
+6. Keep suggestions actionable and specific.
+7. Include a PRAISE section for well-written code worth highlighting.
 
 Write the file with this EXACT structure. The executive summary MUST come
 first and be self-contained within the first ~50 lines.
@@ -406,9 +426,9 @@ first and be self-contained within the first ~50 lines.
 
 ### Must Fix (Criticality 8-10)
 
-| # | File:Line | Issue | Confidence | Agents |
-|---|-----------|-------|------------|--------|
-| 1 | `file:123` | {description} | {0-100} | code-reviewer, simplifier |
+| # | Type | File:Line | Issue | Confidence | Agents |
+|---|------|-----------|-------|------------|--------|
+| 1 | [AUTO-FIX] | `file:123` | {description} | {0-100} | code-reviewer, simplifier |
 
 ### Praise
 - `file:45` — {what's well done and why it's worth highlighting}
@@ -424,9 +444,9 @@ first and be self-contained within the first ~50 lines.
 
 ### Should Consider (Criticality 5-7)
 
-| # | File:Line | Issue | Suggestion | Confidence |
-|---|-----------|-------|------------|------------|
-| 1 | `file:78` | {description} | {suggestion} | {0-100} |
+| # | Type | File:Line | Issue | Suggestion | Confidence |
+|---|------|-----------|-------|------------|------------|
+| 1 | [ASK] | `file:78` | {description} | {suggestion} | {0-100} |
 
 ### Observations (Criticality 1-4)
 
@@ -434,6 +454,11 @@ first and be self-contained within the first ~50 lines.
 
 ---
 ```
+
+**Consolidation Failure Recovery:** If the consolidation agent fails or times out:
+1. Retry once with the same prompt
+2. If retry fails, read only the first 20 lines of each agent output (finding summaries, not full detail) and produce a minimal executive summary inline
+3. Note in the summary: "Consolidation agent failed — summary produced from truncated reading. Full findings require re-running the consolidation agent."
 
 **Step 3.3 — Read Executive Summary Only:**
 
@@ -504,6 +529,13 @@ If more than 4 Should Consider items exist, present them in sequential batches o
 **Only implement what the user approves.**
 
 If the user selects items from the "Should Consider" section, read the relevant portion of `docs/reviews/review-{timestamp}.md` at this point (offset past the executive summary). Read only what's needed — do not load the entire file.
+
+**MECHANICAL/JUDGMENT applies within the user's chosen scope:**
+- If user selected "Fix all": AUTO-FIX all MECHANICAL findings (Must Fix + Should Consider), then present JUDGMENT findings in batches of 4 via Batch Review (Pattern 3).
+- If user selected "Must-fix only": AUTO-FIX MECHANICAL findings at criticality 8-10 only. Present JUDGMENT findings at 8-10 in batches of 4 via Batch Review. Skip everything below 8.
+- If user selected "Cherry-pick": Skip the MECHANICAL/JUDGMENT split — present all Should Consider items in batches of 4 as before (user is explicitly choosing).
+
+**Apply [AUTO-FIX] items first** — implement the mechanical fixes within scope, run tests, and commit as a batch. Then present [ASK] items via Batch Review.
 
 **For each approved fix:**
 
@@ -582,7 +614,8 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.6*
+*Skill Version: 3.7*
+*v3.7: MECHANICAL/JUDGMENT finding classification — auto-fix mechanicals, batch judgment calls for user. Diff-size scaling alongside file count for mode selection. AI slop detection in code-reviewer agent. Agent output cap (15 findings max). Consolidation failure recovery protocol. Inspired by gstack's fix-first and adversarial scaling patterns.*
 *v3.6: ADR consistency check added to design-intent agent — when changed files include new/modified ADRs, agent reads all existing ADRs and flags contradictions (criticality 8-10). Prevents ADR conflicts from slipping through review.*
 *v3.5: Design-intent agent scopes feature subdirs. Plan-intent agent receives patterns path. Consolidation agent uses ${PROJECT_ROOT} path. Browser E2E plans noted in upstream doc check and pr-test-analyzer. Cherry-pick option added to findings decision gate. Phase 4 cherry-pick workflow with Batch Review for Should Consider items.*
 *v3.4: AskUserQuestion stage gates at Phase 4 (findings decision) and Phase 6 (review cycle decision) using Decision Gate (Pattern 1) and Batch Review (Pattern 3) patterns from `../_shared/references/stage-gates.md`.*

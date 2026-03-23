@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.2.0] - 2026-03-23
+
+### Added
+- **ship** (v1.0): Release pipeline from reviewed code to pull request. Pre-flight checks, review readiness dashboard, changelog generation with FR/bead traceability, version bump decisions, PR creation with traceability section. Fills the gap between /review and deployment.
+- **security-audit** (v1.0): OWASP Top 10 + STRIDE threat model audit with zero-noise reporting. Framework-aware scanning that understands built-in protections (ASP.NET Core, FastEndpoints, Angular, EF Core). Confidence ≥8/10 gate, concrete exploit scenarios required, 10 false positive exclusions. READ-ONLY. BRIEF/STANDARD/COMPREHENSIVE modes with --diff, --scope, --owasp, --supply-chain modifiers.
+- **qa** (v1.0): Browser-based QA testing with diff-aware scoping from execution manifest. 8-category health scoring (console, functional, forms, visual, accessibility, responsive, performance, data). WTF-likelihood self-regulation heuristic with PAUSE/STOP thresholds. UC tag mapping. Baseline capture for regression detection.
+- **benchmark** (v1.0): Performance benchmarking with Core Web Vitals, bundle size tracking, and before/after regression detection. Configurable regression thresholds. Baseline management. Resource breakdown in COMPREHENSIVE mode.
+
+### Changed
+- **execute** (v4.6): Cumulative health score with event-based tracking (PAUSE at ≥40, STOP at ≥60, resets after 3 clean beads). Rationalization Prevention Iron Law for verification — "should work" is not evidence. AI slop detection in self-review (unnecessary abstractions, obvious docstrings, impossible-state defense, premature generalization). Context budget per bead by mode (5/8/12 files). Confidence Substitution anti-pattern.
+- **review** (v3.7): MECHANICAL/JUDGMENT finding classification — auto-fix mechanicals without asking, batch judgment calls for user decision. Diff-size scaling alongside file count for mode selection. AI slop detection added to code-reviewer agent prompt. Agent output cap (15 findings max per agent). Consolidation failure recovery protocol (retry once, then fallback to BRIEF protocol).
+- **brainstorm** (v3.6): Completeness scoring (0-10) per approach with "Boil the Lake" framing — AI makes completeness cheap, so score what you're giving up. Research findings import workflow with explicit tag-to-approach mapping ([OPTION], [CONSTRAINT], [RISK], [UNKNOWN]). Learnings-first context scan with CASS integration.
+- **diagnose** (v3.6): Reproduction environment checklist (OS/browser, auth state, data state, config). Investigation time budget by symptom complexity (15/30/45 min). Test scope guidance (unit vs integration) for fix-in-place phase.
+- **beads** (v5.8): Context budget per bead by mode (5/8/12 files max). Large bead splitting heuristic — >8 files or >3 pattern docs triggers mandatory split.
+- **stage-gates**: Prose fallback template with structured numbered options. "Skip for now" handling with circle-back flow in Guided Review (Pattern 5).
+
 ## [4.1.0] - 2026-03-23
 
 ### Added

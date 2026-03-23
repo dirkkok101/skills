@@ -222,6 +222,13 @@ Read ONLY the files specified in the bead's "Context to Load" section. Understan
 - Files from previous beads
 - Unrelated services or modules
 
+**Context budget per bead:** Beads should load a bounded amount of context to prevent bloat. Module spec files (loaded in Step 2.3a on the first bead in a module) are excluded from this budget — they are reference documents, not bead-specific context:
+- **BRIEF mode:** Max 5 bead-specific context files
+- **STANDARD mode:** Max 8 bead-specific context files
+- **COMPREHENSIVE mode:** Max 12 bead-specific context files
+
+If a bead references more files than the budget, load the most directly relevant first. If the bead genuinely needs all files, it may be too coarse — flag as a potential splitting candidate before proceeding.
+
 **Step 2.3a — Load Module Specs (first bead in module only):**
 
 When starting the FIRST bead in a module, load the module's key design documents. Use the doc map from `docs/beads/{feature}/beads.md` (if it contains one) or discover paths using the project's doc structure:
@@ -242,7 +249,7 @@ docs/patterns/                   — coding patterns (source of truth for STYLE)
 docs/architecture/               — system architecture (source of truth for CONSTRAINTS)
 ```
 
-For subsequent beads in the same module, these are already in context.
+For subsequent beads in the same module, reload module specs only if context was compacted since the last bead. The reset in Step 2.9 clears implementation details (code written, errors fixed, patterns followed) — module-level reference documents naturally remain in the conversation context until compaction forces a reload.
 Do NOT re-read these on every bead — only on the first bead or after context compaction.
 
 **Step 2.4 — Design Implementation:**
@@ -289,6 +296,12 @@ Run the **full test suite**, not filtered tests. Do NOT use `--filter "ModuleNam
 
 If the full suite is slow (>5 minutes), run the bead's specific verification commands first as a fast check, then run the full suite. But never skip the full suite.
 
+**Rationalization Prevention (Iron Law):** Every completion claim requires FRESH verification evidence. Common rationalizations to catch:
+- "It should work now" → RUN the tests. "Should" is not evidence.
+- "I'm confident this is correct" → Confidence is not evidence. Run verification.
+- "This is the same pattern as the last bead" → The last bead's tests don't verify this bead. Run tests.
+- "I only changed one line" → One-line changes cause regressions. Run tests.
+
 **Step 2.7 — Self-Review:**
 
 Before committing, run a lightweight self-review. This is a fast sanity check — deep adversarial verification is done by `/review-execute` after all beads complete.
@@ -306,6 +319,10 @@ Per-Bead Self-Review (lightweight):
 - [ ] Tests verify application logic, not framework guarantees
 - [ ] Run both the specific test AND the full suite before committing
 - [ ] Staged specific files (not git add -A)
+- [ ] No AI slop: unnecessary abstractions for single-use logic
+- [ ] No AI slop: docstrings/comments on obvious methods
+- [ ] No AI slop: defensive coding against impossible internal states
+- [ ] No AI slop: premature generalization (config for one value, wrapper class with no added behavior)
 ```
 
 If any item fails, fix the issue, re-run tests, then re-review.
@@ -381,13 +398,26 @@ Handle issues automatically before asking the user. Different errors need differ
 
 #### Execution Health Check
 
-After every 3 completed beads, or when auto-recovery is triggered, check overall health:
+Track a **cumulative health score** starting at 0. Events increase the score:
 
-- **Beads completing smoothly?** If most beads require recovery, the bead descriptions may lack sufficient context or patterns. Consider pausing to improve remaining beads.
-- **Scope growing?** If implementation reveals that remaining beads are larger than expected, flag to the user: "Implementation is revealing more complexity than expected in upcoming beads. Continue or reassess?"
-- **Kill criteria still valid?** If execution is taking significantly longer than estimated, check brainstorm kill criteria. Flag if a time-based criterion is at risk.
+| Event | Score Impact |
+|-------|-------------|
+| Auto-recovery triggered | +10 |
+| Revert/rollback needed | +15 |
+| Test fix required (implementation was wrong) | +5 |
+| File changed outside bead's scope boundaries | +20 |
+| Bead required alternative approach | +10 |
+| Blocker escalated to user | +15 |
 
-If 3+ beads in a row require recovery or produce unexpected complexity, stop and present an honest assessment: "Execution is struggling — {N} of {M} beads needed recovery. This may indicate the design or beads need revision rather than more implementation attempts."
+**Thresholds:**
+- **Score ≥ 40 — PAUSE:** "Execution health is degrading — {N} of {M} beads needed recovery. Continue or reassess?" Present via AskUserQuestion (Decision Gate).
+- **Score ≥ 60 — STOP:** "Execution health critical. This may indicate the design or beads need revision rather than more implementation attempts."
+- **Score resets to 0** after every 3 consecutive clean bead completions (no recovery needed).
+- **Proportionality note:** For small features (≤6 beads), halve the thresholds (PAUSE at 20, STOP at 30) since fewer beads means each issue is proportionally more significant.
+
+Also check after every 3 completed beads:
+- **Scope growing?** If implementation reveals that remaining beads are larger than expected, flag to the user.
+- **Kill criteria still valid?** If execution is taking significantly longer than estimated, check brainstorm kill criteria.
 
 ---
 
@@ -646,6 +676,8 @@ Each bead is self-contained — no need to reload plan documents.
 
 **Delegating Reads to Sub-Agents** — Using Explore agents or sub-agents to read and interpret implementation files during execution. Sub-agents lack the precision needed for mechanical tasks — they may suggest the wrong pattern (e.g., `ThrowError` instead of `SendProblemAsync`). Always read implementation files directly in the main context. Use parallel direct reads for speed, not agents for interpretation.
 
+**Confidence Substitution** — Claiming a change works based on a prior test run, pattern recognition, or "I'm confident." See the Rationalization Prevention Iron Law (Step 2.6) — every bead requires fresh verification evidence. No exceptions.
+
 ---
 
 ## Exit Signals
@@ -661,7 +693,8 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.5*
+*Skill Version: 4.6*
+*v4.6: Cumulative health score with thresholds (40=PAUSE, 60=STOP, resets after 3 clean beads). Rationalization prevention Iron Law for verification. AI slop detection in self-review. Context budget per bead by mode. Confidence Substitution anti-pattern. Inspired by gstack's self-regulation patterns.*
 *v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*
 *v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered). Checkpoint threshold raised to 8+ files. Anti-pattern: sub-agent delegation for implementation reads.*
 *v4.3: UC gate execution. Removed Step 2.8 upstream verification (deferred to /review-execute). Design decision awareness. Doc map paths. UC Coverage in manifest.*

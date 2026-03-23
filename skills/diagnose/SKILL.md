@@ -119,6 +119,12 @@ Search project learnings for similar symptoms — past gotchas often explain cur
 **Branch:** {name}
 **Commit:** {hash}
 
+### Environment (include what's relevant)
+- Runtime: {OS, browser/client, runtime version}
+- Auth/session state: {if applicable — logged in as role X / anonymous}
+- Data state: {specific records, empty DB, seeded data}
+- Config: {relevant env vars, feature flags, build settings}
+
 ### Steps
 1. {exact step}
 2. {exact step}
@@ -227,6 +233,13 @@ git bisect good {known_good_commit}
 **Step 2.7 — Minimal Reproducing Case:**
 
 Can you reproduce with fewer steps, simpler input, or mocked dependencies? The minimal case often reveals the root cause.
+
+**Investigation Budget:** Time-box Phase 2 to prevent unbounded investigation:
+- **Simple symptoms:** ~15 minutes (clear error, small surface area)
+- **Complex symptoms:** ~30 minutes (vague behavior, large surface area)
+- **Systemic symptoms:** ~45 minutes (multiple components, timing-dependent)
+
+If the budget is exhausted without isolation, this is diagnostic information — the bug's complexity exceeds quick investigation. Present what you know and let the user decide: continue investigating or escalate.
 
 **Circuit Breaker:** If 3 consecutive investigation steps yield no progress toward narrowing the fault, stop and reconsider. Your hypothesis may be wrong. Step back, review all evidence from scratch, and consider alternative explanations before continuing down the same path.
 
@@ -396,6 +409,11 @@ If any theme fails, return to the relevant phase before proceeding.
 **Step 5a.1 — Write a Failing Test First:**
 
 Before touching the buggy code, write a test that reproduces the bug. Run it — it MUST fail (proving it catches the bug). If you can't write a failing test, reconsider whether you've truly identified the root cause.
+
+**Test scope guidance:**
+- **Unit test** when the bug is in a single method's logic (off-by-one, wrong condition, null handling)
+- **Integration test** when the bug is in component interaction (wrong query, missing join, API contract mismatch)
+- **Match existing test patterns** — don't introduce a new test framework or style for a bug fix
 
 **Step 5a.2 — Propose the Fix:**
 
@@ -586,7 +604,7 @@ If user selects "Start brainstorm", pass the diagnostic context path to `/brains
 
 ---
 
-*Skill Version: 3.5*
-*v3.5: Non-reproducible PAUSE labeled (PAUSE NR). Phase 4 label clarified (with self-review). "Compound first" options include return-to-PAUSE flow. Brainstorm escalation passes diagnostic context path. All /compound references explicit.*
+*Skill Version: 3.6*
+*v3.6: Reproduction environment checklist (OS, auth state, data state, config). Investigation time budget by symptom complexity. Test scope guidance (unit vs integration). Inspired by gstack's systematic investigation patterns.*
 *v3.4: AskUserQuestion stage gates at all PAUSE points (Decision Gate pattern from stage-gates.md)*
 *v3.1: Duration targets, prose-based context gathering (no hardcoded setup commands), structured PAUSE response options at all decision points, non-reproducible path as explicit PAUSE, collaborative model shows three-path fork, proportionality theme in self-review, conditional issue tracker for bug tracking, all resolution paths offer /compound, commit format deferred to CLAUDE.md, safe git practices (no stash prescription), anti-patterns explain WHY*

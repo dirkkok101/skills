@@ -831,3 +831,105 @@ Even with the prohibition in the skill, /review-beads correctly caught and flagg
 - Average 1.7 rounds to convergence (weighted across all stages)
 - 231 beads created across 15 modules, all execute-ready
 - Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute → Review-Execute
+
+---
+
+## Session: gstack Cross-Pollination (2026-03-23)
+
+### Objective
+Study gstack (github.com/garrytan/gstack, 28 skills by Garry Tan) for patterns and gaps applicable to our pipeline.
+
+### Method
+1. Fetched and read all 28 gstack skills in full
+2. Read our 5 core skills (execute, review, brainstorm, diagnose, beads) + stage-gates in full
+3. Comparative analysis across 8 dimensions: self-regulation, effort scaling, checklists, fix-vs-flag, anti-slop, browser integration, shared content, pipeline coverage
+4. Implemented improvements to 5 existing skills + 1 shared reference
+5. Created 4 new skills filling the post-review pipeline gap
+6. Adversarial review of all changes (4 parallel review agents)
+
+### Findings: What gstack Does Better
+
+**F1: Self-regulation is explicit and quantified.**
+gstack's QA skill tracks a running "WTF-likelihood" score: +15% per revert, +5% per multi-file fix, +20% per unrelated file change. Hard stop at >20%. Our skills had recovery limits (3 attempts, 2 alternatives) but no cumulative risk tracking.
+→ Action: Added cumulative health score to /execute, WTF-likelihood to /qa.
+
+**F2: Fix-first with mechanical/judgment split.**
+gstack classifies every finding as AUTO-FIX (mechanical) or ASK (judgment). Auto-fixes applied immediately, judgment calls batched into single question. Our /review flagged by criticality but didn't distinguish mechanical from judgment.
+→ Action: Added MECHANICAL/JUDGMENT classification to /review consolidation.
+
+**F3: Verification has an "Iron Law" with rationalization prevention.**
+gstack's /ship: "NO COMPLETION CLAIMS WITHOUT FRESH VERIFICATION EVIDENCE. 'Should work now' → RUN IT. 'I'm confident' → Confidence is not evidence." Our execute's verification step was less forceful.
+→ Action: Added Iron Law to /execute Step 2.6.
+
+**F4: Effort scales by diff size, not just file count.**
+gstack scales adversarial review: <50 lines skip, 50-199 one pass, 200+ full multi-model. We scaled only by file count. A 200-line change in 3 files is more complex than 10 one-line changes in 10 files.
+→ Action: Added diff-size scaling to /review mode selection.
+
+**F5: AI slop detection is explicit.**
+gstack has a 10-item AI slop blacklist (purple gradients, 3-column grids, etc.) and explicit suppressions. We had no anti-slop heuristics.
+→ Action: Added AI slop checklist to /execute self-review and /review code-reviewer agent.
+
+**F6: Pipeline gap after /review.**
+gstack has ship → land-and-deploy → canary → document-release → retro. Our pipeline ended at /review with no release skills.
+→ Action: Created /ship, /security-audit, /qa, /benchmark.
+
+**F7: "Boil the Lake" completeness principle.**
+gstack injects into every skill: "AI makes completeness near-zero cost. Always recommend the complete option. Score completeness 0-10." Our brainstorm had "Do Less" but didn't quantify completeness cost.
+→ Action: Added completeness scoring to /brainstorm comparison matrix.
+
+### Findings: What We Do Better
+
+**Our traceability chain (PRD FR → UC → @Tag → Bead → Execute → Review) has no equivalent in gstack.** Their plan goes straight to coding with no intermediate packaging or tracing.
+
+**Our adversarial quality gates at every phase** (review-prd, review-design, review-plan, review-beads, review-execute) are far more rigorous. gstack reviews code but not upstream artifacts.
+
+**Our intent-based beads with surgical context loading** prevent agents from drowning in irrelevant context. gstack loads full project context.
+
+**Our scope-based routing** (BRIEF/STANDARD/COMPREHENSIVE) that self-classifies from complexity signals is more systematic than gstack's user-driven mode selection.
+
+### Decisions Made
+
+| Decision | Rationale |
+|----------|-----------|
+| Build own /ship instead of installing gstack's | Our ship needs FR/bead traceability in PR descriptions — gstack's doesn't |
+| Build own /qa instead of installing gstack's | Our QA needs bead-aware scoping from execution manifest |
+| Install gstack's /cso for personal use | Zero-noise security audit fills an immediate gap while our /security-audit matures |
+| Don't adopt role-based skill identity | Phase-based pipeline is more traceable; roles are implicit in review agents |
+| Don't adopt cross-model validation | Multi-agent parallel review already provides diverse perspectives |
+| Adopt context budgets per bead | Prevents the context bloat we've seen in production runs |
+| Keep Batch Review for document reviews | More efficient than one-issue-one-question for upstream artifacts |
+
+### Skill Versions After This Session
+
+| Skill | Version | Status |
+|-------|---------|--------|
+| execute | v4.6 | Improved |
+| review | v3.7 | Improved |
+| brainstorm | v3.6 | Improved |
+| diagnose | v3.6 | Improved |
+| beads | v5.8 | Improved |
+| ship | v1.0 | **New** |
+| security-audit | v1.0 | **New** |
+| qa | v1.0 | **New** |
+| benchmark | v1.0 | **New** |
+
+### Adversarial Review
+
+Ran 4 parallel adversarial review agents (one per file group: execute, review, brainstorm+diagnose+beads+gates, 4 new skills). Total: 47 findings.
+
+| Severity | Found | Fixed |
+|----------|-------|-------|
+| CRITICAL | 8 | 8 |
+| HIGH | 12 | 12 |
+| MEDIUM | 16 | 12 |
+| LOW | 11 | 0 (not worth churn) |
+
+**Top finding class:** Stack-specific assumptions in stack-agnostic skills. All 4 new skills had hardcoded Angular/ASP.NET patterns. The established skills avoided this by using "run the project's build and test commands" — we hadn't applied the same discipline to the new skills.
+
+**Hardest bug found:** Execute context budget (5 files in BRIEF) was impossible to satisfy because module spec loading (Step 2.3a) alone loads 5 documents. Fix: module specs are now excluded from the per-bead budget — they're reference documents, not bead-specific context.
+
+**Second hardest:** Review MECHANICAL/JUDGMENT classification had no defined interaction with the user's Phase 4 scope choice. A MECHANICAL finding at criticality 9 was getting auto-fixed without the user knowing, while a trivial JUDGMENT observation at criticality 2 was being presented for decision. Fix: AUTO-FIX now applies only within the criticality scope the user approved.
+
+**Design insight:** The adversarial review technique (parallel specialized agents → consolidation → fix cycle) generalizes beyond code review. Running it against skill definitions caught structural contradictions, false positive risks, and UX problems that manual review missed. This validates the /review skill's three-layer architecture as a general-purpose pattern.
+
+### Package: v4.1.0 → v4.2.0

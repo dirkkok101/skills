@@ -93,12 +93,7 @@ Create the output directory: `docs/brainstorm/{feature}/`
 
 **Step 1.1 — Import Research (if available):**
 
-If a research brief exists at `docs/research/{feature}/research-brief.md`, import tagged findings:
-- **[CONSTRAINT]** → note for Phase 2 boundaries
-- **[OPTION]** → seed for Phase 3 approaches
-- **[RISK]** → note for risk assessment
-- **[PRIOR-ART]** → consider for "Do Less" or "Adopt" approaches
-- **[UNKNOWN]** → flag for discovery or further research
+If a research brief exists at `docs/research/{feature}/research-brief.md`, read it and note tagged findings. These will be mapped to approaches in Step 3.2.
 
 **Step 1.2 — The 5 Whys:**
 
@@ -225,12 +220,21 @@ If a kill criterion triggers, return to this brainstorm to reassess.
 
 This is a QUICK scan, not a deep dive. Deep investigation is /discovery's job.
 
-- Scan `docs/learnings/` for relevant past learnings (keywords related to this feature)
+- **Search learnings first:** Scan `docs/learnings/` for entries matching this feature's domain, technology, or pattern. Past learnings often contain gotchas that reshape approach viability. If a learning says "X approach failed because Y," factor that into Phase 3 approach generation.
 - Check the codebase for similar features (names and relevance only — surface-level check for obvious patterns and constraints)
+- If the project uses CASS, search for prior sessions related to this feature: relevant implementation context may already exist
 
 **Step 3.2 — Create 2-3 Distinct Options:**
 
-Each approach should be genuinely different, not variations of the same idea. Seed from research [OPTION] and [PRIOR-ART] findings if available.
+Each approach should be genuinely different, not variations of the same idea.
+
+**Import research findings into approaches:**
+If research brief exists, explicitly map tagged findings to approaches:
+- **[OPTION]** tags → Seed as distinct approach or sub-option within an approach
+- **[PRIOR-ART]** tags → Consider for "Do Less" or "Adopt" approaches
+- **[CONSTRAINT]** tags → Apply as hard boundary to all approaches (note which approaches violate constraints)
+- **[RISK]** tags → Map to "biggest risk" for relevant approaches
+- **[UNKNOWN]** tags → Flag as investigation needed; approaches that depend on unknowns get higher risk rating
 
 ```markdown
 ### Approach A: {Name}
@@ -254,11 +258,13 @@ Each approach should be genuinely different, not variations of the same idea. Se
 
 **Step 3.3 — Comparison Matrix:**
 
-| Approach | Complexity | Risk | Builds On Existing | Recommendation |
-|----------|-----------|------|-------------------|----------------|
-| A | Medium | Low | Yes — existing patterns | Preferred |
-| B | High | Medium | No — new design | Fallback |
-| C: Do Less | Low | Low | N/A | If budget is tight |
+| Approach | Complexity | Risk | Completeness | Builds On Existing | Recommendation |
+|----------|-----------|------|-------------|-------------------|----------------|
+| A | Medium | Low | 8/10 | Yes — existing patterns | Preferred |
+| B | High | Medium | 10/10 | No — new design | Fallback |
+| C: Do Less | Low | Low | 4/10 | N/A | If budget is tight |
+
+**Completeness scoring (0-10):** How thoroughly does this approach solve the root problem? AI makes the marginal cost of completeness near-zero — a "lake" (achievable completeness within the current feature) should be boiled. An "ocean" (multi-quarter rewrite) should be flagged as out of scope. Score each approach honestly so the user sees what they're gaining or giving up.
 
 ---
 
@@ -479,8 +485,8 @@ If abbreviated: "Root cause analysis abbreviated — user demonstrated deep doma
 {Minimal change option}
 
 ### Comparison
-| Approach | Complexity | Risk | Recommendation |
-|----------|-----------|------|----------------|
+| Approach | Complexity | Risk | Completeness | Recommendation |
+|----------|-----------|------|-------------|----------------|
 
 ### Selected: {Approach Name}
 {Why this approach was chosen.}
@@ -536,7 +542,7 @@ If abbreviated: "Root cause analysis abbreviated — user demonstrated deep doma
 
 ---
 
-*Skill Version: 3.5*
-*v3.5: Stage gate fallback line added. Prerequisites modernized from bash scripts to prose-based artifact import (research brief, learnings, existing work). Collaborative model includes Phase 6 (Output). BRIEF scope routing clarified — all phases run, routing skips /prd and /technical-design.*
+*Skill Version: 3.6*
+*v3.6: Completeness scoring (0-10) per approach with "Boil the Lake" framing. Research findings import workflow with explicit tag-to-approach mapping. Learnings-first context scan with CASS integration. Inspired by gstack's completeness principle.*
 *v3.4: AskUserQuestion stage gates — PAUSE 1 uses Decision Gate for problem framing, PAUSE 2 uses Comparison Gate for approach selection + Decision Gate for routing, with fallback to prose when AskUserQuestion unavailable*
 *v3.1: Self-review gates PAUSE 2, stress-test chosen approach, merged scope/routing into single PAUSE, 5 Whys abbreviation guidance, boundaries refined after approach selection, rejection rationale in output, scope override rule, kill criteria ownership, duration target, biggest risk per approach, conditional issue tracker search*

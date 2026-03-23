@@ -126,9 +126,16 @@ Do not re-derive information that exists in these artifacts. Import it, referenc
 - Bead spans both backend and frontend
 - Bead produces more than one conventional commit
 
-**Context management still applies:**
-- If a single-pattern bead still has > 4-5 context files → split by sub-concern
-- If the pattern artifact is trivially small → may combine per Grouping Exceptions
+**Context budget per bead:**
+- **BRIEF mode:** Max 5 context files per bead
+- **STANDARD mode:** Max 8 context files per bead
+- **COMPREHENSIVE mode:** Max 12 context files per bead
+
+If a single-pattern bead exceeds the context budget for its mode → split by sub-concern.
+If the pattern artifact is trivially small → may combine per Grouping Exceptions.
+If a bead genuinely needs more files than the budget, it's a split signal — the bead is likely too coarse.
+
+**Large bead splitting heuristic:** If a bead will modify >8 files or references >3 pattern docs, it MUST be split. Split by sub-concern: separate data flow directions, separate API boundary from business logic, separate read-path from write-path. (Context files that are read-only references do not count toward the 8-file limit — only files the bead will create or modify.)
 
 **Grouping exceptions (MAY combine):**
 - Entity + Enum definitions (enums are part of entity definition)
@@ -1363,8 +1370,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.7*
-*v5.7: Production feedback from cross-cutting execution. Test files mandatory in Context to Load — modification/migration beads must list test files that assert on changed behavior (missed 15 regressions when test files weren't in context).*
+*Skill Version: 5.8*
+*v5.8: Context budget per bead by mode (5/8/12 files). Large bead splitting heuristic (>8 files or >3 patterns = mandatory split). Inspired by gstack's scope discipline patterns.*
+*v5.7: Production feedback from cross-cutting execution.*
 *v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count, exempts Verification Mode. beads.md single source of truth. Remaining presentation triggers removed.*
 *v5.5: Consolidated feedback from 6 production runs. Verify "New" elements via glob before decomposing (plan can be stale). Scope growth check excludes gate beads. br correction protocol (## CORRECTION header for br comments add).*
 *v5.4: Production feedback round 2. Dry-run option: write beads.md first, create in br AFTER approval (prevents delete+recreate cycles). Lighter verification bead descriptions (checklist format, not full template). Gate scaling: skip UC/module verify for ≤10 impl beads in Verification Mode. Context efficiency: rely on plan tables, spot-check file paths only.*

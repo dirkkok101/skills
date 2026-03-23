@@ -23,17 +23,24 @@ A complete feature development workflow for Claude Code with structured SDLC pha
 | `/workflow:review-execute` | Post-execution bead satisfaction verification | `docs/reviews/review-execute-{feature}-{date}.md` |
 | `/workflow:compound` | Structured learning capture by phase/domain | `docs/learnings/{category}.md` |
 | `/workflow:diagnose` | Bug investigation with root cause analysis | Fix, beads, or design handoff |
+| `/workflow:qa` | Browser-based QA with diff-aware scoping | `docs/reviews/qa-{timestamp}.md` |
+| `/workflow:benchmark` | Performance benchmarking with regression detection | `docs/benchmarks/benchmark-{timestamp}.md` |
+| `/workflow:security-audit` | OWASP + STRIDE zero-noise security audit (READ-ONLY) | `docs/reviews/security-audit-{timestamp}.md` |
+| `/workflow:ship` | Release pipeline: readiness check → changelog → PR | Pull request with traceability |
 
 > **Note:** All commands use the `workflow:` namespace prefix because this is a marketplace plugin.
 
 ## Pipeline
 
 ```
-research ─> brainstorm ─> discovery ─> prd ────────> technical-design ──> plan ─────> beads ────> execute ──────> review ─> compound
-(optional)                 (COMP only)    └─review-prd─┘       └─review-design─┘  └─review-plan─┘ └─review-beads─┘ └─review-execute─┘
+research ─> brainstorm ─> discovery ─> prd ────────> technical-design ──> plan ─────> beads ────> execute
+(optional)                 (COMP only)    └─review-prd─┘       └─review-design─┘  └─review-plan─┘ └─review-beads─┘
+
+  execute ─> qa ─> benchmark ─> review ─> review-execute ─> security-audit ─> ship ─> compound
+             (opt)   (opt)                                      (opt)
 ```
 
-The `review-*` skills are optional quality gates between pipeline stages. Each reviews the output of the preceding stage before proceeding to the next.
+The `review-*` skills are optional quality gates between pipeline stages. `qa`, `benchmark`, and `security-audit` are optional but recommended for STANDARD+ features.
 
 ### Scope-Based Routing
 
@@ -49,10 +56,11 @@ Brainstorm classifies features using weighted complexity signals (auth/security 
 
 | Scenario | Path |
 |----------|------|
-| **Full SDLC** | research → brainstorm → (scope-dependent path above) |
-| **Known requirements** | prd → technical-design → plan → beads → execute → review |
-| **Technical improvement** | brainstorm → technical-design → plan → beads → execute → review |
+| **Full SDLC** | research → brainstorm → (scope-dependent path above) → ship |
+| **Known requirements** | prd → technical-design → plan → beads → execute → review → ship |
+| **Technical improvement** | brainstorm → technical-design → plan → beads → execute → review → ship |
 | **Bug fix** | diagnose → fix / beads / brainstorm |
+| **Pre-release check** | qa → benchmark → review → security-audit → ship |
 
 ### Approval Gates
 
@@ -75,8 +83,12 @@ Each phase pauses at structured stage gates using the `AskUserQuestion` tool, pr
 | technical-design | "design approved" | plan |
 | plan | "plan approved" | beads |
 | beads | "beads approved" | execute |
-| execute | "done" | review |
-| review | "changes approved" | compound |
+| execute | "done" | qa, benchmark, or review |
+| qa | "QA complete" | benchmark or review |
+| benchmark | "benchmark complete" | review |
+| review | "changes approved" | security-audit or ship |
+| security-audit | "audit complete" | ship |
+| ship | "PR created" | compound |
 
 > **Fallback:** If `AskUserQuestion` is unavailable (Claude.ai, older Claude Code versions), skills fall back to presenting options as markdown text and waiting for freeform response.
 
@@ -134,8 +146,11 @@ your-project/
     ├── designs/           # /technical-design output
     ├── plans/             # /plan output
     ├── learnings/         # /compound output
-    ├── reviews/           # /review reports
+    ├── reviews/           # /review, /qa, /security-audit reports
     ├── reference/         # /review alignment audits
+    ├── execution/         # /execute manifests (per-bead completion logs)
+    ├── benchmarks/        # /benchmark baselines and reports
+    ├── qa/                # /qa baselines
     ├── features/          # /technical-design feature specs
     ├── adr/               # Project-wide architecture decisions
     ├── decisions/         # Feature-scoped decisions
@@ -171,7 +186,11 @@ your-project/
 → "beads approved"
 
 /workflow:execute
+→ /workflow:qa                    # browser-based testing
+→ /workflow:benchmark             # performance regression check
 → /workflow:review
+→ /workflow:security-audit        # OWASP + STRIDE audit
+→ /workflow:ship                  # PR with traceability
 → /workflow:compound
 ```
 
@@ -186,7 +205,9 @@ your-project/
 → "plan approved"
 
 /workflow:beads user list sorting
-→ ...
+→ /workflow:execute
+→ /workflow:review
+→ /workflow:ship
 ```
 
 ### Bug Investigation
@@ -196,6 +217,15 @@ your-project/
 → Fix-in-Place (simple bugs)
 → /workflow:beads (medium issues)
 → /workflow:brainstorm (complex/systemic issues)
+```
+
+### Pre-Release Quality Check
+
+```
+/workflow:qa my-feature              # browser-based QA testing
+/workflow:benchmark my-feature       # performance regression detection
+/workflow:security-audit my-feature  # OWASP + STRIDE audit
+/workflow:ship my-feature            # PR with changelog and traceability
 ```
 
 ## Key Concepts
@@ -226,6 +256,22 @@ Plans in COMPREHENSIVE mode produce companion documents alongside the implementa
 ### Alignment Audit (COMPREHENSIVE)
 
 Review in COMPREHENSIVE mode with 2+ upstream docs produces a permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification.
+
+### Self-Regulation Heuristics
+
+Execute and QA track cumulative risk scores during operation. Events like auto-recovery, reverts, and app crashes increment the score. When thresholds are crossed, the skill pauses (moderate risk) or stops (high risk) to prevent doing more harm than good.
+
+### MECHANICAL/JUDGMENT Classification
+
+Review classifies each finding as MECHANICAL (auto-fixable: dead code, missing import, wrong verb) or JUDGMENT (needs human decision: security, design, architecture). Mechanical fixes are applied automatically within the user's approved scope; judgment calls are batched for user decision.
+
+### Zero-Noise Security
+
+Security-audit uses a confidence ≥ 8/10 gate with 10 explicit false positive exclusions. Every finding requires a concrete exploit scenario ("an attacker could..."), not generic warnings. Framework-aware scanning recognises built-in protections and doesn't flag them as missing.
+
+### Release Traceability
+
+Ship creates PRs that trace back through the pipeline: which FRs were implemented, which beads completed them, which UCs were verified, and which review findings were resolved. This gives human reviewers full context without reading the code.
 
 ## Domain References
 
@@ -275,22 +321,29 @@ node openai/validate-tools.mjs
 
 ## Skill Versions
 
-All skills are at **v3.4**. PRD skill is at **v3.4.1**.
-
-| Skill | Highlights |
-|-------|-----------|
-| init | Eager folder creation, CLAUDE.md workflow section, idempotent |
-| research | Structured research briefs, Decision + Combined Gate stage gates |
-| brainstorm | Weighted scope classifier, Comparison Gate for approach selection |
-| discovery | Guided Review for actors/workflows, Batch Review for domain requirements |
-| prd | Guided Review for sections + per-requirement FR review, Combined Gate for approval |
-| technical-design | Comparison Gate for decisions, Guided Review for architecture walkthrough |
-| plan | Batch Review for tasks, Decision Gates for coverage and ordering |
-| beads | Batch Review for mapping, adjustable granularity without /plan escalation |
-| execute | Decision Gates for blockers/push, Batch Review for learnings capture |
-| review | Decision Gate for findings triage, Batch Review for Should Consider cherry-pick |
-| compound | Decision/Batch Gate per mode, structured learning capture |
-| diagnose | 5 Decision Gates for investigation branching |
+| Skill | Version | Highlights |
+|-------|---------|-----------|
+| init | v3.3 | Project scaffold, CLAUDE.md workflow section, idempotent |
+| research | v3.4 | Structured research briefs, source attribution |
+| brainstorm | v3.6 | Weighted scope classifier, completeness scoring, "Boil the Lake" framing |
+| discovery | v3.5 | Domain-aware requirements, guided review for actors/workflows |
+| prd | v3.4.1 | Tiered output (Brief/Standard/Comprehensive), stable FR IDs |
+| technical-design | v3.5 | Feature-first decomposition, sibling cross-refs |
+| plan | v3.5 | Task decomposition with dependency ordering, companion docs |
+| beads | v5.8 | Pattern-granular decomposition, context budgets, test gates |
+| execute | v4.6 | Cumulative health score, Iron Law verification, AI slop detection |
+| review | v3.7 | MECHANICAL/JUDGMENT classification, diff-size scaling, agent output cap |
+| review-prd | v2.3 | Adversarial PRD review, 6-phase structural + content check |
+| review-design | v2.5 | PRD alignment, ADR compliance, cross-module consistency |
+| review-plan | v2.5 | 6 authority sources, early termination on critical findings |
+| review-beads | v2.7 | 11 review categories, batch execution, convergence criteria |
+| review-execute | v1.3 | Bead satisfaction verification, CONVERGE auto-fix mode |
+| compound | v3.5 | Structured learning capture by phase and domain |
+| diagnose | v3.6 | Investigation time budgets, environment checklist, test scope guidance |
+| qa | v1.0 | Diff-aware browser QA, 8-category health scoring, self-regulation |
+| benchmark | v1.0 | Bundle size + CWV, regression thresholds, baseline management |
+| security-audit | v1.0 | OWASP + STRIDE, zero-noise (confidence ≥8/10), framework-aware |
+| ship | v1.0 | Review readiness dashboard, changelog, PR with FR/bead traceability |
 
 ## Philosophy
 

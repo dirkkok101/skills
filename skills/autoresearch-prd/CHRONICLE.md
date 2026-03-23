@@ -483,3 +483,77 @@ Skills updated based on learnings from the full pipeline validation:
 7. **The review skill found things the automated checker couldn't.** The checker tests structure (87 regex checks). The review skill tests meaning (ADR compliance, FR traceability, UC coverage, internal coherence). Both are needed — the checker is the fast gate, the review is the deep gate.
 
 8. **Same-session review has limited value.** Reviewing a document you just wrote catches internal consistency errors but is blind to systematic biases. Independent review (different agent, fresh context) is more valuable.
+
+---
+
+## Phase 8: gstack Cross-Pollination & Pipeline Expansion (2026-03-23)
+
+Studied the [gstack skills library](https://github.com/garrytan/gstack) (28 skills by Garry Tan) to identify patterns and gaps in our pipeline. gstack takes a different approach — role-based skills (CEO, designer, QA lead, security officer) vs our phase-based pipeline — but several design patterns and missing capabilities were directly applicable.
+
+### New Skills Added (4)
+
+| Skill | Version | Pipeline Position | Inspired By |
+|-------|---------|-------------------|-------------|
+| **ship** | v1.0 | After /review | gstack's /ship release pipeline |
+| **security-audit** | v1.0 | After /review, before /ship | gstack's /cso zero-noise OWASP+STRIDE audit |
+| **qa** | v1.0 | After /execute, before /review | gstack's /qa browser-based testing with self-regulation |
+| **benchmark** | v1.0 | After /execute, before /review | gstack's /benchmark performance regression detection |
+
+These fill the gap between /review and deployment — previously our pipeline ended at code review.
+
+### Existing Skills Improved (5 + 1 shared)
+
+| Skill | Change | Version | Pattern Source |
+|-------|--------|---------|---------------|
+| **execute** | Cumulative health score (PAUSE@40/STOP@60), Iron Law verification, AI slop self-check, context budget per bead | v4.5→v4.6 | gstack's WTF-likelihood heuristic, verification iron law |
+| **review** | MECHANICAL/JUDGMENT finding classification with auto-fix, diff-size scaling, agent output cap, consolidation failure recovery | v3.6→v3.7 | gstack's fix-first approach, adversarial scaling by diff size |
+| **brainstorm** | Completeness scoring (0-10) per approach, research import workflow, learnings-first context scan | v3.5→v3.6 | gstack's "Boil the Lake" completeness principle |
+| **diagnose** | Environment reproduction checklist, investigation time budget, test scope guidance | v3.5→v3.6 | gstack's systematic investigation patterns |
+| **beads** | Context budget per bead by mode (5/8/12), large bead splitting heuristic | v5.7→v5.8 | gstack's scope discipline |
+| **stage-gates** | Prose fallback template, "Skip for now" circle-back handling | (shared) | Gap identified during review |
+
+### Key Design Patterns Adopted
+
+1. **Self-regulation heuristics** — Running risk scores that trigger PAUSE/STOP thresholds. Applied to /execute (health score) and /qa (WTF-likelihood). Prevents agents from causing more harm than the bugs they're finding.
+
+2. **Fix-first with classification** — Every finding classified as MECHANICAL (auto-fix) or JUDGMENT (ask user). Applied to /review. Dramatically reduces user decision fatigue on mechanical issues.
+
+3. **Zero-noise reporting** — Confidence gates (≥8/10 for security, ≥70% for review) with explicit false positive exclusions. Applied to /security-audit. Builds trust by eliminating noise.
+
+4. **Completeness scoring** — Each approach scored 0-10 on how thoroughly it solves the problem. Applied to /brainstorm. Makes the cost of "Do Less" visible.
+
+5. **Context budgets** — Explicit limits on files loaded per bead by mode. Applied to /execute and /beads. Prevents context bloat that degrades agent performance.
+
+### What We Didn't Adopt (and why)
+
+- **Role-based skill identity** (gstack's CEO/designer/QA personas) — Our phase-based pipeline is more traceable. Roles are implicit in our review agents.
+- **One-issue-one-question** for code fixes — Our Batch Review pattern is more efficient for document review. Adopted one-at-a-time only for judgment-call code fixes in /review.
+- **Cross-model validation** (gstack's /codex second opinion) — Our multi-agent parallel review already provides diverse perspectives. Low marginal value.
+- **Contributor mode** (agent self-rating) — Our /compound learning capture is more structured and produces actionable output.
+
+### Updated Pipeline
+
+```
+research → brainstorm → [discovery] → prd → technical-design → plan → beads
+  → execute → qa → benchmark → review → review-execute
+  → security-audit → ship → compound
+```
+
+### Adversarial Review & Fixes
+
+Ran 4 parallel adversarial review agents against all changes. Found 47 issues (8 CRITICAL, 12 HIGH, 16 MEDIUM, 11 LOW). Fixed all CRITICAL and HIGH issues.
+
+**Dominant finding pattern:** Stack-specific assumptions baked into skills that should be stack-agnostic. The established skills (execute, review) use phrases like "run the project's build and test commands" — the new skills had hardcoded `ng build`, `dist/`, Angular file patterns, and .NET/Angular framework tables. All generalized.
+
+**Key design fixes:**
+- Execute: context budget now excludes module spec files (was impossible to satisfy in BRIEF mode — module loading alone consumed the 5-file budget)
+- Execute: resolved contradiction between "already in context" (Step 2.3a) and mandatory context reset (Step 2.9) — module specs persist until compaction, implementation details reset
+- Review: MECHANICAL/JUDGMENT classification now interacts correctly with user's Phase 4 scope choice (Fix all / Must-fix only / Cherry-pick)
+- Review: output template now includes Type column so Phase 5 can actually distinguish AUTO-FIX from ASK items
+- Review: AI slop detection items rewritten to avoid false-positiving on DI/CQRS patterns ("interface for one impl" removed — contradicts standard dependency injection)
+
+**Observation:** The adversarial review pattern (parallel specialized agents, consolidated findings, fix cycle) is the same pattern we use in /review. Running it against our own skill definitions produced the same quality of findings as running it against implementation code. The technique generalizes beyond code review.
+
+### Package Version
+
+v4.1.0 → v4.2.0 (minor: 4 new skills, 5 improved skills, no breaking changes)

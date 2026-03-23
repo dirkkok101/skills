@@ -10,6 +10,20 @@ Use at **decision gates and review checkpoints** — points where the user must 
 
 Only if `AskUserQuestion` is genuinely not available as a tool in your environment (e.g., Claude.ai, older Claude Code versions without the tool), fall back to the prose-based pattern: present content as markdown, list options as text, and wait for freeform response. If you are unsure whether the tool is available, attempt to call it — do not pre-emptively fall back.
 
+**Prose fallback template:**
+```markdown
+**Decision needed: {header}**
+
+{question}
+
+1. **{option 1 label}** — {description} *(Recommended)*
+2. **{option 2 label}** — {description}
+3. **{option 3 label}** — {description}
+4. Other — provide your own direction
+
+Which option? (type a number or describe what you'd like)
+```
+
 ---
 
 ## Pattern 1: Decision Gate
@@ -240,6 +254,10 @@ Then move to the next section (Personas, Assumptions, etc.).
 | Homogeneous items where detail per item is minimal | **Batch Review** — flag and move on |
 
 **Why this matters:** Users miss things in long documents. By controlling the pace and focusing attention on one section at a time, the agent ensures every section gets genuine review. The user can "Skip for now" any section and return to it later, but they can't accidentally skip something by scrolling past it.
+
+**Handling "Skip for now":** Track skipped sections. After completing all other sections, circle back:
+"You skipped {N} section(s): {list}. Review them now, or approve the document with these sections as-is?"
+Present via Decision Gate with options: "Review skipped sections", "Approve as-is", "Revisit specific section".
 
 ---
 

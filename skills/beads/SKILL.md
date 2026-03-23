@@ -622,7 +622,7 @@ The decomposition strategy depends on the Implementation Status from Step 1.1:
 **Gap-driven path (>70% exists):** For each design element in the plan's Design Coverage Matrix:
 - **Status = "New":** Create standard pattern beads
 - **Status = "Modify":** Create ONE focused modification bead with WHAT needs to change
-- **Status = "Exists" (no changes):** Create a lightweight verification bead. At 70-90%, existing code may have subtle mismatches that the gap analysis didn't catch at field level. Verification beads are small (checklist + grep) and prevent the "exists but broken" problem.
+- **Status = "Exists" (no changes):** Create a lightweight verification bead ONLY if the gap analysis or plan flags potential mismatches. If the plan says "Exists — matches design" with no caveats, do NOT create a verification bead — it will be a no-op that wastes an execution slot. Verification beads are for "exists but might not match" situations, not for confirming already-confirmed elements.
 
 **Verification Mode (>90% exists):** Create verification beads that check existing code against design, plus targeted modification beads for the few gaps. Feature gates focus on "verify existing flows still work after changes."
 
@@ -1379,8 +1379,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.9*
-*v5.9: Production feedback from Organizations execution. Verification bead template: test alignment explicitly in scope — when a verification fix changes behavior (status codes, response shapes), update tests in the same bead. Context to Load section added to verification template.*
+*Skill Version: 5.10*
+*v5.10: Production feedback from Languages execution. "Exists" elements only get verification beads if gap analysis flags potential mismatches — not for already-confirmed elements (2 of 7 beads were no-ops).*
+*v5.9: Organizations feedback. Verification bead template: test alignment in scope, Context to Load section added.*
 *v5.8: Context budget per bead by mode (5/8/12 files). Large bead splitting heuristic (>8 files or >3 patterns = mandatory split). Inspired by gstack's scope discipline patterns.*
 *v5.7: Production feedback from cross-cutting execution.*
 *v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count, exempts Verification Mode. beads.md single source of truth. Remaining presentation triggers removed.*

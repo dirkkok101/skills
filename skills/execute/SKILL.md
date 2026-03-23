@@ -175,6 +175,23 @@ Track overall progress so you (and the user) can see what's been completed and w
 
 When multiple beads are ready simultaneously (no dependency between them), they can be executed in any order. Prefer: data model beads before service beads, service beads before integration beads. Execute each bead fully before starting the next.
 
+#### Multi-Agent Concurrent Execution
+
+When multiple agents execute on the same branch simultaneously (e.g., parallel module execution), expect these issues and handle them proactively:
+
+**Build artifact collisions:** Other agents' builds delete/lock DLLs mid-compilation, causing spurious build errors. **Fix:** Retry the build once. If it fails again with the same MSB3030/FileNotFoundException, wait 10 seconds and retry — the other agent's build will finish.
+
+**File reverts:** Other agents may revert your changes via their own git operations (commit, checkout, stash). **Fix:** After each commit, verify your changes are in the commit with `git show --stat HEAD`. If a file you changed is missing, re-apply with `Write` (full file overwrite) rather than `Edit` (which fails on stale content).
+
+**Shared file conflicts:** Other agents may break files you depend on (test files, shared components). **Fix:** Do NOT fix other agents' files. If their broken code blocks your tests, use module-scoped tests (`--filter "YourModule"`) instead of the full suite.
+
+**File reservation (if agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This prevents concurrent writes to the same file.
+
+**Verification strategy during concurrent execution:**
+- **Per-bead:** Module-scoped tests (`--filter "YourModule"`) — reliable even when other agents have broken code
+- **Test gate bead:** Full suite — run only when your module's beads are complete and other agents aren't actively building
+- **If full suite is broken by others:** Log the failing tests, verify they're NOT in your changed files (`git diff --name-only`), proceed with module-scoped tests
+
 **Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead (e.g., `dotnet test --filter`, `ng test`). If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
 
 **UC verification gates:** When the next bead is a UC verification gate (`verify({module}): UC-{ID}`), trace the use case's main scenario steps through the implemented code:
@@ -296,7 +313,7 @@ Run the **full test suite**, not filtered tests. Do NOT use `--filter "ModuleNam
 
 If the full suite is slow (>5 minutes), run the bead's specific verification commands first as a fast check, then run the full suite. But never skip the full suite.
 
-**Concurrent execution exception:** When multiple agents are executing on the same branch simultaneously, other agents' broken code causes false test failures in the full suite. If the full suite fails and the failures are clearly in files YOU did not modify (check `git diff --name-only`), fall back to filtered tests (`--filter "ModuleName"`) for YOUR module only. Log which tests were skipped and why. The test gate bead at the end of the module will catch any real cross-module regressions once all agents have finished.
+**Concurrent execution exception:** See "Multi-Agent Concurrent Execution" section above. During concurrent execution, use module-scoped tests per bead and defer full suite to the test gate bead.
 
 **Rationalization Prevention (Iron Law):** Every completion claim requires FRESH verification evidence. Common rationalizations to catch:
 - "It should work now" → RUN the tests. "Should" is not evidence.
@@ -321,7 +338,7 @@ Per-Bead Self-Review (lightweight):
 - [ ] Implementation follows the referenced pattern doc
 - [ ] Code style matches existing codebase
 - [ ] Tests verify application logic, not framework guarantees
-- [ ] Run both the specific test AND the full suite before committing
+- [ ] Run tests before committing (full suite solo, module-scoped if concurrent — see Multi-Agent section)
 - [ ] Staged specific files (not git add -A)
 - [ ] No AI slop: unnecessary abstractions for single-use logic
 - [ ] No AI slop: docstrings/comments on obvious methods
@@ -703,8 +720,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.7*
-*v4.7: Production feedback from Organizations execution. Multi-agent concurrent execution: filtered tests allowed as fallback when other agents break the full suite (check git diff --name-only to distinguish). Manifest writing robustness: verify working directory, create directory first, write incrementally (don't leave for Phase 4). Self-review proportionality: verification/test beads skip pattern/style/slop checks.*
+*Skill Version: 4.8*
+*v4.8: Production feedback from Languages execution. Dedicated Multi-Agent Concurrent Execution section — build artifact collisions (retry), file reverts (verify with git show, use Write not Edit), shared file conflicts (don't fix others' files), file reservation via agent-mail, verification strategy (module-scoped per bead, full suite at test gate). Self-review test step acknowledges multi-agent.*
+*v4.7: Organizations feedback. Multi-agent filtered test fallback. Manifest robustness. Self-review proportionality for verification beads.*
 *v4.6: Cumulative health score (PAUSE@40/STOP@60). Rationalization prevention Iron Law. AI slop detection. Context budget per bead. Confidence Substitution anti-pattern.*
 *v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*
 *v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered). Checkpoint threshold raised to 8+ files. Anti-pattern: sub-agent delegation for implementation reads.*

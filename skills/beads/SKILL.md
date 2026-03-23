@@ -488,9 +488,9 @@ Check that the minimum required docs exist:
 
 If any blocking items are missing, stop and tell the user which upstream skill to run first.
 
-**Step 0.4 — Present doc map summary:**
+**Step 0.4 — Record doc map (do NOT present to user):**
 
-Show the user what was discovered before proceeding to decomposition:
+Record the doc map internally. Do NOT present it to the user or ask for confirmation — proceed directly to decomposition:
 
 ```markdown
 ## Documentation Map
@@ -874,7 +874,7 @@ Register dependencies between beads as specified in the plan's dependency graph 
 
 ### Phase 3: Self-Assessment Gate
 
-Every bead must pass a readiness check before presenting to the user. This catches missing context, ambiguous objectives, and oversized beads before they cause problems during execution.
+Every bead must pass a readiness check internally. This catches missing context, ambiguous objectives, and oversized beads. Resolve all issues before outputting the one-line summary. Do NOT present individual bead assessments to the user.
 
 **Step 3.1 — Pre-Assessment Verification:**
 
@@ -1365,7 +1365,7 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 *v5.1: Full-pipeline adversarial review fixes. Hybrid mode (30-70%) decomposition instructions added. Verification beads for "Exists" elements at 70-90% (not just >90%). FR Coverage with acceptance criteria depth (ACs Covered column — Partial if any AC unaddressed). Design Decision Coverage table (verify every decision propagated as failure criteria). Decomposition Adaptation Algorithm for non-.NET projects (build from docs/patterns/ directory). Verification bead template added.*
 *v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*
 *v4.0: Phase 0 doc discovery — scans project docs tree to build a doc map instead of assuming hardcoded paths. Handles variance in project structure: flat vs nested patterns, decisions in adr/ or designs/{feature}/decisions/, numbered design prefixes, subfeature nesting. Decomposition tables use pattern keys resolved from the doc map. Gate beads load discovered decisions, architecture docs, and learnings into context. Pattern-granular decomposition — one bead per pattern artifact with Backend/Frontend/Test decomposition tables. Stage gate beads — `/review` + `/simplify` cycles at feature slice, use case, and module boundaries. Frontend beads depend on backend test gates, never on raw backend impl beads. Trust hierarchy for gate findings. Bead description format includes Pattern and Commit fields. Bead size heuristic rewritten around pattern alignment with grouping exceptions and never-combine rules. Bead count comparison showing impact.*
-*v3.5: Prerequisites expanded with design docs. Parallel Tracks cross-ref corrected (Step 1.5). Good Bead example references design doc instead of plan. PAUSE step labels scoped to avoid collision.*
+*v3.5: Prerequisites expanded. Parallel Tracks corrected.*
 *v3.4: AskUserQuestion stage gates (removed in v5.2 — user cannot evaluate individual beads).*
 *v3.2: Review beads (REMOVED in v5.2 — /review and /simplify gates deleted preparatory code needed by future beads).*
-*v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*
+*v3.1: Duration targets, scope growth check, prose-based artifact import, self-review themes, language-neutral examples.*

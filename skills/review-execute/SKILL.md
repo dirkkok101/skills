@@ -106,7 +106,9 @@ When the user says "converge", "fix all issues", or selects CONVERGE mode, run t
    - **MECHANICAL** — wrong HTTP verb, missing entity property, test verifying wrong thing, missing import. Auto-fix.
    - **JUSTIFIED_DEVIATION** — implementation differs from design with documented rationale. Verify and PASS.
    - **DECISION** — design contradiction, scope question, architectural choice needs user input. Escalate via AskUserQuestion.
-3. **Fix** MECHANICAL findings. **Cascade check:** after fixing a file, run the project's build and test commands. If tests fail, the fix is wrong — revert and reclassify as DECISION.
+3. **Fix** MECHANICAL findings.
+   - **Pattern pre-check:** Before writing any fix, verify the fix approach against the project's architectural constraints (ADRs, pattern docs, CLAUDE.md). A fix that violates the project's patterns (e.g., injecting DbContext into an endpoint when the project forbids it) creates a new finding. Check constraints BEFORE writing code.
+   - **Cascade check:** After fixing a file, run the project's build and test commands. If tests fail, **diagnose first** — determine whether the failure is from your fix (revert) or from a pre-existing bug your fix exposed (fix the bug). Do NOT automatically revert and reclassify. The Applications review found 2 production bugs (audit entityId, delete cascade) by investigating test failures instead of reverting. Only revert if your fix genuinely caused the regression.
 4. **Update manifest** — After fixes, update `docs/execution/{feature}/manifest.md` with new commit hashes, changed file lists, and any corrected FR/UC coverage claims. A stale manifest after CONVERGE undermines future reviews.
 5. **Re-review** — Run again on fixed code.
 6. **Compare** — Did FAILs decrease? If increased, revert and stop.
@@ -210,16 +212,16 @@ Read `docs/execution/{feature}/manifest.md`.
 - Design elements implemented per bead
 - Commit hashes per bead
 
-**If manifest is missing or is a stub (fallback):** Flag immediately before proceeding:
+**If manifest is missing or is a stub (fallback):** Reconstruct it as Step 0 rather than flagging and deferring:
 1. Note `MANIFEST_STALE` as a WARN finding: "/execute did not write the required manifest"
-2. Ask the user: "No execution manifest found. Proceed with degraded review (reconstruct from git), or wait for manifest?" If proceeding:
-3. Identify the epic: `br search "{feature}"` or `br list --status closed`
-4. Get the bead list: `br dep tree {epic-id}`
-5. Map commits to beads: `git log --oneline` — match commit messages to bead titles
-6. For each bead, derive files changed: `git diff {commit}^..{commit} --stat`
-7. Build a minimal manifest in memory
+2. Reconstruct and WRITE the manifest to `docs/execution/{feature}/manifest.md`:
+   - Identify the epic: `br search "{feature}"` or `br list --status closed`
+   - Get the bead list: `br dep tree {epic-id}`
+   - Map commits to beads: `git log --oneline` — match commit messages to bead titles
+   - For each bead, derive files changed: `git diff {commit}^..{commit} --stat`
+3. Commit the reconstructed manifest so future reviews have it
 
-This fallback is slower and less precise. Phase 2 per-bead verification is harder without per-bead file lists — the reviewer must infer which files belong to which bead from commit diffs.
+Creating the manifest upfront (even reconstructed) is more efficient than working without it throughout the review. For mature modules where execution happened across many sessions, this reconstruction is the norm, not the exception.
 
 **Step 0.2 — Load Bead Descriptions:**
 
@@ -648,6 +650,7 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 - The bead's failure criteria verbatim (so the agent knows the boundary)
 - The bead's **In Scope** section (so the agent doesn't flag pre-existing code outside bead scope)
 - Whether design decisions exempt certain files (e.g., "ExportAuditLog is exempt per sub-plan decision")
+- **Key architectural constraints** from CLAUDE.md or project pattern docs (e.g., "no DbContext in endpoints", "commands return result types not entities", "use vertical slice structure"). Without these, agents may suggest fixes that violate the project's patterns.
 
 Even with these precautions, expect 10-20% false positive rate from agents. Triage all agent findings before including them in the report.
 
@@ -666,8 +669,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.7*
-*v1.7: Production feedback from Users review. Verification-mode Phase 3 scoping (abbreviate for >70% pre-existing). WARN actionability: exact file:line for both code and upstream doc. Frontend test: prefer JSON reporter over parsing human-readable output.*
+*Skill Version: 1.8*
+*v1.8: Production feedback from Applications review. Cascade check: diagnose test failures before reverting (found 2 production bugs by investigating instead of reverting). Pattern pre-check before writing fixes (prevents architectural violations like DbContext-in-endpoint). Agent prompts: include key architectural constraints from CLAUDE.md. Manifest reconstruction: write it as Step 0 instead of working without it.*
+*v1.7: Users review feedback. Verification-mode Phase 3 scoping. WARN actionability. JSON test reporter.*
 *v1.6: CONVERGE as default mode.*
 *v1.5: Organizations feedback. Pre-existing vs introduced distinction. Same-session hardening. Manifest validation in Phase 0. Cross-org auth test checklist. Common CONVERGE fix pattern.*
 *v1.4: Verification-mode STANDARD recommendation. Clean pass abbreviated output. Same-session fresh-eyes doc. UPSTREAM_DOC tracking via br issues.*

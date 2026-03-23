@@ -569,7 +569,7 @@ ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 - Rely on plan's coverage tables for FR/UC/Design traceability. Spot-check source docs for file paths only (confirm they exist, don't re-read content).
 - **Lighter bead descriptions:** For verification beads, use a compact format: objective + checklist + verification command. Skip the full template (In Scope, Out of Scope, Approach, Given/When/Then) — a verification bead is a checklist, not a construction blueprint.
 
-**Dry-run option:** Write all bead descriptions to a `beads.md` file first (Phase 2). Present the summary at PAUSE. Only create beads in the issue tracker (br) AFTER approval. This prevents creating beads that need to be deleted if the self-assessment reveals structural problems.
+**Dry-run file:** Write all bead descriptions to a `beads.md` file as a record of what was created. Create beads in the issue tracker (br) immediately — do NOT wait for user approval (there are no PAUSE points). The beads.md file serves as documentation, not as an approval gate.
 
 **Checkpoint/resume:** Before creating beads, check if beads already exist for this feature (search by epic title or feature label). If found:
 - Present: "{N} beads already exist for {feature}. Delete and recreate, or resume?"

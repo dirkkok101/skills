@@ -108,7 +108,9 @@ ADRs > Pattern docs > Architecture docs > PRD > Design (api-surface, data-model)
 
 **Auto-downgrade:** COMPREHENSIVE on a single module automatically uses STANDARD depth regardless of bead count. Batch execution sections only apply to multi-module reviews. Apply this downgrade BEFORE document loading begins.
 
-**Verification Module fast path (>90% exists, ≤10 beads):** Skip Phase 2 (FR/UC coverage inherited from plan) and Phase 3 (greenfield decomposition tables irrelevant). Go straight to Phase 4 (bead-by-bead) + Phase 5 (cross-bead consistency). Use compact report by default.
+**Verification Module fast path (>90% exists, any bead count):** Skip Phase 2 (FR/UC coverage inherited from plan) and Phase 3 (greenfield decomposition tables irrelevant). Go straight to Phase 4 (bead-by-bead) + Phase 5 (cross-bead consistency). Use compact report by default. The bead count threshold (was ≤10) is removed — what matters is that >90% of design elements exist, not how many beads there are.
+
+**Wave 1 only for non-greenfield (>70% exists):** Load bead file + design API surfaces first. Only load PRD/UCs/mockups if Wave 1 reveals coverage gaps. This cuts document loading by ~60% for modification-only bead sets.
 
 **Category applicability by bead type:** Not all 11 categories apply to all bead types:
 - **Implementation beads:** All 11 categories apply
@@ -908,7 +910,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.6*
+*Skill Version: 2.7*
+*v2.7: Final production feedback from 15/15 modules. Verification fast path: removed ≤10 bead count threshold (>90% exists is sufficient regardless of count). Wave 1 only for non-greenfield >70% (load beads + API surfaces first, PRD/UCs only if gaps found).*
 *v2.6: Consolidated feedback from 11 production runs. Gate prohibition refined: dangerous between sequential impl beads, defensible at phase boundaries before tests. Auto-downgrade: single module always STANDARD regardless of bead count (apply before loading). Verification Module fast path: skip Phases 2-3 for >90% exists ≤10 beads. Category applicability table by bead type. br comments pattern documented. From Audit, Organizations, Authentication, Identity Providers, Users reviews.*
 *v2.5: Consolidated feedback from 6 production runs. Do NOT delegate finding generation to agents (80% false positive rate — agents can't call br show). Verification Mode Phase 3 shortcut (skip decomposition tables). Non-CRUD granularity method (services, guards, components). Compact report default for 0-FAIL. False positive log section formalized. Auto-downgrade COMPREHENSIVE for <15 beads. Project-specific references removed (nxgn components, module names).*
 *v2.4: Production feedback from Roles review. /review+/simplify gates downgraded from FAIL to DECISION (older bead sets may have them — user decides removal). Compact report auto-selected when 0 FAILs. Non-greenfield granularity method noted (count verification beads from Implementation Status, not greenfield decomposition tables).*

@@ -88,9 +88,10 @@ When the user says "converge", "fix all issues", or selects CONVERGE mode, run t
    - **JUSTIFIED_DEVIATION** — implementation differs from design with documented rationale. Verify and PASS.
    - **DECISION** — design contradiction, scope question, architectural choice needs user input. Escalate via AskUserQuestion.
 3. **Fix** MECHANICAL findings. **Cascade check:** after fixing a file, run the project's build and test commands. If tests fail, the fix is wrong — revert and reclassify as DECISION.
-4. **Re-review** — Run again on fixed code.
-5. **Compare** — Did FAILs decrease? If increased, revert and stop.
-6. **Repeat** until 0 FAILs or max 5 rounds.
+4. **Update manifest** — After fixes, update `docs/execution/{feature}/manifest.md` with new commit hashes, changed file lists, and any corrected FR/UC coverage claims. A stale manifest after CONVERGE undermines future reviews.
+5. **Re-review** — Run again on fixed code.
+6. **Compare** — Did FAILs decrease? If increased, revert and stop.
+7. **Repeat** until 0 FAILs or max 5 rounds.
 
 **Authority hierarchy for verification:**
 ```
@@ -100,6 +101,13 @@ ADRs > Pattern docs > Architecture docs > Design (api-surface, data-model) > PRD
 When implementation contradicts a higher-trust source, the implementation is wrong.
 
 **Same-session detection:** If execution occurred in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW — the reviewer shares the executing agent's blind spots.
+
+**Non-greenfield execution review:** If the execution manifest or plan's Implementation Status shows >70% of design elements already existed before execution:
+- **Verification beads** ("verify X matches design") — the AC is "confirm existing code matches spec." Review by reading the code and checking against the spec, not by looking for newly written code.
+- **Modification beads** ("update X to add Y") — verify the specific modification was made. Don't flag pre-existing code that wasn't part of the bead's scope.
+- **Gap-filling beads** ("implement missing X") — treat as greenfield for the specific gap.
+- Do NOT flag missing tests for pre-existing code that the bead didn't modify — only verify test coverage for new/changed code within the bead's scope.
+- Wave 1 only for loading: design api-surfaces + changed files. Only load PRD/UCs if Wave 1 reveals coverage gaps. This cuts document loading by ~60% for modification-only bead sets.
 
 ---
 
@@ -118,6 +126,9 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 | `TEST_QUALITY` | Test exists but doesn't verify the right thing | **WARN** |
 | `MISSING_IMPL` | Bead marked complete but core functionality absent | **FAIL** |
 | `FR_GAP` | FR acceptance criteria not satisfied despite bead claiming coverage | **FAIL** |
+| `UC_GAP` | Use case scenario step not traceable through implemented code | **FAIL** |
+| `ARCH_VIOLATION` | Implementation violates architecture constraint (multi-tenancy, auth, CQRS) | **FAIL** |
+| `CROSS_MODULE_GAP` | Cross-module dependency not wired or shared contract not imported | **FAIL** |
 | `MANIFEST_STALE` | Manifest claims don't match actual git state | **WARN** |
 | `ADR_VIOLATION` | Implementation violates an architectural decision record | **FAIL** |
 | `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately) |
@@ -139,6 +150,11 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 - Test asserts `response.StatusCode == 200` but doesn't check response body shape
 - ADR-0014 says "enums over string constants" but implementation uses string constants
 - Bead marked complete but the endpoint isn't registered in DI/routing
+- UC-001 main step 5 says "system displays confirmation" but no confirmation response/component exists
+- Entity implements tenant-scoped queries but missing `ITenantEntity` interface per architecture docs
+- Endpoint has no authorization policy but design specifies admin-only access
+- Command and query combined in same handler (CQRS violation per architecture)
+- Bead depends on cross-module service but import/DI registration is missing
 
 ### WARN Examples
 
@@ -270,7 +286,7 @@ Compare the bead's objective + in/out of scope against the actual changes:
 
 ### Phase 3: Design Traceability (STANDARD+)
 
-**Load:** Design documents from `docs/designs/{feature}/`.
+**Load:** Design documents from `docs/designs/{feature}/`. Use the doc map from beads.md or discover paths from the project's doc structure.
 
 **Step 3.1 — API Surface Verification:**
 
@@ -292,14 +308,40 @@ For each bead that implements an entity:
 2. Compare: properties, types, constraints, relationships, indexes
 3. Flag missing properties or wrong types as `DESIGN_DRIFT`
 
-**Step 3.3 — ADR Compliance (COMPREHENSIVE):**
+**Step 3.3 — ADR Compliance (STANDARD+):**
 
-Read all ADRs referenced by beads. For each:
+Read ADRs explicitly referenced by bead failure criteria (STANDARD) or all project ADRs (COMPREHENSIVE). For each:
 1. Extract the decision and its implications
 2. Verify implementation follows the decision
 3. Flag violations as `ADR_VIOLATION`
 
-**Step 3.4 — FR Acceptance Criteria Depth (COMPREHENSIVE):**
+In STANDARD mode, focus on ADRs cited in bead failure criteria — these are the decisions the beads explicitly encode. In COMPREHENSIVE mode, read all ADRs and check broadly.
+
+**Step 3.4 — Architecture Compliance (STANDARD+):**
+
+Verify implementation follows architecture constraints from `docs/architecture/` and the design's chosen approach. Check each applicable concern:
+
+**Multi-tenancy:**
+- [ ] Entities that should be tenant-scoped implement the project's tenant interface (e.g., `ITenantEntity`)
+- [ ] Queries include tenant filtering (no cross-tenant data leaks)
+- [ ] Tests verify tenant isolation
+
+**Authorization:**
+- [ ] Endpoints have authorization policies matching the design's auth requirements
+- [ ] Admin-only endpoints are protected, not just role-gated at the UI level
+- [ ] Authorization is enforced server-side, not just client-side
+
+**CQRS (if applicable per architecture):**
+- [ ] Commands and queries are separated into distinct handlers
+- [ ] No command handler reads data for display; no query handler mutates state
+
+**Other architecture constraints:**
+- [ ] Check `docs/architecture/` for project-specific constraints
+- [ ] Verify the implementation uses the design's chosen approach, not a rejected alternative
+
+Flag violations as `ARCH_VIOLATION`.
+
+**Step 3.5 — FR Acceptance Criteria Depth (COMPREHENSIVE):**
 
 For each Must-Have FR referenced by any bead:
 1. Read the PRD's Given/When/Then acceptance criteria
@@ -315,6 +357,28 @@ For each Must-Have FR referenced by any bead:
 | FR-ENT-ENABLE | Must | 10 | 10 | ✅ | ✅ | Full |
 | FR-ENT-DISABLE | Must | 5 | 3 | ✅ | ⚠ 2 missing | Partial — FAIL |
 ```
+
+**Step 3.6 — UC Scenario Verification (STANDARD+):**
+
+For each use case referenced by beads or in the execution manifest's UC Coverage table:
+1. Read the UC document
+2. Trace each **main scenario step** through the implemented code — find the endpoint, component, or handler that implements it
+3. Trace each **extension flow** — find the error handler, validation, or fallback
+4. Trace each **alternative flow** — confirm it's handled or explicitly deferred
+5. Flag untraceable steps as `UC_GAP`
+
+```markdown
+## UC Scenario Verification
+
+| UC ID | Step | Description | Implementation | Status |
+|-------|------|-------------|----------------|--------|
+| UC-001 | Main.1 | Admin navigates to list | ListPage component + route | PASS |
+| UC-001 | Main.5 | System saves entity | SaveEndpoint → SaveCommand | PASS |
+| UC-001 | Ext.3a | Duplicate name error | Validator + 409 response | PASS |
+| UC-001 | Ext.5a | Server error during save | — | FAIL (UC_GAP) |
+```
+
+This is the pipeline's end-to-end traceability check: PRD defined the UC, design mapped it to flows, plan decomposed it into tasks, beads carried the intent, execute produced the code — this step verifies the code actually implements the scenario.
 
 ---
 
@@ -332,7 +396,15 @@ For beads that create separate components (backend endpoint + frontend page):
 - Do they use matching contracts (same DTOs, same routes)?
 - Does the frontend call the endpoint with the right verb and path?
 
-**Step 4.3 — Test Gate Verification:**
+**Step 4.3 — Cross-Module Dependencies:**
+
+For beads that reference cross-module services or contracts:
+- Is the cross-module service imported and registered in DI?
+- Are shared contracts imported from the correct module?
+- Does the dependency actually exist in the other module's implementation?
+Flag gaps as `CROSS_MODULE_GAP`.
+
+**Step 4.4 — Test Gate Verification:**
 
 For each test gate bead in the manifest:
 - Were the verification commands actually run?
@@ -386,6 +458,21 @@ Aggregate all findings from Phases 1-4:
 | Design Element | Source | Bead | Implementation | Match? |
 |---------------|--------|------|----------------|--------|
 | {endpoint} | api-surface.md:34 | bd-{id} | EndpointFile.cs:12 | Yes/No |
+
+### UC Scenario Verification (STANDARD+)
+
+| UC ID | Steps Traced | Gaps | Status |
+|-------|-------------|------|--------|
+| UC-001 | 16/16 main + 4/5 ext | Ext.5a: no server error handler | Partial — FAIL |
+| UC-002 | 12/12 main + 3/3 ext | — | Full |
+
+### Architecture Compliance
+
+| Constraint | Source | Status |
+|-----------|--------|--------|
+| Multi-tenancy | docs/architecture/multi-tenancy.md | ✅ / ❌ |
+| Authorization | api-surface.md auth policies | ✅ / ❌ |
+| CQRS | docs/architecture/cqrs.md | ✅ / ❌ |
 ```
 
 **Step 5.2 — Write Review Report:**
@@ -418,11 +505,12 @@ AskUserQuestion:
 
 These standards are non-negotiable. Every finding must meet ALL of them:
 
-1. **Read the actual code** before writing any finding — do not flag based on file names or manifest claims alone
-2. **Quote the specific defect** — "the code at {file}:{line} does X" or "the code omits X"
-3. **Cite the authority source** — "bead AC2 says Y" or "api-surface.md line 34 specifies Z"
-4. **The issue must cause a concrete problem** — "this means the endpoint returns the wrong shape" or "this test doesn't catch the failure mode"
-5. **Verify the finding against the actual codebase state** — grep to confirm before flagging
+1. **Re-read the bead description** before writing any finding — do not flag based on remembered bead content. Read from `docs/beads/{feature}/beads.md` or `br show bd-{id}`.
+2. **Read the actual code** before writing any finding — do not flag based on file names or manifest claims alone
+3. **Quote the specific defect** — "the code at {file}:{line} does X" or "the code omits X"
+4. **Cite the authority source** — "bead AC2 says Y" or "api-surface.md line 34 specifies Z"
+5. **The issue must cause a concrete problem** — "this means the endpoint returns the wrong shape" or "this test doesn't catch the failure mode"
+6. **Verify the finding against the actual codebase state** — grep to confirm before flagging
 
 ### What NOT to Flag
 
@@ -460,7 +548,7 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 
 **Pattern Perfectionism** — Flagging every minor deviation from a pattern doc as `PATTERN_DEVIATION`. Patterns are guidance, not byte-for-byte templates. If the intent is followed and the code works, minor structural variations are acceptable.
 
-**Testing the Framework** — Flagging missing tests for framework behavior (DI registration, middleware pipeline, route matching). Tests should verify application logic, not that ASP.NET Core works.
+**Testing the Framework** — Flagging missing tests for framework plumbing (DI registration, middleware pipeline, route matching, ORM configuration). Tests should verify application logic, not that the framework works correctly.
 
 **Scope-Blind Review** — Reviewing files changed by the execution that aren't part of any bead's scope. Focus on bead-scoped work only. If adjacent code was modified, that should have been flagged as scope creep, not reviewed as bead work.
 
@@ -497,5 +585,6 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.0*
-*v1.0: Initial release — bead-by-bead acceptance criteria verification, failure criteria checking, design traceability (API surface, data model, ADR compliance), FR acceptance criteria depth, execution manifest consumption, CONVERGE mode with auto-fix loop, finding classification aligned with sibling review skills (FAIL/WARN), anti-agent-delegation policy, trust hierarchy, relationship to /review clearly delineated.*
+*Skill Version: 1.1*
+*v1.1: UC scenario verification (Phase 3.6) — traces UC main steps, extensions, and alternatives through code. Architecture compliance (Phase 3.4) — multi-tenancy, authorization, CQRS checks. ADR compliance promoted from COMPREHENSIVE-only to STANDARD+ (bead-referenced ADRs). Non-greenfield awareness (verification/modification/gap-filling bead modes). Cross-module dependency verification (Phase 4.3). Finding quality: bead re-read required before flagging. CONVERGE manifest update after fixes. New finding classes: UC_GAP, ARCH_VIOLATION, CROSS_MODULE_GAP.*
+*v1.0: Initial release — bead-by-bead AC/FC verification, design traceability, FR depth, execution manifest, CONVERGE mode, finding classification, trust hierarchy, /review delineation.*

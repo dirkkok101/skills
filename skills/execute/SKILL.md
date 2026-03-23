@@ -114,7 +114,6 @@ Before starting, verify:
 │     └─ Run bead's verification commands                      │
 │     └─ Run full test suite (no regressions)                  │
 │     └─ Self-review against success/failure criteria          │
-│     └─ Upstream verification (FR acceptance criteria)        │
 │                                                              │
 │  6. COMMIT                                                   │
 │     └─ Stage specific files (not git add -A)                 │
@@ -176,7 +175,16 @@ Track overall progress so you (and the user) can see what's been completed and w
 
 When multiple beads are ready simultaneously (no dependency between them), they can be executed in any order. Prefer: data model beads before service beads, service beads before integration beads. Execute each bead fully before starting the next.
 
-**Test gate beads:** When the next bead is a test/verify gate (tagged `gate`), run the verification commands specified in the gate bead. If all pass, close the gate and proceed. If any fail, fix the failing beads before continuing.
+**Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead (e.g., `dotnet test --filter`, `ng test`). If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
+
+**UC verification gates:** When the next bead is a UC verification gate (`verify({module}): UC-{ID}`), trace the use case's main scenario steps through the implemented code:
+1. Read the UC document referenced by the gate
+2. For each main scenario step, confirm the endpoint/component exists and handles it
+3. For each extension/alternative flow, confirm error handling exists
+4. Run the gate's verification commands
+If any step can't be traced through code, flag as a blocker.
+
+**Module completion gates:** When the next bead is a module completion gate (`verify({module}): module complete`), run the full test suite for the module and verify all UC gates passed.
 
 #### For Each Bead:
 
@@ -216,23 +224,26 @@ Read ONLY the files specified in the bead's "Context to Load" section. Understan
 
 **Step 2.3a — Load Module Specs (first bead in module only):**
 
-When starting the FIRST bead in a module, also read:
-1. `docs/designs/{module}/design.md` — technical design overview
-2. `docs/designs/{module}/data-model.md` — entity specifications (if exists)
-3. `docs/designs/{module}/features/{feature}/api-surface.md` — endpoint specs (if referenced by bead)
-4. `docs/prd/{module}/prd.md` — requirements (skim for referenced FRs)
+When starting the FIRST bead in a module, load the module's key design documents. Use the doc map from `docs/beads/{feature}/beads.md` (if it contains one) or discover paths using the project's doc structure:
 
-For subsequent beads in the same module, these are already in context.
-Do NOT re-read these on every bead — only on the first bead or after context compaction.
+1. **Design overview** — technical design for the module
+2. **Data model** — entity specifications (if exists)
+3. **API surface** — endpoint specs for the feature being implemented (if referenced by bead)
+4. **PRD** — requirements (skim for referenced FRs and UCs)
+5. **Use cases** — UC documents referenced by beads in this module
 
-**Lookup order for specs:**
+Common path patterns (vary by project):
 ```
 docs/designs/{module}/           — technical design (source of truth for HOW)
 docs/prd/{module}/               — requirements (source of truth for WHAT)
+docs/use-cases/ or docs/prd/{module}/use-cases/  — UC scenarios
 docs/adr/                        — architectural decisions (source of truth for WHY)
 docs/patterns/                   — coding patterns (source of truth for STYLE)
 docs/architecture/               — system architecture (source of truth for CONSTRAINTS)
 ```
+
+For subsequent beads in the same module, these are already in context.
+Do NOT re-read these on every bead — only on the first bead or after context compaction.
 
 **Step 2.4 — Design Implementation:**
 
@@ -284,9 +295,11 @@ Before committing, run a lightweight self-review. This is a fast sanity check �
 Per-Bead Self-Review (lightweight):
 - [ ] Re-read bead objective — does the implementation achieve it?
 - [ ] Each success criterion met (check specifically)
-- [ ] No failure criterion violated (check specifically)
+- [ ] No failure criterion violated (check specifically — failure criteria often encode
+      design decisions like "Do NOT use SaveRequest" per command-pattern.md; verify
+      against the referenced decision doc, not just as arbitrary rules)
 - [ ] No scope creep (nothing added beyond the objective)
-- [ ] Implementation follows the referenced pattern
+- [ ] Implementation follows the referenced pattern doc
 - [ ] Code style matches existing codebase
 - [ ] Tests verify application logic, not framework guarantees
 - [ ] Run both the specific test AND the full suite before committing
@@ -295,36 +308,22 @@ Per-Bead Self-Review (lightweight):
 
 If any item fails, fix the issue, re-run tests, then re-review.
 
-**Note:** Deep design/spec alignment (api-surface match, data-model match, ADR compliance, FR acceptance criteria) is verified by `/review-execute` post-execution. The self-review catches obvious mismatches but does not replace adversarial review.
+**Note:** Deep design/spec alignment (api-surface match, data-model match, ADR compliance, FR acceptance criteria, UC scenario coverage) is verified by `/review-execute` post-execution. The self-review catches obvious mismatches but does not replace adversarial review.
 
-**Step 2.8 — Upstream Verification (STANDARD+):**
-
-After self-review passes, verify against upstream artifacts:
-
-```
-- [ ] Read bead's FR references from PRD (`docs/prd/{feature}/prd.md`)
-- [ ] Verify each FR's acceptance criteria are satisfied
-- [ ] Check: do endpoints match API spec? (if API bead)
-- [ ] Check: do entities match data model spec? (if data bead)
-- [ ] If BDD scenarios exist for referenced UCs (in `docs/prd/{feature}/use-cases/`), run them
-```
-
-Skip this step for infrastructure-only beads with no FR references.
-
-**Step 2.9 — Commit:**
+**Step 2.8 — Commit:**
 
 Track which files you created or modified during implementation. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting.
 
 Close the bead in the issue tracker.
 
-**Step 2.9a — Push:**
+**Step 2.8a — Push:**
 ```bash
 git push
 ```
 Push after each bead. Do NOT accumulate unpushed commits.
 This prevents work loss on crash.
 
-**Step 2.10 — Summarise & Reset:**
+**Step 2.9 — Summarise & Reset:**
 
 Record a structured per-bead completion entry. These entries accumulate into the execution manifest (written in Phase 4):
 ```markdown
@@ -333,6 +332,7 @@ Record a structured per-bead completion entry. These entries accumulate into the
 - **Files changed:** {list of file paths}
 - **Tests added:** {count} ({list of test file paths})
 - **FRs addressed:** {FR IDs from bead's "Implements" field}
+- **UCs contributed to:** {UC IDs and steps this bead helps implement}
 - **ACs claimed:** {which acceptance criteria this bead satisfies}
 - **Design elements implemented:** {api-surface endpoint, data-model entity, etc.}
 - **Commit:** {commit hash} — {commit message}
@@ -468,7 +468,7 @@ Write a structured execution manifest to `docs/execution/{feature}/manifest.md`.
 
 ## Bead Completion Log
 
-{All structured per-bead entries from Step 2.10}
+{All structured per-bead entries from Step 2.9}
 
 ## Commits
 
@@ -483,6 +483,13 @@ Write a structured execution manifest to `docs/execution/{feature}/manifest.md`.
 | FR ID | Bead(s) | ACs Claimed | Files |
 |-------|---------|-------------|-------|
 | {FR-ID} | {bd-ids} | {AC list} | {file paths} |
+
+## UC Coverage Claimed
+
+| UC ID | Step/Flow | Bead(s) | Implementation |
+|-------|-----------|---------|----------------|
+| {UC-ID} | Main.{N}: {description} | {bd-ids} | {endpoint/component handling this step} |
+| {UC-ID} | Ext.{N}: {description} | {bd-ids} | {error handler / validation} |
 
 ## Design Elements Implemented
 
@@ -511,7 +518,7 @@ Execution manifest: `docs/execution/{feature}/manifest.md`
 Feature complete. Run `/review-execute` for bead-by-bead verification, or `/review` for general code review.
 ```
 
-Note: Each bead was pushed individually (Step 2.9a). All commits are already on remote.
+Note: Each bead was pushed individually (Step 2.8a). All commits are already on remote.
 
 ---
 
@@ -650,8 +657,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.2*
-*v4.2: Pipeline alignment — removed /review and /simplify gate bead handling (beads v5.6 only produces test gates). Execution manifest written to docs/execution/{feature}/manifest.md for /review-execute consumption. Structured per-bead completion entries with FR/AC/design traceability. beads.md as preferred bead source (single source of truth). Lightweight self-review (deep verification deferred to /review-execute). Removed "user-approved beads" prerequisite (plan approval is the approval). Removed dead Phase 4.5 push gate (per-bead push already handles this). Removed hardcoded dotnet commands.*
+*Skill Version: 4.3*
+*v4.3: UC gate execution (trace main scenario steps through code). Removed Step 2.8 upstream verification (fully deferred to /review-execute — eliminates contradiction with lightweight self-review). Design decision awareness in failure criteria checks. Doc map paths instead of hardcoded paths. UC Coverage table added to execution manifest. Consistent step numbering after upstream verification removal.*
+*v4.2: Pipeline alignment — removed /review and /simplify gate bead handling. Execution manifest. Structured per-bead entries. beads.md as preferred source. Lightweight self-review. Removed user-approval prerequisite and hardcoded dotnet commands.*
 *v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work.*
 *v4.0: Crash resilience — per-bead push, git stash checkpointing. Explicit file staging (never git add -A). Design/PRD/ADR verification in self-review. Tier ordering check. Module spec loading from docs/ folders.*
 *v3.5: Collaborative model. COMPREHENSIVE mode per-bead check-in. PRD path in upstream verification. Use case path for BDD scenarios.*

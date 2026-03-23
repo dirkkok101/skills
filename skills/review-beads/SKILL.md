@@ -383,14 +383,14 @@ Read the design docs and derive what the bead set SHOULD contain.
 | Embedded child grid | `{Feature} Embedded List` | Has child entities |
 | Route definitions | `{Feature} Routing` | Always |
 
-**From stage gate rules:**
+**From stage gate rules (test/verify gates only — no /review or /simplify gates):**
 
 | Boundary | Expected Gates | Count |
 |----------|---------------|-------|
-| Per feature backend | `/review` + `/simplify` + test | 3 |
-| Per feature frontend | `/review` + `/simplify` + test | 3 |
-| Per use case | `/review` + `/simplify` | 2 |
-| Module | `/review` + `/simplify` | 2 |
+| Per feature backend | test (integration tests) | 1 |
+| Per feature frontend | test (UI tests) | 1 |
+| Per use case | verify (UC scenario) | 1 |
+| Module | verify (module complete) | 1 |
 
 **Step 3.2 — Derive expected bead count:**
 
@@ -680,7 +680,7 @@ After reviewing individual beads, check cross-cutting concerns:
 
 **Gate wiring:**
 - [ ] Frontend beads depend on backend test gate, NEVER on backend impl beads
-- [ ] Gate chain is complete: `/review` → `/simplify` → test (no missing link)
+- [ ] Gate chain is complete: impl beads → test gate → next phase (no missing link)
 - [ ] UC gates depend on ALL contributing feature test gates (not a subset)
 - [ ] Module gate depends on ALL UC gates
 
@@ -910,8 +910,9 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.7*
-*v2.7: Final production feedback from 15/15 modules. Verification fast path: removed ≤10 bead count threshold (>90% exists is sufficient regardless of count). Wave 1 only for non-greenfield >70% (load beads + API surfaces first, PRD/UCs only if gaps found).*
+*Skill Version: 2.8*
+*v2.8: Fixed stale /review+/simplify references in Phase 3 stage gate count table (was counting 3 gates per feature, now 1 test gate per feature). Fixed gate chain check in Phase 5 cross-bead consistency (was "/review → /simplify → test", now "impl → test gate → next phase").*
+*v2.7: Final production feedback from 15/15 modules. Verification fast path: removed ≤10 bead count threshold (>90% exists is sufficient regardless of count). Wave 1 only for non-greenfield >70%.*
 *v2.6: Consolidated feedback from 11 production runs. Gate prohibition refined: dangerous between sequential impl beads, defensible at phase boundaries before tests. Auto-downgrade: single module always STANDARD regardless of bead count (apply before loading). Verification Module fast path: skip Phases 2-3 for >90% exists ≤10 beads. Category applicability table by bead type. br comments pattern documented. From Audit, Organizations, Authentication, Identity Providers, Users reviews.*
 *v2.5: Consolidated feedback from 6 production runs. Do NOT delegate finding generation to agents (80% false positive rate — agents can't call br show). Verification Mode Phase 3 shortcut (skip decomposition tables). Non-CRUD granularity method (services, guards, components). Compact report default for 0-FAIL. False positive log section formalized. Auto-downgrade COMPREHENSIVE for <15 beads. Project-specific references removed (nxgn components, module names).*
 *v2.4: Production feedback from Roles review. /review+/simplify gates downgraded from FAIL to DECISION (older bead sets may have them — user decides removal). Compact report auto-selected when 0 FAILs. Non-greenfield granularity method noted (count verification beads from Implementation Status, not greenfield decomposition tables).*

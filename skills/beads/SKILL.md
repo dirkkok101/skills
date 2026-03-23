@@ -461,6 +461,23 @@ Record: `reference[]` → list of `{path, title}`.
 
 Record: `prd` → actual file path.
 
+**Step 0.2b — Build path map (actual file locations):**
+
+Before creating beads, discover where code actually lives in the project. Do NOT assume paths — glob for them:
+
+```
+# Find actual entity locations
+glob: **/Features/**/*Entity*.cs OR **/Models/**/*.cs
+# Find actual endpoint locations
+glob: **/Features/**/*Endpoint*.cs OR **/Endpoints/**/*.cs
+# Find actual frontend component locations
+glob: **/src/app/**/*.component.ts
+# Find actual test locations
+glob: **/*Tests*/**/*Test*.cs OR **/*.spec.ts
+```
+
+Build a path map: `{entity name} → {actual directory}`. Use this map when writing bead descriptions — never use assumed paths like `src/app/features/` or `Features/{Entity}/`.
+
 **Step 0.3 — Validate completeness:**
 
 Check that the minimum required docs exist:

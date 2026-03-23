@@ -412,7 +412,7 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 | plan | v3.5 | v4.3 | 15 modules |
 | review-plan | v1.0 | v2.6 | 15 modules |
 | beads | v4.0 | v5.6 | 15 modules |
-| review-beads | v1.0 | v2.6 | 15 modules |
+| review-beads | v1.0 | v2.7 | 15 modules |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact

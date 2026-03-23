@@ -71,6 +71,8 @@ When the user says "converge", "fix all issues", or selects CONVERGE mode, run t
 - `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth
 - `CONVERGE + BRIEF` → uses BRIEF depth
 
+**When to skip CONVERGE:** If a prior STANDARD review already found 0 FAILs, CONVERGE adds no value — the fix loop never activates. In this case, recommend running COMPREHENSIVE (for deeper traceability) without CONVERGE (the fix loop overhead). CONVERGE is most valuable when the prior review found FAILs that need automated fixing, or when no prior review exists.
+
 **CONVERGE changes to the normal review flow:**
 - **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
 - **Replace interactive findings presentation** with a summary table classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
@@ -588,6 +590,8 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 - The specific patterns to check for (exact method names, not descriptions)
 - The patterns that are CORRECT and should NOT be flagged (e.g., "ThrowIfAnyErrors() is validation pipeline — do NOT flag")
 - The bead's failure criteria verbatim (so the agent knows the boundary)
+- The bead's **In Scope** section (so the agent doesn't flag pre-existing code outside bead scope)
+- Whether design decisions exempt certain files (e.g., "ExportAuditLog is exempt per sub-plan decision")
 
 Even with these precautions, expect 10-20% false positive rate from agents. Triage all agent findings before including them in the report.
 
@@ -606,7 +610,8 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.2*
-*v1.2: Production feedback from cross-cutting review. Explicit manifest-missing fallback with git reconstruction steps (Phase 0.1). Agent delegation guidance: include correct patterns in prompts to reduce false positives (ThrowIfAnyErrors flagged incorrectly). 10-20% agent false positive rate expected — triage all agent findings.*
+*Skill Version: 1.3*
+*v1.3: CONVERGE skip recommendation when prior STANDARD passed clean (fix loop adds no value at 0 FAILs). Agent prompts must include bead In Scope section and design decision exemptions to prevent false findings on pre-existing code.*
+*v1.2: Explicit manifest-missing fallback. Agent pattern context in prompts. 10-20% false positive rate expected.*
 *v1.1: UC scenario verification, architecture compliance, ADR in STANDARD+, non-greenfield awareness, cross-module deps, bead re-read requirement, CONVERGE manifest update.*
 *v1.0: Initial release — bead-by-bead AC/FC verification, design traceability, FR depth, execution manifest, CONVERGE mode, finding classification, trust hierarchy, /review delineation.*

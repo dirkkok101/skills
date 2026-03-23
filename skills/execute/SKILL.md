@@ -296,6 +296,8 @@ Run the **full test suite**, not filtered tests. Do NOT use `--filter "ModuleNam
 
 If the full suite is slow (>5 minutes), run the bead's specific verification commands first as a fast check, then run the full suite. But never skip the full suite.
 
+**Concurrent execution exception:** When multiple agents are executing on the same branch simultaneously, other agents' broken code causes false test failures in the full suite. If the full suite fails and the failures are clearly in files YOU did not modify (check `git diff --name-only`), fall back to filtered tests (`--filter "ModuleName"`) for YOUR module only. Log which tests were skipped and why. The test gate bead at the end of the module will catch any real cross-module regressions once all agents have finished.
+
 **Rationalization Prevention (Iron Law):** Every completion claim requires FRESH verification evidence. Common rationalizations to catch:
 - "It should work now" → RUN the tests. "Should" is not evidence.
 - "I'm confident this is correct" → Confidence is not evidence. Run verification.
@@ -305,6 +307,8 @@ If the full suite is slow (>5 minutes), run the bead's specific verification com
 **Step 2.7 — Self-Review:**
 
 Before committing, run a lightweight self-review. This is a fast sanity check — deep adversarial verification is done by `/review-execute` after all beads complete.
+
+**Proportionality:** For verification beads (checking existing code matches design) and test-only beads, the self-review can skip pattern/style/slop checks — focus only on: objective achieved, success criteria met, tests pass.
 
 ```
 Per-Bead Self-Review (lightweight):
@@ -487,7 +491,13 @@ Close the feature epic in the issue tracker.
 
 **Step 4.4 — Write Execution Manifest (MANDATORY):**
 
-**You MUST write** a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is the primary input for `/review-execute`. Without it, review-execute must reconstruct context from git log — slower, less structured, and error-prone. Create the directory if it doesn't exist. Commit and push the manifest as the final commit.
+**You MUST write** a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is the primary input for `/review-execute`. Without it, review-execute must reconstruct context from git log — slower, less structured, and error-prone.
+
+**Manifest writing robustness:**
+1. **Verify working directory** before writing — `pwd` must be the project root. Late-session directory drift (e.g., after `cd` to a subfolder for a frontend build) causes silent write failures.
+2. **Create directory first:** `mkdir -p docs/execution/{feature}/`
+3. **Write early, update incrementally** — start the manifest after the first bead completes. Append each bead's entry as you go. Don't leave it all for Phase 4 when context is full and the session is ending.
+4. Commit and push the manifest as the final commit.
 
 ```markdown
 # Execution Manifest: {Feature Name}
@@ -693,8 +703,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.6*
-*v4.6: Cumulative health score with thresholds (40=PAUSE, 60=STOP, resets after 3 clean beads). Rationalization prevention Iron Law for verification. AI slop detection in self-review. Context budget per bead by mode. Confidence Substitution anti-pattern. Inspired by gstack's self-regulation patterns.*
+*Skill Version: 4.7*
+*v4.7: Production feedback from Organizations execution. Multi-agent concurrent execution: filtered tests allowed as fallback when other agents break the full suite (check git diff --name-only to distinguish). Manifest writing robustness: verify working directory, create directory first, write incrementally (don't leave for Phase 4). Self-review proportionality: verification/test beads skip pattern/style/slop checks.*
+*v4.6: Cumulative health score (PAUSE@40/STOP@60). Rationalization prevention Iron Law. AI slop detection. Context budget per bead. Confidence Substitution anti-pattern.*
 *v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*
 *v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered). Checkpoint threshold raised to 8+ files. Anti-pattern: sub-agent delegation for implementation reads.*
 *v4.3: UC gate execution. Removed Step 2.8 upstream verification (deferred to /review-execute). Design decision awareness. Doc map paths. UC Coverage in manifest.*

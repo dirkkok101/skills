@@ -641,6 +641,15 @@ Verify {Element} matches the design specification.
 - All checklist items pass
 - If any item fails → create a follow-up "Modify {Element}" bead
 
+## In Scope — Test Alignment
+If any verification fix changes observable behavior (status codes, response shapes,
+error messages), update existing tests that assert on the changed behavior IN THE
+SAME BEAD. Do not leave test alignment for a separate unplanned commit.
+
+## Context to Load
+- {Implementation files to verify}
+- {Test files that assert on this element's behavior}
+
 ## Verification
 - **Command:** `{build command}` — confirms no regressions
 - **Commit:** No commit if all checks pass. If fixes needed, commit per fix.
@@ -1370,7 +1379,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.8*
+*Skill Version: 5.9*
+*v5.9: Production feedback from Organizations execution. Verification bead template: test alignment explicitly in scope — when a verification fix changes behavior (status codes, response shapes), update tests in the same bead. Context to Load section added to verification template.*
 *v5.8: Context budget per bead by mode (5/8/12 files). Large bead splitting heuristic (>8 files or >3 patterns = mandatory split). Inspired by gstack's scope discipline patterns.*
 *v5.7: Production feedback from cross-cutting execution.*
 *v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count, exempts Verification Mode. beads.md single source of truth. Remaining presentation triggers removed.*

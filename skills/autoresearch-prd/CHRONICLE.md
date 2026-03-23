@@ -360,11 +360,26 @@ Full-pipeline adversarial review (PRD → design → plan → beads → review-b
 | Applications | 0 | 1 | Yes (6 removed) | Yes (old context) | PASS (CONVERGED) |
 | Roles | 0 | 1 | **No** (fix landed) | Yes (old context) | PASS (CONVERGED) |
 
-Key findings across 3 production runs:
-- /review and /simplify gate fix: worked on Roles (not on Applications due to older skill version in context)
-- AskUserQuestion removal: not effective — agents used old context. Need clean session.
-- Path verification: Applications had wrong paths, Roles got them right (path map fix worked)
-- Beads quality: all 3 modules passed review-beads CONVERGE with 0 FAILs
+### Extended to 6 Modules
+
+| Module | Beads | Review FAILs | Rounds | Key Findings |
+|--------|-------|-------------|--------|-------------|
+| Entitlements | 18 | 0 | 1 | Clean |
+| Applications | 26 | 0 | 1 | 6 /review gates removed |
+| Roles | 27 | 0 | 1 | Clean |
+| Languages | 7 | 0 | 1 | 3 wrong file references fixed |
+| Sessions | 9 | 0 | 1 | Missing contract + wrong dependency |
+| Portal | 21 | 0 | 1 | 3 vague paths fixed |
+
+**108 beads created, 12 findings fixed by review, 0 FAILs remaining.**
+
+Key learnings across 6 runs:
+- /review and /simplify gate fix landed (Roles, Languages, Sessions, Portal had none)
+- AskUserQuestion removal requires clean context (agents used old cached skill)
+- Path map (Phase 0.2b) prevents wrong file references when used
+- Plan Implementation Status can be stale — Phase 3 catches it but Phase 1 should verify earlier
+- Review-beads same-session spot-checks caught real bugs (wrong file refs, missing contracts)
+- CRUD-oriented decomposition tables don't fit frontend-only modules (Portal)
 
 ### Full Pipeline Validated
 
@@ -394,8 +409,8 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 | review-design | v1.0 | v2.5 | 15 modules |
 | plan | v3.5 | v4.3 | 15 modules |
 | review-plan | v1.0 | v2.6 | 15 modules |
-| beads | v4.0 | v5.4 | 1 module (Entitlements) |
-| review-beads | v1.0 | v2.2 | 1 module (Entitlements) |
+| beads | v4.0 | v5.4 | 6 modules |
+| review-beads | v1.0 | v2.4 | 6 modules |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact

@@ -149,15 +149,21 @@ If a bead genuinely needs more files than the budget, it's a split signal — th
 
 **E2E / integration beads requiring different execution contexts** (Aspire AppHost, browser automation, Docker compose) should be tagged `execution-context:{type}` and placed in a separate epic or explicitly marked "separate-session" so the executor knows upfront they can't run in a standard test session.
 
+**Compilation unit check:** After decomposing, verify each bead: "Can the codebase compile after ONLY this bead is implemented?" If not (e.g., bead removes a type that the next bead's code depends on), either merge the beads or mark them as an **atomic group** — they must be implemented together and produce a single compilable commit. Common cases: replacing a type system (boolean flags → OneOf result types), extracting a shared interface that multiple consumers reference.
+
+**Frontend beads should be coarser than backend.** The natural frontend unit is "feature works end-to-end" — a component without routes is dead code, routes without grid integration are unreachable. Combine into coherent UI slices:
+- "Create child route components + register routes" (not one bead per component)
+- "Update grids + remove modals" (not separate grid-change and modal-removal beads)
+The backend "one pattern artifact per bead" rule doesn't apply to frontend where components, routes, and state are tightly coupled.
+
+**Verification beads can be batched.** Instead of 3 separate verify beads (contracts, commands, endpoints), one "verify backend implementation against design" bead that covers all related concerns is more efficient and produces the same result.
+
 **Never combine:**
 - Entity/EF Config with Contracts (different projects)
 - EntityMapper with DTOMapper (opposite data flow)
 - Commands with Queries (CQRS)
 - Endpoints with Commands/Queries (HTTP wiring vs business logic)
 - Validators with Endpoints (validation rules vs HTTP lifecycle)
-- List Page with Capture Page (different routes)
-- Feature Service with any Component (service vs presentation)
-- Routing with Components (infrastructure vs feature)
 - **Backend with Frontend** (different tech stacks, different review cycles)
 
 ---
@@ -1386,8 +1392,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.12*
-*v5.12: Production feedback from Users execution. Small feature slice grouping (entity+contracts+command+query+validator+endpoints as one bead for simple entities ≤8 files). Entity beads must include EF migration in scope. E2E beads tagged with execution-context for separate-session handling.*
+*Skill Version: 5.13*
+*v5.13: Entitlements + Identity Providers feedback. Compilation unit check (can codebase compile after only this bead?). Frontend beads coarser than backend (feature works end-to-end, not one component per bead). Verification beads can be batched. Removed frontend items from never-combine list (List+Capture, Service+Component, Routing+Components).*
+*v5.12: Users feedback. Small feature slice grouping. EF migration in entity scope. E2E execution-context tagging.*
 *v5.11: Applications feedback. Context path validation via glob in Phase 3.*
 *v5.10: Languages feedback. "Exists" elements only get verification beads if gap analysis flags mismatches.*
 *v5.9: Organizations feedback. Verification bead template: test alignment in scope, Context to Load section added.*

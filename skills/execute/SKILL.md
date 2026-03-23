@@ -202,7 +202,7 @@ When multiple agents execute on the same branch simultaneously (e.g., parallel m
 
 **Shared file conflicts:** Other agents may break files you depend on (test files, shared components). **Fix:** Do NOT fix other agents' files. If their broken code blocks your tests, use module-scoped tests (`--filter "YourModule"`) instead of the full suite.
 
-**File reservation (if agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This prevents concurrent writes to the same file. Without reservation, other agents may commit YOUR unstaged files as part of their commits — your subsequent `git add` then fails with "no changes added."
+**File reservation (default when agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This is the **default** when agent-mail is available, not optional. Without reservation, other agents commit YOUR unstaged files during the window between `git add` and `git commit` (the pre-commit hook runs in between, creating a race window). This has caused lost work across multiple modules (Organizations, Languages, Entitlements, Identity Providers).
 
 **Pre-commit hook transience:** Pre-commit hooks that run builds (e.g., `dotnet build`) may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
 
@@ -335,11 +335,11 @@ Most beads modify 1-8 files — skip checkpointing for these. The per-file stash
 
 **Step 2.6 — Verify:**
 
-Run the **full test suite**, not filtered tests. Do NOT use `--filter "ModuleName"` or equivalent — filtered tests miss cross-module regressions. A bead that changes status codes or contracts can break tests in completely separate test files that aren't listed in the bead's context. The full suite is the only reliable verification.
+**Solo execution:** Run the **full test suite**, not filtered tests. Filtered tests miss cross-module regressions.
 
-If the full suite is slow (>5 minutes), run the bead's specific verification commands first as a fast check, then run the full suite. But never skip the full suite.
+**Concurrent execution (other agents active):** Use module-scoped tests per bead (`--filter "YourModule"`). The full suite is unreliable when other agents have broken code or Testcontainers collisions cause batch failures. If module-scoped tests ALSO fail due to concurrent interference (e.g., shared test containers), fall back to per-class execution. Defer the full suite to the test gate bead when your module is complete and concurrent activity has settled.
 
-**Concurrent execution exception:** See "Multi-Agent Concurrent Execution" section above. During concurrent execution, use module-scoped tests per bead and defer full suite to the test gate bead.
+In both cases: if the suite is slow (>5 minutes), run bead-specific verification commands first as a fast check.
 
 **Rationalization Prevention (Iron Law):** Every completion claim requires FRESH verification evidence. Common rationalizations to catch:
 - "It should work now" → RUN the tests. "Should" is not evidence.
@@ -746,8 +746,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.10*
-*v4.10: Production feedback from Users execution. Legacy review/simplify gate handling (self-review instead of launching agents — <5 files is self-review, 8+ is targeted review, never full agents). E2E/Aspire bead deferral (skip with comment, don't block). Pre-commit hook transience note.*
+*Skill Version: 4.11*
+*v4.11: Entitlements + Identity Providers feedback. File reservation default when agent-mail available. Test verification inlined at Step 2.6 (solo vs concurrent, per-class fallback for Testcontainers collisions).*
+*v4.10: Users feedback. Legacy review/simplify gate handling. E2E/Aspire deferral.*
 *v4.9: Applications feedback. Flat execution plan. Verification-only fast path. Pre-commit hook retry. File reservation.*
 *v4.8: Languages feedback. Multi-Agent section. Module-scoped tests. Self-review multi-agent acknowledgment.*
 *v4.7: Organizations feedback. Multi-agent filtered test fallback. Manifest robustness. Self-review proportionality for verification beads.*

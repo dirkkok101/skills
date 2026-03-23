@@ -106,7 +106,17 @@ ADRs > Pattern docs > Architecture docs > PRD > Design (api-surface, data-model)
 
 **False positive log:** Include a `## False Positives Dismissed` section in the review report documenting which findings were dismissed and why. This makes review quality auditable and helps calibrate future reviews.
 
-**Auto-downgrade:** COMPREHENSIVE on a single module with <15 beads automatically uses STANDARD depth. The batch execution sections add no value for small bead sets.
+**Auto-downgrade:** COMPREHENSIVE on a single module automatically uses STANDARD depth regardless of bead count. Batch execution sections only apply to multi-module reviews. Apply this downgrade BEFORE document loading begins.
+
+**Verification Module fast path (>90% exists, ≤10 beads):** Skip Phase 2 (FR/UC coverage inherited from plan) and Phase 3 (greenfield decomposition tables irrelevant). Go straight to Phase 4 (bead-by-bead) + Phase 5 (cross-bead consistency). Use compact report by default.
+
+**Category applicability by bead type:** Not all 11 categories apply to all bead types:
+- **Implementation beads:** All 11 categories apply
+- **Verification beads:** Categories 1-2 (coverage), 7b (gates), 8 (quality), 10 (cross-module) apply. Skip 3-6 (design/pattern compliance for new code), 9 (backwards compat), 11 (granularity).
+- **Test beads:** Categories 7b (gates), 8 (quality) apply. Skip most others.
+- **Gate beads:** Category 7b only.
+
+**br comments pattern:** Bead creators may use `br comments add` for detailed descriptions (br has no long description field). When reviewing, check BOTH the description field AND comments. The beads.md file is the authoritative source — br comments may be abbreviated or corrections appended.
 
 **Token budget:** COMPREHENSIVE reviews with 50+ beads read 30-60 documents. Models with <200K context may need two-pass approach.
 
@@ -565,7 +575,7 @@ For each bead, review against all 11 categories. Not every category applies to e
 
 **Gate policy:** `/review` and `/simplify` gate beads between implementation beads are prohibited (they treat preparatory code as "dead code" and delete it). Only test and verify gates are allowed. If `/review` or `/simplify` gates are found, classify as DECISION (not FAIL) — the user chooses whether to remove them. Older beads sets may have been generated before this policy; removal is the recommended resolution but not automatic.
 
-- [ ] **No `/review` or `/simplify` gate beads** between implementation beads — flag as DECISION, recommend removal
+- [ ] **No `/review` or `/simplify` gate beads between sequential implementation beads** — flag as DECISION if found between impl beads that build on each other (dangerous — may delete preparatory code). Gates at phase boundaries before test beads are defensible and may be kept — note as observation, not DECISION.
 - [ ] Backend test gate blocks frontend beads (frontend depends on backend test gate)
 - [ ] UC verification gates exist for each use case (verify scenario flow, not just code review)
 - [ ] Module verification gate exists as final bead in epic
@@ -898,7 +908,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.5*
+*Skill Version: 2.6*
+*v2.6: Consolidated feedback from 11 production runs. Gate prohibition refined: dangerous between sequential impl beads, defensible at phase boundaries before tests. Auto-downgrade: single module always STANDARD regardless of bead count (apply before loading). Verification Module fast path: skip Phases 2-3 for >90% exists ≤10 beads. Category applicability table by bead type. br comments pattern documented. From Audit, Organizations, Authentication, Identity Providers, Users reviews.*
 *v2.5: Consolidated feedback from 6 production runs. Do NOT delegate finding generation to agents (80% false positive rate — agents can't call br show). Verification Mode Phase 3 shortcut (skip decomposition tables). Non-CRUD granularity method (services, guards, components). Compact report default for 0-FAIL. False positive log section formalized. Auto-downgrade COMPREHENSIVE for <15 beads. Project-specific references removed (nxgn components, module names).*
 *v2.4: Production feedback from Roles review. /review+/simplify gates downgraded from FAIL to DECISION (older bead sets may have them — user decides removal). Compact report auto-selected when 0 FAILs. Non-greenfield granularity method noted (count verification beads from Implementation Status, not greenfield decomposition tables).*
 *v2.3: Category 7b aligned with beads v5.2+ — /review and /simplify gates prohibited (was required). Test/verify gate checks updated. Non-greenfield granularity method noted as needing different approach from greenfield decomposition tables. From Entitlements production review feedback.*

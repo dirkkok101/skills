@@ -273,19 +273,21 @@ Based on loaded context:
 
 **Step 2.5a — Checkpoint (for large beads):**
 
-If a bead involves modifying more than 3 files, checkpoint after each file:
+If a bead involves modifying more than 8 files, checkpoint periodically:
 ```bash
-git stash push -m "checkpoint: bd-{id} - {filename}"
+git stash push -m "checkpoint: bd-{id} - {description}"
 ```
 
 This prevents total work loss on crash. After all files are done,
 pop the stashes and make a single clean commit.
 
-For smaller beads (1-3 files), skip checkpointing — just implement and commit.
+Most beads modify 1-8 files — skip checkpointing for these. The per-file stash overhead isn't worth it for small beads.
 
 **Step 2.6 — Verify:**
 
-Run the bead's specific verification commands, then run the full test suite. All tests must pass before proceeding.
+Run the **full test suite**, not filtered tests. Do NOT use `--filter "ModuleName"` or equivalent — filtered tests miss cross-module regressions. A bead that changes status codes or contracts can break tests in completely separate test files that aren't listed in the bead's context. The full suite is the only reliable verification.
+
+If the full suite is slow (>5 minutes), run the bead's specific verification commands first as a fast check, then run the full suite. But never skip the full suite.
 
 **Step 2.7 — Self-Review:**
 
@@ -642,6 +644,8 @@ Each bead is self-contained — no need to reload plan documents.
 
 **Skipping Verification** — Committing without running the full test suite because "my tests pass." Regressions in other tests are just as serious as failures in new tests. The full suite is the contract with the rest of the codebase.
 
+**Delegating Reads to Sub-Agents** — Using Explore agents or sub-agents to read and interpret implementation files during execution. Sub-agents lack the precision needed for mechanical tasks — they may suggest the wrong pattern (e.g., `ThrowError` instead of `SendProblemAsync`). Always read implementation files directly in the main context. Use parallel direct reads for speed, not agents for interpretation.
+
 ---
 
 ## Exit Signals
@@ -657,8 +661,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.3*
-*v4.3: UC gate execution (trace main scenario steps through code). Removed Step 2.8 upstream verification (fully deferred to /review-execute — eliminates contradiction with lightweight self-review). Design decision awareness in failure criteria checks. Doc map paths instead of hardcoded paths. UC Coverage table added to execution manifest. Consistent step numbering after upstream verification removal.*
+*Skill Version: 4.4*
+*v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered — `--filter "Module"` missed 15 cross-module regressions caught only at test gate). Checkpoint threshold raised to 8+ files (was 3 — too low, adds overhead for typical beads). Anti-pattern: sub-agent delegation for implementation reads (sub-agents gave wrong pattern advice).*
+*v4.3: UC gate execution. Removed Step 2.8 upstream verification (deferred to /review-execute). Design decision awareness. Doc map paths. UC Coverage in manifest.*
 *v4.2: Pipeline alignment — removed /review and /simplify gate bead handling. Execution manifest. Structured per-bead entries. beads.md as preferred source. Lightweight self-review. Removed user-approval prerequisite and hardcoded dotnet commands.*
 *v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work.*
 *v4.0: Crash resilience — per-bead push, git stash checkpointing. Explicit file staging (never git add -A). Design/PRD/ADR verification in self-review. Tier ordering check. Module spec loading from docs/ folders.*

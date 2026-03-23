@@ -771,7 +771,10 @@ Failure criteria are propagated from the plan's sub-plan Failure Criteria sectio
 - **Read:** `{file path}` — {why}
 - **Pattern:** `{file path}` — {why}
 - **Reference:** `{doc path}` — {what to check}
+- **Tests:** `{test file path}` — {tests that assert on this bead's changed behavior}
 - **First bead in module?** Also load: `docs/designs/{module}/design.md`, `docs/designs/{module}/data-model.md`, `docs/prd/{module}/prd.md`
+
+**Always include test files** that assert on the behavior being changed. For modification/migration beads, this means the test files for the endpoints or services being modified — not just the implementation files. A bead that changes a status code from 400→422 needs to list the test file that asserts on 400, or the executing agent will miss the test regression.
 
 ## Approach
 {Brief guidance on HOW to approach the work — not implementation code.
@@ -1360,8 +1363,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.6*
-*v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count (not top-level task count), exempts Verification Mode. beads.md is single source of truth (don't duplicate full descriptions in br comments). Remaining presentation triggers removed (Step 0.4, Phase 3 wording).*
+*Skill Version: 5.7*
+*v5.7: Production feedback from cross-cutting execution. Test files mandatory in Context to Load — modification/migration beads must list test files that assert on changed behavior (missed 15 regressions when test files weren't in context).*
+*v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count, exempts Verification Mode. beads.md single source of truth. Remaining presentation triggers removed.*
 *v5.5: Consolidated feedback from 6 production runs. Verify "New" elements via glob before decomposing (plan can be stale). Scope growth check excludes gate beads. br correction protocol (## CORRECTION header for br comments add).*
 *v5.4: Production feedback round 2. Dry-run option: write beads.md first, create in br AFTER approval (prevents delete+recreate cycles). Lighter verification bead descriptions (checklist format, not full template). Gate scaling: skip UC/module verify for ≤10 impl beads in Verification Mode. Context efficiency: rely on plan tables, spot-check file paths only.*
 *v5.3: Production feedback from Entitlements run. Verification Mode fast path (>90% exists → map directly from plan, skip decomposition analysis, 1 verification bead per feature not per element). Checkpoint/resume for interrupted runs (detect existing beads, offer resume vs delete). Gate scaling for verification mode (lightweight gates when ≤10 impl beads). Context efficiency: rely on plan's coverage tables, spot-check source docs only.*

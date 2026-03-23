@@ -145,7 +145,7 @@ If a bead genuinely needs more files than the budget, it's a split signal — th
 - Capture State + Capture Page IF state is simple (single entity, no lifecycle)
 - **Small feature slice** — entity + contracts + command + query + validator + endpoints + DI for a SINGLE simple entity (≤5 endpoints, no lifecycle, no complex validation) MAY be one bead if the total is ≤8 modified files. The principle: each bead should produce something independently testable via the API. A command without an endpoint isn't testable. If the feature is small enough to implement and test in one commit, it should be one bead.
 
-**Entity beads that add new DbSets** must include "add EF migration" in their scope. Without the migration, tests fail with cryptic DB errors that waste execution time debugging. If the project uses EF Core migrations, the entity bead's scope should say: "Add migration: `dotnet ef migrations add {Name}`."
+**Entity beads that add new database tables/collections** must include the schema migration step in their scope (e.g., EF Core migration, Prisma migrate, Alembic revision, Flyway script). Without the migration, tests fail with cryptic DB errors that waste execution time debugging.
 
 **E2E / integration beads requiring different execution contexts** (Aspire AppHost, browser automation, Docker compose) should be tagged `execution-context:{type}` and placed in a separate epic or explicitly marked "separate-session" so the executor knows upfront they can't run in a standard test session.
 

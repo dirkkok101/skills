@@ -78,7 +78,7 @@ This scoping is appropriate because most code is pre-existing and was already va
 
 **WARN actionability:** Every PRE_EXISTING WARN must include exact file:line references for BOTH the code AND the upstream doc that need alignment. Example: "W1: `UserDTO.cs:45` uses `LinkMethod` but `api-surface.md:112` specifies `LinkedMethod`." This makes the br issue actionable — the person fixing it doesn't need to re-discover the mismatch.
 
-**Frontend test execution:** When running frontend tests for verification, prefer a machine-readable reporter (e.g., `npx ng test --reporters=json` or `npx vitest run --reporter=json`) over parsing human-readable output. Human-readable Vitest output includes serialized error objects that are extremely verbose and hard to parse for pass/fail counts.
+**Frontend test execution:** When running frontend tests for verification, prefer a machine-readable reporter (e.g., `--reporter=json` or equivalent for your test runner) over parsing human-readable output. Human-readable test output often includes serialized error objects that are extremely verbose and hard to parse for pass/fail counts.
 
 ### CONVERGE Mode
 
@@ -267,7 +267,11 @@ If user hasn't specified:
 
 **Test runner smoke check:** Before running the full suite, confirm you can get clean pass/fail output from both backend and frontend test runners. Run a single small test file to verify the runner works and output is parseable. If the runner produces noisy or unparseable output (e.g., ANSI escape codes breaking grep, serialized error objects), fix the invocation now — don't discover it mid-review after 3 failed attempts.
 
-Run the project's build and test commands. If they fail, this is a **FAIL** finding before any bead verification begins. Record test count and pass rate.
+Run the project's build and test commands. If they fail, **triage quickly:** stash your changes, re-run failing tests, pop the stash — this classifies failures as pre-existing vs introduced by the execution. Only introduced failures are FAIL findings. This takes 30 seconds and prevents 5-10 minutes of manual investigation.
+
+Record test count and pass rate.
+
+**Pre-existing code filter:** For verification-mode reviews, run `git diff {first-execution-commit}^..{last-execution-commit} --name-only` early and focus Phase 2 bead verification on files in that diff. Reading unmodified files provides context but isn't necessary for bead verification — if the code predates the execution commits, skip it unless a specific AC references it.
 
 ---
 
@@ -357,7 +361,8 @@ This pattern recurs across modules — the same OneOf return type change fixes m
 For each bead that implements an endpoint:
 1. Read `api-surface.md` for the endpoint spec
 2. Compare: HTTP verb, route, request shape, response shape, error responses, auth policy
-3. Flag mismatches as `DESIGN_DRIFT`
+3. **Before classifying as DESIGN_DRIFT**, check the project-wide pattern. Grep for the status code or verb across all endpoints to see what the codebase actually uses. If the implementation follows a project-wide convention that differs from the design doc, classify as `UPSTREAM_DOC` (doc is stale), not `DESIGN_DRIFT` (code is wrong). Example: if 20+ endpoints return 422 for business validation but the design doc says 400, the doc is stale — the implementation is correct.
+4. Flag genuine mismatches as `DESIGN_DRIFT`
 
 ```markdown
 | Endpoint | Design Spec | Implementation | Match? |
@@ -447,6 +452,8 @@ This is the pipeline's end-to-end traceability check: PRD defined the UC, design
 ---
 
 ### Phase 4: Cross-Bead Consistency
+
+**Skip for verification-mode** when beads are predominantly verify/docs type with independent scopes. Phase 4 checks dependency chains and integration points — these are relevant for greenfield beads that build on each other, not for independent verification passes.
 
 **Step 4.1 — Dependency Verification:**
 
@@ -646,6 +653,8 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 - Loading upstream docs (design, PRD, ADRs) in parallel
 - Bulk file verification (confirming a pattern is absent across many files via grep)
 
+**Agent delegation threshold:** Skip agents entirely when <5 files to read. For verification-mode reviews with ≤3 modification beads, direct file reads are faster than agent spin-up. Agent summaries don't replace reading the code — you'll end up reading files yourself anyway. When agents ARE used, instruct them to produce **concise summaries** (key facts per file), not full file contents — 100KB+ agent outputs exceed read limits and waste context.
+
 **When delegating bulk verification to agents**, include in the agent prompt:
 - The specific patterns to check for (exact method names, not descriptions)
 - The patterns that are CORRECT and should NOT be flagged (e.g., "ThrowIfAnyErrors() is validation pipeline — do NOT flag")
@@ -671,8 +680,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.9*
-*v1.9: Production feedback from Role Templates review. Test runner smoke check in Phase 1 — confirm parseable output before running full suite (RTK/vitest friction consumed 3-4 min across multiple reviews).*
+*Skill Version: 1.10*
+*v1.10: Consolidated Tier 3 feedback (IdP + Entitlements + Auth reviews). Agent delegation threshold (<5 files → skip agents). Project-wide pattern check before DESIGN_DRIFT classification. Pre-existing code filter for verification-mode. Test failure triage via stash/unstash. Phase 4 skip for verification-mode. Concise agent summaries. Project-agnostic language throughout.*
+*v1.9: Role Templates feedback. Test runner smoke check.*
 *v1.8: Applications review. Diagnose before revert. Pattern pre-check. Agent architectural constraints. Manifest reconstruction as Step 0.*
 *v1.7: Users review feedback. Verification-mode Phase 3 scoping. WARN actionability. JSON test reporter.*
 *v1.6: CONVERGE as default mode.*

@@ -204,14 +204,14 @@ When multiple agents execute on the same branch simultaneously (e.g., parallel m
 
 **File reservation (default when agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This is the **default** when agent-mail is available, not optional. Without reservation, other agents commit YOUR unstaged files during the window between `git add` and `git commit` (the pre-commit hook runs in between, creating a race window). This has caused lost work across multiple modules. **Exception:** Skip reservation for beads modifying ≤2 files where the edit takes <30 seconds — the reservation overhead exceeds the risk.
 
-**Pre-commit hook transience:** Pre-commit hooks that run builds (e.g., `dotnet build`) may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
+**Pre-commit hook transience:** Pre-commit hooks that run builds may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
 
 **Verification strategy during concurrent execution:**
 - **Per-bead:** Module-scoped tests (`--filter "YourModule"`) — reliable even when other agents have broken code
 - **Test gate bead:** Full suite — run only when your module's beads are complete and other agents aren't actively building
 - **If full suite is broken by others:** Log the failing tests, verify they're NOT in your changed files (`git diff --name-only`), proceed with module-scoped tests
 
-**Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead (e.g., `dotnet test --filter`, `ng test`). If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
+**Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead. If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
 
 **Review/simplify gate beads (legacy):** If you encounter `/review` or `/simplify` gate beads (from older bead sets), do NOT launch full /review or /simplify agents. Instead:
 - **If preceding beads changed <5 files total:** Self-review is sufficient. Run the self-review checklist from Step 2.7, close the gate, proceed. Launching review agents for 1-2 file changes is pure overhead.
@@ -337,7 +337,7 @@ Most beads modify 1-8 files — skip checkpointing for these. The per-file stash
 
 **Solo execution:** Run the **full test suite**, not filtered tests. Filtered tests miss cross-module regressions.
 
-**Concurrent execution (other agents active):** Use module-scoped tests per bead (`--filter "YourModule"`). The full suite is unreliable when other agents have broken code or Testcontainers collisions cause batch failures. If module-scoped tests ALSO fail due to concurrent interference (e.g., shared test containers), fall back to per-class execution. Defer the full suite to the test gate bead when your module is complete and concurrent activity has settled.
+**Concurrent execution (other agents active):** Use module-scoped tests per bead (e.g., test filter for your module name). The full suite is unreliable when other agents have broken code or shared test infrastructure collisions cause batch failures. If module-scoped tests ALSO fail due to concurrent interference, fall back to per-class execution. Defer the full suite to the test gate bead when your module is complete and concurrent activity has settled.
 
 In both cases: if the suite is slow (>5 minutes), run bead-specific verification commands first as a fast check.
 
@@ -732,7 +732,7 @@ Each bead is self-contained — no need to reload plan documents.
 
 **Skipping Verification** — Committing without running the full test suite because "my tests pass." Regressions in other tests are just as serious as failures in new tests. The full suite is the contract with the rest of the codebase.
 
-**Delegating Reads to Sub-Agents** — Using Explore agents or sub-agents to read and interpret implementation files during execution. Sub-agents lack the precision needed for mechanical tasks — they may suggest the wrong pattern (e.g., `ThrowError` instead of `SendProblemAsync`). Always read implementation files directly in the main context. Use parallel direct reads for speed, not agents for interpretation.
+**Delegating Reads to Sub-Agents** — Using Explore agents or sub-agents to read and interpret implementation files during execution. Sub-agents lack the precision needed for mechanical tasks — they may suggest the wrong pattern or method name. Always read implementation files directly in the main context. Use parallel direct reads for speed, not agents for interpretation.
 
 **Confidence Substitution** — Claiming a change works based on a prior test run, pattern recognition, or "I'm confident." See the Rationalization Prevention Iron Law (Step 2.6) — every bead requires fresh verification evidence. No exceptions.
 

@@ -792,6 +792,8 @@ Failure criteria are propagated from the plan's sub-plan Failure Criteria sectio
 
 **Always include test files** that assert on the behavior being changed. For modification/migration beads, this means the test files for the endpoints or services being modified — not just the implementation files. A bead that changes a status code from 400→422 needs to list the test file that asserts on 400, or the executing agent will miss the test regression.
 
+**Path validation (Phase 3):** During self-assessment, verify every file path in every bead's "Context to Load" section actually exists in the codebase using glob/grep. Wrong paths are a common source of execution friction — the executing agent wastes time finding the right file. If a path doesn't exist, check for common mismatches: flat vs nested feature structure (e.g., `Features/Applications/Save/` vs `Features/Applications/Shared/Mappers/`), renamed files, or moved directories. Fix the path before finalizing the bead.
+
 ## Approach
 {Brief guidance on HOW to approach the work — not implementation code.
 Reference design decisions and pattern docs.}
@@ -1379,8 +1381,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.10*
-*v5.10: Production feedback from Languages execution. "Exists" elements only get verification beads if gap analysis flags potential mismatches — not for already-confirmed elements (2 of 7 beads were no-ops).*
+*Skill Version: 5.11*
+*v5.11: Production feedback from Applications execution. Context path validation in Phase 3 self-assessment — verify every file path exists via glob before finalizing (wrong paths caused execution friction across multiple modules).*
+*v5.10: Languages feedback. "Exists" elements only get verification beads if gap analysis flags mismatches.*
 *v5.9: Organizations feedback. Verification bead template: test alignment in scope, Context to Load section added.*
 *v5.8: Context budget per bead by mode (5/8/12 files). Large bead splitting heuristic (>8 files or >3 patterns = mandatory split). Inspired by gstack's scope discipline patterns.*
 *v5.7: Production feedback from cross-cutting execution.*

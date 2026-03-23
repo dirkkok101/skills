@@ -138,7 +138,24 @@ Before starting, verify:
 
 **Step 1.1 — Identify Available Work:**
 
-Query the issue tracker for ready beads and the feature's dependency tree. Confirm the expected beads exist and are in the right order.
+Query the issue tracker for ready beads and the feature's dependency tree. Produce a flat execution plan:
+
+```markdown
+## Execution Plan: {feature}
+
+**Ready now (no unmet dependencies):**
+- bd-{id}: {title}
+- bd-{id}: {title}
+
+**Blocked (will unlock as above complete):**
+- bd-{id}: {title} — blocked by: bd-{parent}
+- bd-{id}: {title} — blocked by: bd-{parent1}, bd-{parent2}
+
+**Other modules (not this session):**
+- bd-{id}: {title} — different module, skip
+```
+
+Filter to YOUR module's beads only. Epic dependency trees often include beads from other modules — identify and exclude them upfront so you don't waste time tracing irrelevant dependencies.
 
 **Step 1.2 — Verify Baseline:**
 
@@ -185,7 +202,9 @@ When multiple agents execute on the same branch simultaneously (e.g., parallel m
 
 **Shared file conflicts:** Other agents may break files you depend on (test files, shared components). **Fix:** Do NOT fix other agents' files. If their broken code blocks your tests, use module-scoped tests (`--filter "YourModule"`) instead of the full suite.
 
-**File reservation (if agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This prevents concurrent writes to the same file.
+**File reservation (if agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This prevents concurrent writes to the same file. Without reservation, other agents may commit YOUR unstaged files as part of their commits — your subsequent `git add` then fails with "no changes added."
+
+**Pre-commit hook transience:** Pre-commit hooks that run builds (e.g., `dotnet build`) may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
 
 **Verification strategy during concurrent execution:**
 - **Per-bead:** Module-scoped tests (`--filter "YourModule"`) — reliable even when other agents have broken code
@@ -352,15 +371,15 @@ If any item fails, fix the issue, re-run tests, then re-review.
 
 **Step 2.8 — Commit:**
 
-Track which files you created or modified during implementation. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting.
+**Verification-only fast path:** If the bead was a verification-only pass (all checks passed, zero code changes), skip commit and push. Just close the bead in the issue tracker with a comment: "Verified — no changes needed." This avoids empty commits and unnecessary push cycles.
 
-Close the bead in the issue tracker.
+**If code was changed:** Track which files you created or modified. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting. Close the bead in the issue tracker.
 
-**Step 2.8a — Push:**
+**Step 2.8a — Push (if committed):**
 ```bash
 git push
 ```
-Push after each bead. Do NOT accumulate unpushed commits.
+Push after each bead that produces a commit. Do NOT accumulate unpushed commits.
 This prevents work loss on crash.
 
 **Step 2.9 — Summarise & Reset:**
@@ -720,8 +739,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.8*
-*v4.8: Production feedback from Languages execution. Dedicated Multi-Agent Concurrent Execution section — build artifact collisions (retry), file reverts (verify with git show, use Write not Edit), shared file conflicts (don't fix others' files), file reservation via agent-mail, verification strategy (module-scoped per bead, full suite at test gate). Self-review test step acknowledges multi-agent.*
+*Skill Version: 4.9*
+*v4.9: Production feedback from Applications execution. Flat execution plan at session start (filter to YOUR module, exclude other modules' beads). Verification-only fast path (no commit/push if zero changes — just close bead). Pre-commit hook retry for transient file lock failures. File reservation note (other agents commit your unstaged files).*
+*v4.8: Languages feedback. Multi-Agent section. Module-scoped tests. Self-review multi-agent acknowledgment.*
 *v4.7: Organizations feedback. Multi-agent filtered test fallback. Manifest robustness. Self-review proportionality for verification beads.*
 *v4.6: Cumulative health score (PAUSE@40/STOP@60). Rationalization prevention Iron Law. AI slop detection. Context budget per bead. Confidence Substitution anti-pattern.*
 *v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*

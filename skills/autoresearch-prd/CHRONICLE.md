@@ -411,20 +411,20 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 | review-design | v1.0 | v2.5 | 15 modules |
 | plan | v3.5 | v4.3 | 15 modules |
 | review-plan | v1.0 | v2.6 | 15 modules |
-| beads | v4.0 | v5.6 | 11 modules |
-| review-beads | v1.0 | v2.5 | 11 modules |
+| beads | v4.0 | v5.6 | 15 modules |
+| review-beads | v1.0 | v2.6 | 15 modules |
 | autoresearch | — | v1.4 | All of the above |
 
 ### Total Impact
 
-- 208+ findings resolved across 56+ documents (74 PRD + 54 design + 63 plan + 17 beads)
+- 215+ findings resolved across 60+ documents (74 PRD + 54 design + 63 plan + 24 beads)
 - 16 content decisions made by user (8.4% of findings)
 - 9 skills improved through 15+ production feedback cycles
 - 0 false positives across all reviews
 - 100% convergence rate across all document types
 - Average 1.97 rounds to convergence
 - Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute-ready
-- 190 beads created across 11 modules, 17 findings fixed by review, 0 FAILs remaining
+- 231 beads created across 15 modules, 24 findings fixed by review, 0 FAILs remaining
 
 ---
 

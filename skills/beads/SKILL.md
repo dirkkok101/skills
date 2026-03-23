@@ -850,7 +850,7 @@ Label all gate beads with `review` or `test` tag to distinguish them from implem
 
 **Step 2.4 — Apply Labels:**
 
-Categorise each bead by concern area (e.g., model, service, api, ui, test, integration, config, review, gate). Labels help with parallel track identification and progress reporting.
+Categorise each bead by concern area (e.g., model, service, api, ui, test, integration, config, verify, gate). Labels help with parallel track identification and progress reporting. Do NOT use "review" or "simplify" as labels — these gate types are prohibited.
 
 **Step 2.5 — Set Dependencies:**
 
@@ -1316,7 +1316,7 @@ Track this across features: if the same types of questions recur (missing patter
 
 **Dependency Amnesia** — Creating beads without importing the plan's dependency graph. Dependencies should flow directly from the plan. Re-deriving them risks introducing circular dependencies or breaking the critical path that was carefully designed in /plan.
 
-**Skipped Gates** — Not inserting stage gate beads or allowing frontend beads to depend directly on backend implementation beads. This lets unreviewed code propagate downstream and defers defect discovery to the end of the module.
+**Skipped Test Gates** — Not inserting TEST gate beads or allowing frontend beads to depend directly on backend implementation beads. Frontend beads MUST depend on the backend test gate, never on raw backend impl beads. However, do NOT insert `/review` or `/simplify` gate beads — only test and verify gates. `/review` and `/simplify` run AFTER the epic completes, not between beads.
 
 ---
 
@@ -1367,6 +1367,6 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 *v5.0: Plan integration — reads plan's FR/UC/Design Coverage tables and Implementation Status (gap analysis) BEFORE decomposition. Non-greenfield mode: >70% exists → gap-driven beads (Modify/New only, skip Exists). >90% exists → Verification Mode beads. Failure criteria propagated from plan's design decisions (not generic). UC gate beads verify scenario flows (not just code quality) with scenario steps from plan's UC Coverage table. Portability: decomposition tables are examples for .NET/Angular, adapt to your project's patterns. Auto-detect BRIEF gates for ≤5 beads / ≤3 tasks. First-bead module spec loading guidance. From adversarial review of beads + review-beads.*
 *v4.0: Phase 0 doc discovery — scans project docs tree to build a doc map instead of assuming hardcoded paths. Handles variance in project structure: flat vs nested patterns, decisions in adr/ or designs/{feature}/decisions/, numbered design prefixes, subfeature nesting. Decomposition tables use pattern keys resolved from the doc map. Gate beads load discovered decisions, architecture docs, and learnings into context. Pattern-granular decomposition — one bead per pattern artifact with Backend/Frontend/Test decomposition tables. Stage gate beads — `/review` + `/simplify` cycles at feature slice, use case, and module boundaries. Frontend beads depend on backend test gates, never on raw backend impl beads. Trust hierarchy for gate findings. Bead description format includes Pattern and Commit fields. Bead size heuristic rewritten around pattern alignment with grouping exceptions and never-combine rules. Bead count comparison showing impact.*
 *v3.5: Prerequisites expanded with design docs. Parallel Tracks cross-ref corrected (Step 1.5). Good Bead example references design doc instead of plan. PAUSE step labels scoped to avoid collision.*
-*v3.4: AskUserQuestion stage gates — PAUSE 1 uses batch review (Pattern 3) for bead mapping with multi-select granularity adjustment. PAUSE 2 uses guided review workflow (Pattern 5) walking through beads created, self-assessment, and FR coverage before a decision gate. Fallback to prose-based patterns when AskUserQuestion is unavailable.*
-*v3.2: Review beads — /simplify code review work packages inserted at logical boundaries (phase transitions, feature slices, after high-risk work). Review beads sit in the dependency chain between implementation groups, gating progression until code quality is verified. Placement rules by scope tier. Review bead template with focus guidance. Cross-bead assessment validates review bead coverage.*
+*v3.4: AskUserQuestion stage gates (removed in v5.2 — user cannot evaluate individual beads).*
+*v3.2: Review beads (REMOVED in v5.2 — /review and /simplify gates deleted preparatory code needed by future beads).*
 *v3.1: Duration targets, scope growth check (kill criteria), prose-based artifact import (no hardcoded shell), merged PAUSE 2+3 into single approval, integrated self-review themes into self-assessment gate, issue tracker commands framed as examples (tool-agnostic), structured PAUSE response options, execution uncertainty reframed as quality signal, language-neutral examples, anti-patterns explain WHY*

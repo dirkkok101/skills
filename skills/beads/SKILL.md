@@ -216,8 +216,8 @@ Each feature's UI produces these beads:
 |---|----------------------|-------------|------------------|------------|
 | 20 | `{Feature} Models + Enums` | `enums`, `feature-service` | TypeScript interfaces, `as const` enum objects | Backend test gate |
 | 21 | `{Feature} Feature Service` | `feature-service` | Colocated HTTP service class, Promise-based API | #20 |
-| 22 | `{Feature} List Page` | `list-page` | Standalone component, `nxgn-grid-page-title` + `nxgn-data-grid` | #21 |
-| 23 | `{Feature} Capture Page` | `capture-page` | Standalone component, `nxgn-capture-page-title` + form fields | #21 |
+| 22 | `{Feature} List Page` | `list-page` | Standalone component with grid/table view | #21 |
+| 23 | `{Feature} Capture Page` | `capture-page` | Standalone component with form fields | #21 |
 | 24 | `{Feature} Capture State` | `capture-state` | Component-level Injectable for child route state management | #23 |
 | 25 | `{Feature} Embedded List` | `embedded-list` | Child grid component with `model()` two-way binding (if children) | #21 |
 | 26 | `{Feature} Routing` | `routing` | Lazy-loaded routes, child routes, canDeactivate guard | #22, #23 |
@@ -570,6 +570,12 @@ ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 - **Lighter bead descriptions:** For verification beads, use a compact format: objective + checklist + verification command. Skip the full template (In Scope, Out of Scope, Approach, Given/When/Then) — a verification bead is a checklist, not a construction blueprint.
 
 **Dry-run file:** Write all bead descriptions to a `beads.md` file as a record of what was created. Create beads in the issue tracker (br) immediately — do NOT wait for user approval (there are no PAUSE points). The beads.md file serves as documentation, not as an approval gate.
+
+**Verify "New" elements before decomposing:** For each element the plan marks as "New" in the Implementation Status, run a quick glob/grep to confirm it doesn't actually exist in the codebase. Plans can be stale — an element marked "New" may have been created since the plan was written. If it exists, reclassify as "Exists" or "Modify" before creating beads. Do this in Phase 1, not Phase 3 — wrong-type beads are expensive to fix.
+
+**Scope growth check excludes gates:** When comparing bead count to plan task count (Step 1.0), exclude test/verify gate beads from the count. Only implementation beads count toward the 1.5x threshold. Gates are mechanical — they don't represent scope growth.
+
+**br correction protocol:** br has no update-description command. When CONVERGE fixes a bead, use `br comments add` with a `## CORRECTION (review-beads round N)` header. Executing agents should read comments bottom-up (newest first). The original wrong content will still exist in earlier comments.
 
 **Checkpoint/resume:** Before creating beads, check if beads already exist for this feature (search by epic title or feature label). If found:
 - Present: "{N} beads already exist for {feature}. Delete and recreate, or resume?"
@@ -1166,15 +1172,15 @@ Then IsVerified is set to true and persisted
 
 ```markdown
 ## Objective
-Run integration tests for the Roles feature slice. All backend beads
+Run integration tests for the {feature} feature slice. All backend beads
 are complete — verify the code compiles and tests pass.
 
 ## Depends On
-- bd-017: Role Service Registration (last backend bead)
+- bd-{id}: {last backend bead} (last backend bead)
 
 ## In Scope
-- All backend code in Features/Roles/
-- Integration tests covering Save, Get, Grid, Delete, Lookup endpoints
+- All backend code in the feature directory
+- Integration tests covering all endpoints
 
 ## Success Criteria
 - `{build command}` succeeds
@@ -1239,11 +1245,11 @@ bd-015: Role Delete Endpoint
 bd-016: Role Lookup Endpoint
 bd-017: Role Service Registration
   → test(roles): integration tests
-bd-018: Roles Models + Enums
-bd-019: Roles Feature Service
-bd-020: Roles List Page
-bd-021: Roles Capture Page
-bd-022: Roles Routing
+bd-018: {Feature} Models + Enums
+bd-019: {Feature} Feature Service
+bd-020: {Feature} List Page
+bd-021: {Feature} Capture Page
+bd-022: {Feature} Routing
   → test(roles): UI tests
   → verify(roles): UC-ROLE-001
   → verify(roles): module complete
@@ -1351,7 +1357,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.4*
+*Skill Version: 5.5*
+*v5.5: Consolidated feedback from 6 production runs. Verify "New" elements via glob before decomposing (plan can be stale). Scope growth check excludes gate beads. br correction protocol (## CORRECTION header for br comments add).*
 *v5.4: Production feedback round 2. Dry-run option: write beads.md first, create in br AFTER approval (prevents delete+recreate cycles). Lighter verification bead descriptions (checklist format, not full template). Gate scaling: skip UC/module verify for ≤10 impl beads in Verification Mode. Context efficiency: rely on plan tables, spot-check file paths only.*
 *v5.3: Production feedback from Entitlements run. Verification Mode fast path (>90% exists → map directly from plan, skip decomposition analysis, 1 verification bead per feature not per element). Checkpoint/resume for interrupted runs (detect existing beads, offer resume vs delete). Gate scaling for verification mode (lightweight gates when ≤10 impl beads). Context efficiency: rely on plan's coverage tables, spot-check source docs only.*
 *v5.2: Removed /review and /simplify gate beads — they treat code built for future beads as "dead code" and delete it, breaking the pipeline. Replaced with test gates only (test at feature boundaries, verify at UC and module boundaries). Run /review and /simplify AFTER epic completes when all code exists. PAUSE 1 simplified to summary + single approval (user can't evaluate individual beads in detail — /review-beads handles that). Gate overhead reduced: 2 test + 1 UC verify + 1 module verify per feature (was 6 review/simplify + 2 test per feature).*

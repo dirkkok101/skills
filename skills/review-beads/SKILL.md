@@ -96,6 +96,18 @@ ADRs > Pattern docs > Architecture docs > PRD > Design (api-surface, data-model)
 - "Modify" beads should specify WHAT needs to change, not just the endpoint/entity name
 - Do NOT flag verification beads as incomplete because they lack implementation guidance
 
+**Do NOT delegate finding generation to Explore agents.** Agents cannot call `br show` to read actual bead text — they guess at content and produce 80%+ false positive rates. Generate findings in the main context where `br show` is available. Use agents only for loading upstream docs (PRD, design, ADRs), not for reviewing bead content.
+
+**Verification Mode Phase 3 shortcut:** For >90% exists, skip the greenfield decomposition tables (entity × bead types). Instead: verify bead count matches plan task count, check for over-combined tasks against grouping rules. The plan already determined appropriate granularity.
+
+**Non-CRUD granularity method:** For infrastructure/shell modules (no entities to CRUD), count expected beads from: services, guards, interceptors, initializers, layout components, utility components. Map these to bead expectations instead of entity decomposition tables.
+
+**Compact report for 0-FAIL results:** When Round 1 produces 0 FAILs, use the compact format by default. The full report template (FR matrix, UC matrix, stage gate analysis) is only needed when there are unresolved FAILs or DECISION items.
+
+**False positive log:** Include a `## False Positives Dismissed` section in the review report documenting which findings were dismissed and why. This makes review quality auditable and helps calibrate future reviews.
+
+**Auto-downgrade:** COMPREHENSIVE on a single module with <15 beads automatically uses STANDARD depth. The batch execution sections add no value for small bead sets.
+
 **Token budget:** COMPREHENSIVE reviews with 50+ beads read 30-60 documents. Models with <200K context may need two-pass approach.
 
 **Report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
@@ -385,7 +397,7 @@ Read the design docs and derive what the bead set SHOULD contain.
 
 | Feature | Frontend Beads | Condition Notes |
 |---------|---------------|-----------------|
-| Roles | 5 (models, service, list, capture, routing) | Full UI |
+| {Feature} | 5 (models, service, list, capture, routing) | Full UI |
 | Permissions | 4 (models, service, list, routing) | No capture page |
 
 ### Stage Gates
@@ -531,7 +543,7 @@ For each bead, review against all 11 categories. Not every category applies to e
 
 #### Category 6: Web Pattern Compliance
 
-- [ ] UI component library — beads reference `@nxgn-solutions/ui` components first (`nxgn-grid-page-title`, `nxgn-data-grid`, `nxgn-capture-page-title`)
+- [ ] UI component library — beads reference the project's component library first (check project CLAUDE.md or pattern docs for component names)
 - [ ] Feature-colocated services — HTTP service class lives with the feature, not in a shared folder
 - [ ] Signal state — component state uses Angular signals, not BehaviorSubjects
 - [ ] Standalone components — no NgModules, no CommonModule imports
@@ -843,9 +855,9 @@ After all workers complete, produce a cross-module summary:
 
 | Module | Beads | Critical | High | Medium | Low | Verdict |
 |--------|-------|----------|------|--------|-----|---------|
-| Roles | 30 | 0 | 2 | 5 | 3 | PASS WITH FINDINGS |
+| {Module A} | 30 | 0 | 2 | 5 | 3 | PASS WITH FINDINGS |
 | Permissions | 22 | 1 | 1 | 3 | 1 | FAIL |
-| Entitlements | 15 | 0 | 0 | 2 | 4 | PASS |
+| {Module B} | 15 | 0 | 0 | 2 | 4 | PASS |
 
 ### Cross-Module Issues
 {Issues that span modules — shared contracts, dependency ordering, etc.}
@@ -886,7 +898,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.4*
+*Skill Version: 2.5*
+*v2.5: Consolidated feedback from 6 production runs. Do NOT delegate finding generation to agents (80% false positive rate — agents can't call br show). Verification Mode Phase 3 shortcut (skip decomposition tables). Non-CRUD granularity method (services, guards, components). Compact report default for 0-FAIL. False positive log section formalized. Auto-downgrade COMPREHENSIVE for <15 beads. Project-specific references removed (nxgn components, module names).*
 *v2.4: Production feedback from Roles review. /review+/simplify gates downgraded from FAIL to DECISION (older bead sets may have them — user decides removal). Compact report auto-selected when 0 FAILs. Non-greenfield granularity method noted (count verification beads from Implementation Status, not greenfield decomposition tables).*
 *v2.3: Category 7b aligned with beads v5.2+ — /review and /simplify gates prohibited (was required). Test/verify gate checks updated. Non-greenfield granularity method noted as needing different approach from greenfield decomposition tables. From Entitlements production review feedback.*
 *v2.2: Removed /review and /simplify gate checks — these gate types no longer exist in beads v5.2. Updated cross-bead consistency to check for test/verify gates and flag any /review or /simplify gates as findings (they break the pipeline).*

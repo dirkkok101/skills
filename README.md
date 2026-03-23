@@ -16,6 +16,10 @@ A complete feature development workflow for Claude Code with structured SDLC pha
 | `/workflow:beads` | Intent-based work packages with FR traceability | Beads in `br` database |
 | `/workflow:execute` | Sub-agent implementation with upstream verification | Working code |
 | `/workflow:review` | Parallel agent review with alignment audits | `docs/reviews/review-{timestamp}.md` |
+| `/workflow:review-prd` | Adversarial PRD review against skill template | Findings via AskUserQuestion (READ-ONLY) |
+| `/workflow:review-design` | Adversarial design review against PRD/ADRs/patterns | Findings via AskUserQuestion (READ-ONLY) |
+| `/workflow:review-plan` | Adversarial plan review against 6 authority sources | `docs/reviews/plan-review-{module}.md` |
+| `/workflow:review-beads` | Adversarial bead compliance review (11 categories) | `docs/reviews/bead-review-{module}.md` |
 | `/workflow:compound` | Structured learning capture by phase/domain | `docs/learnings/{category}.md` |
 | `/workflow:diagnose` | Bug investigation with root cause analysis | Fix, beads, or design handoff |
 
@@ -24,9 +28,11 @@ A complete feature development workflow for Claude Code with structured SDLC pha
 ## Pipeline
 
 ```
-research ─> brainstorm ─> discovery ─> prd ─> technical-design ─> plan ─> beads ─> execute ─> review ─> compound
-(optional)                 (COMP only)                (STANDARD+)
+research ─> brainstorm ─> discovery ─> prd ────────> technical-design ──> plan ─────> beads ────> execute ─> review ─> compound
+(optional)                 (COMP only)    └─review-prd─┘       └─review-design─┘  └─review-plan─┘ └─review-beads─┘
 ```
+
+The `review-*` skills are optional quality gates between pipeline stages. Each reviews the output of the preceding stage before proceeding to the next.
 
 ### Scope-Based Routing
 

@@ -190,6 +190,7 @@ Read the design document and verify the implementation against:
 5. **Complexity Budget** — Check implementation against stated complexity limits.
 6. **Chosen Approach** — Verify implementation follows the chosen approach, not a rejected alternative.
 7. **Architecture** — Verify component responsibilities and interfaces match the design.
+8. **ADR Consistency** — If any changed files include new or modified ADRs (`docs/adr/`), read ALL existing ADRs and check for contradictions (numbering conflicts, superseded decisions, incompatible approaches). New ADRs that conflict with existing ones are criticality 8-10.
 
 Rate each finding:
 - Criticality (1-10): 8-10 violates anti-requirements/implements deferred scope/triggers kill criteria,
@@ -581,7 +582,8 @@ When approved: **"Review complete. Run /compound to capture learnings."**
 
 ---
 
-*Skill Version: 3.5*
+*Skill Version: 3.6*
+*v3.6: ADR consistency check added to design-intent agent — when changed files include new/modified ADRs, agent reads all existing ADRs and flags contradictions (criticality 8-10). Prevents ADR conflicts from slipping through review.*
 *v3.5: Design-intent agent scopes feature subdirs. Plan-intent agent receives patterns path. Consolidation agent uses ${PROJECT_ROOT} path. Browser E2E plans noted in upstream doc check and pr-test-analyzer. Cherry-pick option added to findings decision gate. Phase 4 cherry-pick workflow with Batch Review for Should Consider items.*
 *v3.4: AskUserQuestion stage gates at Phase 4 (findings decision) and Phase 6 (review cycle decision) using Decision Gate (Pattern 1) and Batch Review (Pattern 3) patterns from `../_shared/references/stage-gates.md`.*
 *v3.2: Alignment audit agent for COMPREHENSIVE mode — produces permanent `docs/reference/alignment-audit.md` with systematic PRD ↔ Design ↔ Plan ↔ Patterns cross-verification. Modelled on AMPS actions project's alignment audit (found 11 critical, ~30 medium, ~25 low issues across ~30 files).*

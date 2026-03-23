@@ -143,7 +143,26 @@ Query the issue tracker for ready beads and the feature's dependency tree. Confi
 
 **Step 1.2 — Verify Baseline:**
 
-Run the project's build and test commands. If baseline fails, fix issues before proceeding. Do not start executing beads on a broken codebase.
+Run the project's build and test commands. If baseline fails, assess severity before proceeding:
+
+- **Build failure:** Fix before proceeding. Do not start executing beads on a broken codebase.
+- **Isolated test failures (1-10 tests, single module):** Fix if related to the feature being executed, otherwise note and proceed.
+- **Systemic test failures (>10 tests across multiple modules):** **STOP.** Do not claim any beads. Report the systemic issue to the user with failure count, affected modules, and suspected root cause. Systemic failures indicate a codebase-level problem (broken migration, missing dependency, config issue) that will block every bead — fixing it first prevents wasted work across the entire session.
+
+Use AskUserQuestion if systemic failures are found:
+```
+AskUserQuestion:
+  question: "{N} tests failing across {M} modules. This is a systemic blocker. How should we proceed?"
+  header: "Baseline"
+  multiSelect: false
+  options:
+    - label: "Fix blockers first (Recommended)"
+      description: "Diagnose and fix the systemic issue before claiming any beads."
+    - label: "Investigate only"
+      description: "Diagnose the root cause and report without fixing."
+    - label: "Proceed anyway"
+      description: "Claim beads despite failing baseline (risky — failures may cascade)."
+```
 
 **Step 1.3 — Initialise Progress Tracking:**
 
@@ -625,7 +644,8 @@ When all beads complete: **"Feature complete. Verify with `dotnet build && dotne
 
 ---
 
-*Skill Version: 4.0*
+*Skill Version: 4.1*
+*v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work. Prevents wasting sessions on work blocked by codebase-level issues (broken migrations, missing dependencies).*
 *v4.0: Crash resilience — per-bead push, git stash checkpointing for large beads. Explicit file staging enforced (never git add -A). Design/PRD/ADR verification added to self-review. Tier ordering check prevents out-of-order module execution. Module spec loading from docs/ folders on first bead. Project-agnostic testing standards. Removed /review suggestion (inline self-review handles quality).*
 *v3.5: Collaborative model added. Review-bead handling for /simplify checkpoints. COMPREHENSIVE mode per-bead check-in implemented with AskUserQuestion. PRD path added to upstream verification. Use case path added for BDD scenarios.*
 *v3.4: PAUSE points use AskUserQuestion tool — Decision Gate for blocker handling and push confirmation, Batch Review for review fix learnings*

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.0.0] - 2026-03-20
+
+### Added
+- **review-prd** (v1.0): Adversarial PRD review against /prd skill template and cross-cutting requirements. 6-phase review: structural completeness, content quality, cross-cutting compliance, adversarial depth, interactive findings, summary. BRIEF/STANDARD/COMPREHENSIVE modes. READ-ONLY audit with AskUserQuestion stage gates.
+- **review-design** (v1.0): Adversarial technical design review against PRD, ADRs, patterns, and architecture docs. 7-phase review: structural completeness, PRD→design alignment, ADR & pattern compliance, cross-module consistency, to-be coherence, interactive findings, summary. Checks every FR maps to an endpoint, every UC to a flow, every NFR to an operational concern.
+- **review-plan** (v1.0): Adversarial plan review against 6 authority sources (skill spec, design, gap analysis, PRD, ADRs/patterns, internal consistency). Early termination on 5+ Critical design findings. Execution priority: design fidelity and PRD traceability first. Verdict matrix: PASS/PASS WITH CONDITIONS/FAIL.
+- **review-beads** (v1.0): Adversarial bead compliance review across 11 categories (FR coverage, UC coverage, design compliance, architecture, API patterns, web patterns, test coverage, stage gates, bead quality, backwards compat, granularity). Finding quality standards with anti-false-positive philosophy. Severity calibration with concrete examples. Batch execution support for multi-module reviews (max 5 concurrent workers, convergence criteria).
+
+### Changed
+- **execute** (v4.1): Systemic blocker circuit breaker — Phase 1 baseline check now distinguishes isolated failures (1-10 tests, proceed) from systemic failures (>10 tests across multiple modules, STOP with AskUserQuestion). Prevents wasting entire sessions on work blocked by codebase-level issues like broken migrations or missing dependencies.
+- **review** (v3.6): ADR consistency check added to design-intent agent — when changed files include new or modified ADRs, agent reads all existing ADRs and flags contradictions as criticality 8-10. Prevents silent ADR conflicts from slipping through review.
+
 ## [3.6.0] - 2026-03-12
 
 ### Changed

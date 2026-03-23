@@ -383,6 +383,31 @@ Key learnings across 6 runs:
 - Agent-delegated review had 80% false positive rate on Portal (agents can't call br show to read actual bead text — they guess)
 - False positive log in review report proved valuable — should be formalized
 
+### Extended to 11 Modules (Batch 2)
+
+| Module | Beads | Review FAILs | Rounds | Key Findings |
+|--------|-------|-------------|--------|-------------|
+| Authentication | 21 | 0 | 1 | 1 WARN |
+| Identity Providers | 19 | 0 | 1 | Clean |
+| Audit | 12 | 0 | 1 | Clean |
+| Organizations | 15 | 0 | 1 | 1 WARN |
+| Users | 16 | 0 | 1 | Clean |
+
+**Running total: 190 beads, 0 FAILs across 11 modules.**
+
+### Final 4 Modules (Batch 3)
+
+| Module | Beads | Review FAILs | Rounds | Key Findings |
+|--------|-------|-------------|--------|-------------|
+| API Keys | 14 | 0 | 1 | Clean |
+| Approvals | 17 | 0 | 1 | 1 WARN |
+| Cross-Cutting | 11 | 0 | 1 | Clean |
+| Role Templates | 19 | 0 | 1 | Clean |
+
+**Final total: 231 beads created, 24 findings fixed by review, 0 FAILs across all 15 modules.**
+
+Key observation: Beads converged in 1 round for every module (vs 2.1 avg for PRDs, 2.1 for designs, 1.7 for plans). Cumulative quality effect — clean upstream inputs produce clean downstream outputs.
+
 ### Full Pipeline Validated
 
 ```
@@ -400,6 +425,7 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 | PRDs | 15 | 0 | CONVERGE + COMPREHENSIVE |
 | Technical Designs | 15 | 0 | CONVERGE + COMPREHENSIVE |
 | Implementation Plans | 15 | 0 | CONVERGE + COMPREHENSIVE |
+| Beads | 15 | 0 | CONVERGE + COMPREHENSIVE |
 
 ### Skill Versions at End of Session
 
@@ -425,6 +451,15 @@ PRD (0 FAILs) → Design (0 FAILs) → Plan (0 FAILs) → Beads (0 FAILs) → Re
 - Average 1.97 rounds to convergence
 - Full pipeline validated end-to-end: PRD → Design → Plan → Beads → Execute-ready
 - 231 beads created across 15 modules, 24 findings fixed by review, 0 FAILs remaining
+
+---
+
+### Adjacent Skill Updates
+
+Two additional skills were updated based on learnings from the full pipeline validation:
+
+- **execute v4.1**: Systemic blocker circuit breaker — Phase 1 baseline check now distinguishes isolated test failures (1-10 tests, proceed) from systemic failures (>10 tests across modules, STOP with AskUserQuestion). Prevents wasting sessions on codebase-level blockers.
+- **review v3.6**: ADR consistency check — when changed files include new/modified ADRs, the design-intent agent reads all existing ADRs and flags contradictions (criticality 8-10).
 
 ---
 

@@ -265,6 +265,8 @@ If user hasn't specified:
 
 **Step 1.2 — Verify Build & Tests Pass:**
 
+**Test runner smoke check:** Before running the full suite, confirm you can get clean pass/fail output from both backend and frontend test runners. Run a single small test file to verify the runner works and output is parseable. If the runner produces noisy or unparseable output (e.g., ANSI escape codes breaking grep, serialized error objects), fix the invocation now — don't discover it mid-review after 3 failed attempts.
+
 Run the project's build and test commands. If they fail, this is a **FAIL** finding before any bead verification begins. Record test count and pass rate.
 
 ---
@@ -669,8 +671,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.8*
-*v1.8: Production feedback from Applications review. Cascade check: diagnose test failures before reverting (found 2 production bugs by investigating instead of reverting). Pattern pre-check before writing fixes (prevents architectural violations like DbContext-in-endpoint). Agent prompts: include key architectural constraints from CLAUDE.md. Manifest reconstruction: write it as Step 0 instead of working without it.*
+*Skill Version: 1.9*
+*v1.9: Production feedback from Role Templates review. Test runner smoke check in Phase 1 — confirm parseable output before running full suite (RTK/vitest friction consumed 3-4 min across multiple reviews).*
+*v1.8: Applications review. Diagnose before revert. Pattern pre-check. Agent architectural constraints. Manifest reconstruction as Step 0.*
 *v1.7: Users review feedback. Verification-mode Phase 3 scoping. WARN actionability. JSON test reporter.*
 *v1.6: CONVERGE as default mode.*
 *v1.5: Organizations feedback. Pre-existing vs introduced distinction. Same-session hardening. Manifest validation in Phase 0. Cross-org auth test checklist. Common CONVERGE fix pattern.*

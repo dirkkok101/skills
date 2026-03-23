@@ -380,6 +380,8 @@ Key learnings across 6 runs:
 - Plan Implementation Status can be stale — Phase 3 catches it but Phase 1 should verify earlier
 - Review-beads same-session spot-checks caught real bugs (wrong file refs, missing contracts)
 - CRUD-oriented decomposition tables don't fit frontend-only modules (Portal)
+- Agent-delegated review had 80% false positive rate on Portal (agents can't call br show to read actual bead text — they guess)
+- False positive log in review report proved valuable — should be formalized
 
 ### Full Pipeline Validated
 

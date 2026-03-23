@@ -67,7 +67,18 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 **Verification-mode recommendation:** For verification-mode executions (>70% pre-existing, gap-closure/modification beads), recommend STANDARD unless the user explicitly requests COMPREHENSIVE. The extra UC/FR depth in COMPREHENSIVE rarely finds issues in modification-only bead sets — it loads 8+ design docs but typically produces the same verdict as STANDARD in twice the context.
 
+**Verification-mode Phase 3 scoping:** For verification-mode reviews, Phase 3 (Design Traceability) can be abbreviated:
+- **API surface:** Verify routes/verbs/contracts for changed endpoints only (not all endpoints in the module)
+- **Data model:** Verify properties for new/modified entities only
+- **UC tracing:** Skip unless a bead's scope explicitly mentions UC scenario steps
+- **FR AC depth:** Skip unless greenfield beads exist
+This scoping is appropriate because most code is pre-existing and was already validated by prior reviews.
+
 **Clean pass abbreviated output:** When Round 1 produces 0 FAILs, use an abbreviated 1-page report: verdict, WARN table, and one-line per-bead status. Omit the full AC verification matrix, design traceability tables, and architecture compliance tables — these are compliance documentation, not actionable findings. The full template is for reports WITH findings to discuss.
+
+**WARN actionability:** Every PRE_EXISTING WARN must include exact file:line references for BOTH the code AND the upstream doc that need alignment. Example: "W1: `UserDTO.cs:45` uses `LinkMethod` but `api-surface.md:112` specifies `LinkedMethod`." This makes the br issue actionable — the person fixing it doesn't need to re-discover the mismatch.
+
+**Frontend test execution:** When running frontend tests for verification, prefer a machine-readable reporter (e.g., `npx ng test --reporters=json` or `npx vitest run --reporter=json`) over parsing human-readable output. Human-readable Vitest output includes serialized error objects that are extremely verbose and hard to parse for pass/fail counts.
 
 ### CONVERGE Mode
 
@@ -655,8 +666,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.6*
-*v1.6: CONVERGE is now the default mode — finding issues without fixing them is half the job.*
+*Skill Version: 1.7*
+*v1.7: Production feedback from Users review. Verification-mode Phase 3 scoping (abbreviate for >70% pre-existing). WARN actionability: exact file:line for both code and upstream doc. Frontend test: prefer JSON reporter over parsing human-readable output.*
+*v1.6: CONVERGE as default mode.*
 *v1.5: Organizations feedback. Pre-existing vs introduced distinction. Same-session hardening. Manifest validation in Phase 0. Cross-org auth test checklist. Common CONVERGE fix pattern.*
 *v1.4: Verification-mode STANDARD recommendation. Clean pass abbreviated output. Same-session fresh-eyes doc. UPSTREAM_DOC tracking via br issues.*
 *v1.3: CONVERGE skip when prior STANDARD passed clean. Agent prompts include bead scope and design exemptions.*

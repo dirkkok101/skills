@@ -49,13 +49,9 @@ Run this skill when:
 - User says "plan approved", "create beads", "beads for..."
 - Plan exists at `${PROJECT_ROOT}/docs/plans/{feature}/overview.md`
 
-## Stage Gates — AskUserQuestion
+## No Interactive Review
 
-At every PAUSE point in this skill, **call the `AskUserQuestion` tool** to present structured options to the user. Do not present options as plain markdown text — use the tool. The YAML blocks at each PAUSE point show the exact parameters to pass.
-
-For pattern details and examples: `../_shared/references/stage-gates.md`
-
-> **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
+This skill does NOT use AskUserQuestion. Beads are a mechanical decomposition of an already-approved plan. The user does not have context to evaluate individual beads. Create all beads, run self-assessment, present a one-line summary. Validation is done by `/review-beads CONVERGE`, not by the user during creation.
 
 ---
 
@@ -76,7 +72,7 @@ Phase 0: Discover Project Documentation (build doc map)
 Phase 1: Load Plan & Decompose into Pattern-Aligned Beads
 Phase 2: Create Beads (epic, tasks, gates, dependencies)
 Phase 3: Self-Assessment Gate (per-bead readiness + cross-bead review)
-  ── PAUSE: "Beads created and assessed. Approve for /execute or run /review-beads?" ──
+  ── Output: "{N} beads created. Run /review-beads or /execute." ──
 ```
 
 **No user approval of individual beads.** The user approved the plan — beads are a mechanical decomposition of that plan. The user does NOT have enough context to evaluate individual bead descriptions. Do NOT present beads for review via AskUserQuestion. Do NOT ask the user to evaluate bead content, granularity, or dependencies.
@@ -711,9 +707,7 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 - Tracks merge at: bd-007 (integration)
 ```
 
-**PAUSE 1:** Skip. Do NOT ask the user to review individual beads — they don't have enough context to evaluate bead content during creation. The user already approved the plan; beads are a mechanical decomposition of that plan. Create all beads, run self-assessment (Phase 3), then present the final summary at PAUSE 2.
-
-If the self-assessment (Phase 3) reveals issues, resolve them before presenting to the user. The user should only see the finished, assessed bead set.
+**No PAUSE points in this skill.** Create all beads, run self-assessment, resolve any issues, present the one-line summary. No user interaction during creation.
 
 ---
 
@@ -1048,9 +1042,7 @@ If self-assessment found issues that were resolved, briefly note them:
 - {bd-{id}: what was split and why}
 ```
 
-**Step 4:** Use AskUserQuestion decision gate:
-
-Do NOT use AskUserQuestion to present beads for approval. The user's next action is either `/execute` or `/review-beads CONVERGE` — they'll tell you which.
+Do NOT use AskUserQuestion. Present the one-line summary and stop. The user will tell you what to do next.
 
 ---
 

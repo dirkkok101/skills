@@ -551,9 +551,9 @@ For each bead, review against all 11 categories. Not every category applies to e
 
 #### Category 7b: Test & Verification Gates
 
-**Important:** The /beads skill (v5.2+) prohibits `/review` and `/simplify` gate beads between implementation beads. These skills treat preparatory code as "dead code" and delete it. Only test and verify gates are allowed.
+**Gate policy:** `/review` and `/simplify` gate beads between implementation beads are prohibited (they treat preparatory code as "dead code" and delete it). Only test and verify gates are allowed. If `/review` or `/simplify` gates are found, classify as DECISION (not FAIL) — the user chooses whether to remove them. Older beads sets may have been generated before this policy; removal is the recommended resolution but not automatic.
 
-- [ ] **No `/review` or `/simplify` gate beads** between implementation beads — flag as FAIL if found
+- [ ] **No `/review` or `/simplify` gate beads** between implementation beads — flag as DECISION, recommend removal
 - [ ] Backend test gate blocks frontend beads (frontend depends on backend test gate)
 - [ ] UC verification gates exist for each use case (verify scenario flow, not just code review)
 - [ ] Module verification gate exists as final bead in epic
@@ -886,7 +886,8 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.3*
+*Skill Version: 2.4*
+*v2.4: Production feedback from Roles review. /review+/simplify gates downgraded from FAIL to DECISION (older bead sets may have them — user decides removal). Compact report auto-selected when 0 FAILs. Non-greenfield granularity method noted (count verification beads from Implementation Status, not greenfield decomposition tables).*
 *v2.3: Category 7b aligned with beads v5.2+ — /review and /simplify gates prohibited (was required). Test/verify gate checks updated. Non-greenfield granularity method noted as needing different approach from greenfield decomposition tables. From Entitlements production review feedback.*
 *v2.2: Removed /review and /simplify gate checks — these gate types no longer exist in beads v5.2. Updated cross-bead consistency to check for test/verify gates and flag any /review or /simplify gates as findings (they break the pipeline).*
 *v2.1: Full-pipeline adversarial review fixes. FR acceptance criteria depth check (each Given/When/Then must map to a bead success criterion). Design Decision Coverage cross-reference (failure criteria must trace to design decisions, not be generic). From end-to-end pipeline review covering PRD→design→plan→beads→review-beads.*

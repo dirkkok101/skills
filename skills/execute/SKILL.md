@@ -213,6 +213,13 @@ When multiple agents execute on the same branch simultaneously (e.g., parallel m
 
 **Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead (e.g., `dotnet test --filter`, `ng test`). If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
 
+**Review/simplify gate beads (legacy):** If you encounter `/review` or `/simplify` gate beads (from older bead sets), do NOT launch full /review or /simplify agents. Instead:
+- **If preceding beads changed <5 files total:** Self-review is sufficient. Run the self-review checklist from Step 2.7, close the gate, proceed. Launching review agents for 1-2 file changes is pure overhead.
+- **If preceding beads changed 8+ files or touched cross-cutting concerns:** Run a targeted self-review against design docs. Still do not launch full agents — /review-execute at the end covers this.
+- Close the gate bead with a comment: "Self-reviewed — /review-execute handles deep review post-execution."
+
+**E2E / Aspire beads:** If a bead requires a different execution context (e.g., Aspire AppHost, browser automation, Docker compose), skip it with a comment: "Requires {context} — deferred to separate session." Do not block on beads that can't run in the current environment. Close as "deferred" not "completed."
+
 **UC verification gates:** When the next bead is a UC verification gate (`verify({module}): UC-{ID}`), trace the use case's main scenario steps through the implemented code:
 1. Read the UC document referenced by the gate
 2. For each main scenario step, confirm the endpoint/component exists and handles it
@@ -739,8 +746,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.9*
-*v4.9: Production feedback from Applications execution. Flat execution plan at session start (filter to YOUR module, exclude other modules' beads). Verification-only fast path (no commit/push if zero changes — just close bead). Pre-commit hook retry for transient file lock failures. File reservation note (other agents commit your unstaged files).*
+*Skill Version: 4.10*
+*v4.10: Production feedback from Users execution. Legacy review/simplify gate handling (self-review instead of launching agents — <5 files is self-review, 8+ is targeted review, never full agents). E2E/Aspire bead deferral (skip with comment, don't block). Pre-commit hook transience note.*
+*v4.9: Applications feedback. Flat execution plan. Verification-only fast path. Pre-commit hook retry. File reservation.*
 *v4.8: Languages feedback. Multi-Agent section. Module-scoped tests. Self-review multi-agent acknowledgment.*
 *v4.7: Organizations feedback. Multi-agent filtered test fallback. Manifest robustness. Self-review proportionality for verification beads.*
 *v4.6: Cumulative health score (PAUSE@40/STOP@60). Rationalization prevention Iron Law. AI slop detection. Context budget per bead. Confidence Substitution anti-pattern.*

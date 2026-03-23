@@ -143,6 +143,11 @@ If a bead genuinely needs more files than the budget, it's a split signal — th
 - Multiple small endpoints for same entity IF each is under ~20 lines (e.g., Get + Lookup can combine)
 - Models + Enum Constants (same concern on frontend)
 - Capture State + Capture Page IF state is simple (single entity, no lifecycle)
+- **Small feature slice** — entity + contracts + command + query + validator + endpoints + DI for a SINGLE simple entity (≤5 endpoints, no lifecycle, no complex validation) MAY be one bead if the total is ≤8 modified files. The principle: each bead should produce something independently testable via the API. A command without an endpoint isn't testable. If the feature is small enough to implement and test in one commit, it should be one bead.
+
+**Entity beads that add new DbSets** must include "add EF migration" in their scope. Without the migration, tests fail with cryptic DB errors that waste execution time debugging. If the project uses EF Core migrations, the entity bead's scope should say: "Add migration: `dotnet ef migrations add {Name}`."
+
+**E2E / integration beads requiring different execution contexts** (Aspire AppHost, browser automation, Docker compose) should be tagged `execution-context:{type}` and placed in a separate epic or explicitly marked "separate-session" so the executor knows upfront they can't run in a standard test session.
 
 **Never combine:**
 - Entity/EF Config with Contracts (different projects)
@@ -1381,8 +1386,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.11*
-*v5.11: Production feedback from Applications execution. Context path validation in Phase 3 self-assessment — verify every file path exists via glob before finalizing (wrong paths caused execution friction across multiple modules).*
+*Skill Version: 5.12*
+*v5.12: Production feedback from Users execution. Small feature slice grouping (entity+contracts+command+query+validator+endpoints as one bead for simple entities ≤8 files). Entity beads must include EF migration in scope. E2E beads tagged with execution-context for separate-session handling.*
+*v5.11: Applications feedback. Context path validation via glob in Phase 3.*
 *v5.10: Languages feedback. "Exists" elements only get verification beads if gap analysis flags mismatches.*
 *v5.9: Organizations feedback. Verification bead template: test alignment in scope, Context to Load section added.*
 *v5.8: Context budget per bead by mode (5/8/12 files). Large bead splitting heuristic (>8 files or >3 patterns = mandatory split). Inspired by gstack's scope discipline patterns.*

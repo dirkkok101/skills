@@ -63,6 +63,10 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 | **COMPREHENSIVE** | Multi-module, 20+ beads, or critical path | Full verification + FR acceptance criteria depth + upstream cross-reference |
 | **CONVERGE** | Fix all issues until 0 FAILs | Selected depth + auto-fix loop |
 
+**Verification-mode recommendation:** For verification-mode executions (>70% pre-existing, gap-closure/modification beads), recommend STANDARD unless the user explicitly requests COMPREHENSIVE. The extra UC/FR depth in COMPREHENSIVE rarely finds issues in modification-only bead sets — it loads 8+ design docs but typically produces the same verdict as STANDARD in twice the context.
+
+**Clean pass abbreviated output:** When Round 1 produces 0 FAILs, use an abbreviated 1-page report: verdict, WARN table, and one-line per-bead status. Omit the full AC verification matrix, design traceability tables, and architecture compliance tables — these are compliance documentation, not actionable findings. The full template is for reports WITH findings to discuss.
+
 ### CONVERGE Mode
 
 When the user says "converge", "fix all issues", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
@@ -104,6 +108,8 @@ When implementation contradicts a higher-trust source, the implementation is wro
 
 **Same-session detection:** If execution occurred in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW — the reviewer shares the executing agent's blind spots.
 
+**Same-session fresh-eyes mitigation:** Load at least one upstream doc the executing agent did NOT read during execution and spot-check 2 claims against it. For example: if the agent didn't read the PRD during execution, load it and verify 2 Must-Have FR acceptance criteria against code. If the agent didn't read the design's data-model.md, load it and check 2 entity property lists. This catches blind spots the executing agent carried forward. The goal is not full traceability (that's COMPREHENSIVE Phase 3) but a targeted check from a doc the agent hasn't seen.
+
 **Non-greenfield execution review:** If the execution manifest or plan's Implementation Status shows >70% of design elements already existed before execution:
 - **Verification beads** ("verify X matches design") — the AC is "confirm existing code matches spec." Review by reading the code and checking against the spec, not by looking for newly written code.
 - **Modification beads** ("update X to add Y") — verify the specific modification was made. Don't flag pre-existing code that wasn't part of the bead's scope.
@@ -133,7 +139,7 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 | `CROSS_MODULE_GAP` | Cross-module dependency not wired or shared contract not imported | **FAIL** |
 | `MANIFEST_STALE` | Manifest claims don't match actual git state | **WARN** |
 | `ADR_VIOLATION` | Implementation violates an architectural decision record | **FAIL** |
-| `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately) |
+| `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately; create `br` issue) |
 
 **Severity model:** FAIL = blocks PR/merge. WARN = quality improvement, doesn't block. Aligned with review-prd, review-design, review-plan, review-beads.
 
@@ -491,6 +497,14 @@ Aggregate all findings from Phases 1-4:
 
 Write the full review to `docs/reviews/review-execute-{feature}-{date}.md`.
 
+**Step 5.2a — Track UPSTREAM_DOC Issues:**
+
+If any `UPSTREAM_DOC` findings were identified, create an issue for each in the issue tracker so they don't get re-discovered on every review:
+```bash
+br create "doc: fix {design-doc} — {description of mismatch}" --type task -p 3
+```
+These are low-priority (p3) doc fixes, not implementation work. Group related mismatches into a single issue (e.g., "doc: align api-surface status codes with implementation" for multiple status code mismatches in the same design file).
+
 **Step 5.3 — Present to User (non-CONVERGE):**
 
 Present the executive summary and finding counts. Use AskUserQuestion:
@@ -610,8 +624,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.3*
-*v1.3: CONVERGE skip recommendation when prior STANDARD passed clean (fix loop adds no value at 0 FAILs). Agent prompts must include bead In Scope section and design decision exemptions to prevent false findings on pre-existing code.*
+*Skill Version: 1.4*
+*v1.4: Production feedback from Languages review. Verification-mode recommendation: STANDARD for >70% pre-existing (COMPREHENSIVE rarely adds value for modification-only beads). Clean pass abbreviated output when 0 FAILs. Same-session fresh-eyes mitigation: load one upstream doc the executing agent didn't read. UPSTREAM_DOC tracking: create br issues for upstream doc mismatches so they don't get re-discovered.*
+*v1.3: CONVERGE skip when prior STANDARD passed clean. Agent prompts include bead scope and design exemptions.*
 *v1.2: Explicit manifest-missing fallback. Agent pattern context in prompts. 10-20% false positive rate expected.*
 *v1.1: UC scenario verification, architecture compliance, ADR in STANDARD+, non-greenfield awareness, cross-module deps, bead re-read requirement, CONVERGE manifest update.*
 *v1.0: Initial release — bead-by-bead AC/FC verification, design traceability, FR depth, execution manifest, CONVERGE mode, finding classification, trust hierarchy, /review delineation.*

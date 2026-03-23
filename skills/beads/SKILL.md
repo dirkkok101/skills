@@ -569,11 +569,14 @@ ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 - Rely on plan's coverage tables for FR/UC/Design traceability. Spot-check source docs for file paths only (confirm they exist, don't re-read content).
 - **Lighter bead descriptions:** For verification beads, use a compact format: objective + checklist + verification command. Skip the full template (In Scope, Out of Scope, Approach, Given/When/Then) — a verification bead is a checklist, not a construction blueprint.
 
-**Dry-run file:** Write all bead descriptions to a `beads.md` file as a record of what was created. Create beads in the issue tracker (br) immediately — do NOT wait for user approval (there are no PAUSE points). The beads.md file serves as documentation, not as an approval gate.
+**beads.md is the single source of truth.** Write all bead descriptions to `docs/plans/{feature}/beads.md`. This is the authoritative record — human-readable, diffable, and persistent. Create beads in br with short titles + dependencies + labels. For bead descriptions in br, use `br comments add` with a one-liner: "Full description: see docs/plans/{feature}/beads.md #{bead-number}". Do NOT duplicate the full description in br comments — it creates sync risk and wastes tokens.
 
 **Verify "New" elements before decomposing:** For each element the plan marks as "New" in the Implementation Status, run a quick glob/grep to confirm it doesn't actually exist in the codebase. Plans can be stale — an element marked "New" may have been created since the plan was written. If it exists, reclassify as "Exists" or "Modify" before creating beads. Do this in Phase 1, not Phase 3 — wrong-type beads are expensive to fix.
 
-**Scope growth check excludes gates:** When comparing bead count to plan task count (Step 1.0), exclude test/verify gate beads from the count. Only implementation beads count toward the 1.5x threshold. Gates are mechanical — they don't represent scope growth.
+**Scope growth check:** When comparing bead count to plan task count:
+- Exclude gate beads from the count (they're mechanical, not scope growth)
+- Compare implementation beads against the plan's **sub-task count**, not the top-level task count. A plan with 6 tasks and 24 sub-tasks should produce ~24 beads, not ~6.
+- For Verification Mode (>90% exists): exempt from the 1.5x threshold entirely — verification beads naturally multiply because each plan task decomposes into multiple verification concerns.
 
 **br correction protocol:** br has no update-description command. When CONVERGE fixes a bead, use `br comments add` with a `## CORRECTION (review-beads round N)` header. Executing agents should read comments bottom-up (newest first). The original wrong content will still exist in earlier comments.
 
@@ -1357,7 +1360,8 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.5*
+*Skill Version: 5.6*
+*v5.6: Consolidated feedback from 11 production runs. Scope growth check uses sub-task count (not top-level task count), exempts Verification Mode. beads.md is single source of truth (don't duplicate full descriptions in br comments). Remaining presentation triggers removed (Step 0.4, Phase 3 wording).*
 *v5.5: Consolidated feedback from 6 production runs. Verify "New" elements via glob before decomposing (plan can be stale). Scope growth check excludes gate beads. br correction protocol (## CORRECTION header for br comments add).*
 *v5.4: Production feedback round 2. Dry-run option: write beads.md first, create in br AFTER approval (prevents delete+recreate cycles). Lighter verification bead descriptions (checklist format, not full template). Gate scaling: skip UC/module verify for ≤10 impl beads in Verification Mode. Context efficiency: rely on plan tables, spot-check file paths only.*
 *v5.3: Production feedback from Entitlements run. Verification Mode fast path (>90% exists → map directly from plan, skip decomposition analysis, 1 verification bead per feature not per element). Checkpoint/resume for interrupted runs (detect existing beads, offer resume vs delete). Gate scaling for verification mode (lightweight gates when ≤10 impl beads). Context efficiency: rely on plan's coverage tables, spot-check source docs only.*

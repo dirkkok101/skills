@@ -455,9 +455,9 @@ Check the issue tracker: all task beads should be closed, only the epic should r
 
 Close the feature epic in the issue tracker.
 
-**Step 4.4 — Write Execution Manifest:**
+**Step 4.4 — Write Execution Manifest (MANDATORY):**
 
-Write a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is consumed by `/review-execute` for bead-by-bead verification.
+**You MUST write** a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is the primary input for `/review-execute`. Without it, review-execute must reconstruct context from git log — slower, less structured, and error-prone. Create the directory if it doesn't exist. Commit and push the manifest as the final commit.
 
 ```markdown
 # Execution Manifest: {Feature Name}
@@ -661,8 +661,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.4*
-*v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered — `--filter "Module"` missed 15 cross-module regressions caught only at test gate). Checkpoint threshold raised to 8+ files (was 3 — too low, adds overhead for typical beads). Anti-pattern: sub-agent delegation for implementation reads (sub-agents gave wrong pattern advice).*
+*Skill Version: 4.5*
+*v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*
+*v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered). Checkpoint threshold raised to 8+ files. Anti-pattern: sub-agent delegation for implementation reads.*
 *v4.3: UC gate execution. Removed Step 2.8 upstream verification (deferred to /review-execute). Design decision awareness. Doc map paths. UC Coverage in manifest.*
 *v4.2: Pipeline alignment — removed /review and /simplify gate bead handling. Execution manifest. Structured per-bead entries. beads.md as preferred source. Lightweight self-review. Removed user-approval prerequisite and hardcoded dotnet commands.*
 *v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work.*

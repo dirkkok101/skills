@@ -171,15 +171,25 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 
 **Step 0.1 — Load Execution Manifest:**
 
-Read `docs/execution/{feature}/manifest.md`. If it doesn't exist, read the conversation's execution summary or reconstruct from git log + bead descriptions.
+Read `docs/execution/{feature}/manifest.md`.
 
-Parse from the manifest:
+**If manifest exists:** Parse:
 - List of completed beads with IDs
 - Files changed per bead
 - FRs addressed per bead
 - ACs claimed per bead
 - Design elements implemented per bead
 - Commit hashes per bead
+
+**If manifest is missing (fallback):** Reconstruct from git history + bead descriptions:
+1. Identify the epic: `br search "{feature}"` or `br list --status closed`
+2. Get the bead list: `br dep tree {epic-id}`
+3. Map commits to beads: `git log --oneline` — match commit messages to bead titles
+4. For each bead, derive files changed: `git diff {commit}^..{commit} --stat`
+5. Build a minimal manifest in memory (don't write it — the executing agent should have)
+6. Note `MANIFEST_STALE` as a WARN finding: "/execute did not write the required manifest"
+
+This fallback is slower and less precise than a proper manifest. Flag the gap so the team knows to enforce manifest writing.
 
 **Step 0.2 — Load Bead Descriptions:**
 
@@ -568,7 +578,18 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 
 **Recommended pipeline:** `/execute` → `/review-execute` (bead satisfaction) → `/review` (code quality) → `/compound` (learnings).
 
-**Do NOT delegate finding generation to Explore agents.** Agents cannot read actual code with the same precision as the main context. Generate findings in the main context where you can Read files, grep for patterns, and verify line-by-line. Use agents only for loading upstream docs (design, PRD, ADRs), not for reviewing implementation.
+**Do NOT delegate finding generation to Explore agents.** Agents lack pattern context — they flag correct framework behavior as violations (e.g., flagging `ThrowIfAnyErrors()` as a legacy pattern when it's the correct validation pipeline). Generate findings in the main context where you can Read files, grep for patterns, and verify line-by-line.
+
+**Agents may be used for:**
+- Loading upstream docs (design, PRD, ADRs) in parallel
+- Bulk file verification (confirming a pattern is absent across many files via grep)
+
+**When delegating bulk verification to agents**, include in the agent prompt:
+- The specific patterns to check for (exact method names, not descriptions)
+- The patterns that are CORRECT and should NOT be flagged (e.g., "ThrowIfAnyErrors() is validation pipeline — do NOT flag")
+- The bead's failure criteria verbatim (so the agent knows the boundary)
+
+Even with these precautions, expect 10-20% false positive rate from agents. Triage all agent findings before including them in the report.
 
 ---
 
@@ -585,6 +606,7 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.1*
-*v1.1: UC scenario verification (Phase 3.6) — traces UC main steps, extensions, and alternatives through code. Architecture compliance (Phase 3.4) — multi-tenancy, authorization, CQRS checks. ADR compliance promoted from COMPREHENSIVE-only to STANDARD+ (bead-referenced ADRs). Non-greenfield awareness (verification/modification/gap-filling bead modes). Cross-module dependency verification (Phase 4.3). Finding quality: bead re-read required before flagging. CONVERGE manifest update after fixes. New finding classes: UC_GAP, ARCH_VIOLATION, CROSS_MODULE_GAP.*
+*Skill Version: 1.2*
+*v1.2: Production feedback from cross-cutting review. Explicit manifest-missing fallback with git reconstruction steps (Phase 0.1). Agent delegation guidance: include correct patterns in prompts to reduce false positives (ThrowIfAnyErrors flagged incorrectly). 10-20% agent false positive rate expected — triage all agent findings.*
+*v1.1: UC scenario verification, architecture compliance, ADR in STANDARD+, non-greenfield awareness, cross-module deps, bead re-read requirement, CONVERGE manifest update.*
 *v1.0: Initial release — bead-by-bead AC/FC verification, design traceability, FR depth, execution manifest, CONVERGE mode, finding classification, trust hierarchy, /review delineation.*

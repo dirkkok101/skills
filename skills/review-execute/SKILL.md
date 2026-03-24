@@ -247,7 +247,16 @@ git diff {pre-execution-commit}..HEAD --stat       # all files changed
 
 Cross-reference against manifest file lists. Flag discrepancies.
 
-**Step 0.4 — Determine Mode:**
+**Step 0.4 — Check for Prior Reviews:**
+
+Check `docs/reviews/` for existing `review-execute-{feature}-*.md` files. If a prior review exists:
+1. Read its verdict and finding count
+2. Ask the user: "A prior {STANDARD/COMPREHENSIVE} review exists ({date}, {verdict}). Run a fresh review, or upgrade depth?"
+3. If upgrading from STANDARD to COMPREHENSIVE, focus on the additional depth (FR AC, UC tracing, architecture) rather than re-verifying beads that already passed
+
+This prevents wasted work re-reviewing modules and gives COMPREHENSIVE reviews a targeted scope.
+
+**Step 0.5 — Determine Mode:**
 
 If user hasn't specified:
 - ≤6 beads, single module → BRIEF
@@ -684,8 +693,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.11*
-*v1.11: Sessions review feedback. Bead description source: explicit 3-tier fallback (beads.md → br show → manifest). Verification-mode Phase 3: mandatory line-by-line API surface comparison (not ad-hoc). Test runner smoke check: skip after first review in session.*
+*Skill Version: 1.12*
+*v1.12: Role Templates review feedback. Prior review detection in Phase 0 — check for existing review reports before starting, ask user whether to re-run or upgrade depth. Prevents wasted re-review work.*
+*v1.11: Sessions feedback. Bead source 3-tier fallback. Mandatory Phase 3 API surface comparison. Smoke check skip.*
 *v1.10: Tier 3 consolidated. Agent threshold. Pattern check before DESIGN_DRIFT. Pre-existing filter. Test triage. Phase 4 skip.*
 *v1.9: Role Templates feedback. Test runner smoke check.*
 *v1.8: Applications review. Diagnose before revert. Pattern pre-check. Agent architectural constraints. Manifest reconstruction as Step 0.*

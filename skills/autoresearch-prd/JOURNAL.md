@@ -1021,3 +1021,83 @@ After first-principles reflection, we reverted the 9 skill-specific extractions.
 ### Key Insight
 
 Progressive disclosure works for **supplementary** content (shared patterns, version history) but NOT for **essential workflow steps** (checklists the agent must follow, templates the agent must fill, prompts the agent must use). The distinction: would the skill produce wrong output if this content is missing? If yes → inline. If no → reference file is fine.
+
+---
+
+## Session: Superpowers Cross-Pollination & v5.0.0 Release (2026-03-24)
+
+### Objective
+Study obra/superpowers (14 skills, 5-platform support) for design patterns applicable to our library. Then implement findings and release v5.0.0.
+
+### Method
+1. Deep analysis of superpowers repo structure, skill design, platform adapters, testing
+2. Identified 4 adoptable patterns: CSO descriptions, multi-platform adapters, session hook, skill tests
+3. Implemented all 4 in parallel (CSO audit agent + platform adapter agent)
+4. Validated manifests against official platform docs (3 failures caught and fixed)
+5. Tagged, released, published v5.0.0
+
+### Finding 1: CSO (Comprehensive Summary Override)
+
+Superpowers' most important discovery for skill design. When a skill description summarizes the workflow ("Execute beads autonomously. Each bead loads surgical context, designs implementation..."), agents follow the description instead of reading the full SKILL.md. The description becomes a lossy cache of the skill.
+
+**Impact:** Audited all 22 skills — 22/22 were CSO-RISK. Every description contained workflow summaries. Rewrote all to trigger-only format ("Use when beads exist and are ready for implementation. Triggers on 'execute', 'start implementation'...").
+
+**This may be the single highest-impact change we've made to the skills.** All the workflow detail, phase structure, anti-patterns, and checklists we've spent sessions refining could have been partially bypassed by agents that followed the description instead.
+
+### Finding 2: Multi-Platform Distribution
+
+Superpowers supports 5 platforms via thin adapter directories alongside platform-agnostic SKILL.md files. We adopted the same pattern. Skills are shared markdown; adapters handle platform-specific injection.
+
+### Finding 3: Manifest Validation Failure
+
+We copied superpowers' manifest formats without validating against official docs. This caused 3 deployment failures:
+
+| Attempt | Error | Root Cause |
+|---------|-------|------------|
+| 1 | `Invalid input: skills, hooks, commands, agents` | plugin.json had fields not in Claude Code schema |
+| 2 | `expected record, received array` | hooks.json used array format instead of nested record |
+| 3 | Fixed | Validated against claude-code-guide |
+
+**Lesson:** Never copy another repo's config format without validating against the platform's official docs. Other repos may use undocumented behavior, older schemas, or platform-specific extensions.
+
+### Finding 4: Skill Tests Catch What Production Misses
+
+The test suite (244 checks) immediately caught 3 project-specific references ("capstone", "Capstone") that 15 production runs across 11 modules didn't catch. Automated structural tests complement production testing — they find different classes of issues (structural consistency vs operational behavior).
+
+### v5.0.0 Release Summary
+
+| Component | Status |
+|-----------|--------|
+| 22 CSO-compliant descriptions | Shipped |
+| 5 platform adapters | Shipped, validated |
+| Session start hook | Shipped |
+| Skill test suite (244 checks) | Shipped |
+| GitHub release + tag | Published |
+| README rewrite (364→157 lines) | Shipped |
+
+### Cumulative Skill Versions (End of Session)
+
+| Skill | Version | Key Session Changes |
+|-------|---------|-------------------|
+| execute | v5.3 | Batch-verify mode, atomic commits, frontend health check |
+| review-execute | v2.5 | Mandatory test run, proportional frontend, upfront context batch |
+| beads | v5.16 | Column constraint scoping, feature slice grouping |
+| All 22 skills | — | CSO-compliant descriptions |
+
+### Full Autoresearch Journey Summary
+
+| Phase | Focus | Key Outcome |
+|-------|-------|-------------|
+| 1 | PRD skill | 23 implicit conventions made explicit |
+| 2 | Technical design skill | Two-layer decision pattern, structural conventions |
+| 3 | Plan skill | Non-greenfield gap analysis, verification mode |
+| 4 | Beads skill | /review+/simplify gates removed, no user approval |
+| 5 | All review skills | CONVERGE mode, MECHANICAL classification |
+| 6 | Beads production (15 modules) | 231 beads, 0 FAILs |
+| 7 | Autoresearch skill | Standalone convergence loop |
+| 8 | gstack cross-pollination | 4 new skills, self-regulation, Iron Law |
+| 9 | Progressive disclosure | Version history extracted, shared refs established, skill-specific extraction reverted |
+| 10 | Execute + review-execute (15 modules) | 16 bugs caught, 35 skill improvements |
+| 11 | Superpowers cross-pollination | CSO fix, multi-platform, v5.0.0 release |
+
+**Total: 60+ documents reviewed, 231+ beads created, 15 modules executed, 16 bugs caught, 22 skills refined through 50+ production feedback cycles, published across 5 platforms.**

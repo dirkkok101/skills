@@ -679,3 +679,64 @@ Executed and reviewed all 15 identity platform modules through the full pipeline
 4. **The OneOf status code pattern is the most common bug class.** 409→400/403/422 drift appeared in Organizations, Applications, Roles, and API Keys. Documented as a common CONVERGE fix pattern.
 
 5. **Skills improve fastest from production feedback.** Each module's execution feedback produced 1-3 targeted improvements. Theoretical analysis (adversarial review) found structural issues; production feedback found operational issues. Both are needed.
+
+---
+
+## Phase 11: Superpowers Cross-Pollination & v5.0.0 Release (2026-03-24)
+
+Studied the [obra/superpowers](https://github.com/obra/superpowers) skills library (14 skills by Jesse Vincent) to identify design patterns and distribution strategies applicable to our pipeline. Superpowers takes a different approach — role-based skills vs our phase-based pipeline — but several patterns were directly applicable.
+
+### What We Adopted
+
+**1. CSO (Comprehensive Summary Override) — Critical fix.**
+
+Superpowers documented a discovery: skill descriptions that summarize the workflow cause agents to follow the description instead of reading the full SKILL.md. Audited all 22 of our skills — every single one was CSO-RISK. Rewrote all 22 descriptions to contain only trigger conditions ("Use when..."), removing all workflow summaries.
+
+**2. Multi-platform adapters.**
+
+Superpowers supports 5 platforms via thin adapter directories. We adopted the pattern:
+- `.claude-plugin/plugin.json` — Claude Code marketplace
+- `.cursor-plugin/plugin.json` — Cursor
+- `.codex/INSTALL.md` — Codex (clone + symlink)
+- `.opencode/plugins/workflow.js` — OpenCode (ESM hook plugin)
+- `gemini-extension.json` — Gemini CLI
+- `GEMINI.md` — Gemini context file
+
+**3. Session start hook.**
+
+`hooks/session-start` injects skill awareness (names + triggers + pipeline routing) at every Claude Code session start. Agents always know skills exist without loading all skill content. Zero-cost bootstrap.
+
+**4. Skill-level test suite.**
+
+3 test suites with 244 checks:
+- CSO compliance (descriptions are trigger-only, no workflow verbs)
+- Structural integrity (frontmatter, versions, no project-specific refs)
+- Reference validity (all shared reference links resolve)
+
+Tests immediately caught 3 project-specific references (capstone, NxGN) that production runs missed.
+
+### What We Didn't Adopt
+
+- **Role-based skill identity** (CEO, designer, QA personas) — our phase-based pipeline is more traceable
+- **Cross-model validation** — our multi-agent parallel review already provides diverse perspectives
+- **One-issue-one-question** for code fixes — our Batch Review pattern is more efficient for document review
+
+### Manifest Validation Lesson
+
+Initial deployment failed 3 times because we copied superpowers' manifest formats without validating against official platform docs:
+- `hooks.json` used array format instead of Claude Code's required record format
+- `plugin.json` included `skills`/`hooks`/`agents`/`commands` fields not in the Claude Code schema
+- `gemini-extension.json` had 6 unrecognized fields
+- `.opencode/plugins/workflow.js` used CommonJS with wrong API pattern
+
+**Lesson:** Validate against official docs, not other repos. Other repos may use undocumented behavior or older schemas.
+
+### v5.0.0 Release
+
+Tagged and released v5.0.0 with:
+- 22 CSO-compliant skill descriptions
+- 5-platform adapter support
+- Session start hook
+- Skill test suite (244 checks)
+- All manifests validated against official platform documentation
+- Production-validated across 15 modules (16 bugs caught, 38 WARNs tracked)

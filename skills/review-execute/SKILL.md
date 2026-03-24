@@ -233,13 +233,15 @@ If user hasn't specified:
 | File lists match actual git changes | `git diff --stat` per commit vs manifest file lists | WARN if mismatch |
 | FR coverage table is complete | Every FR from bead descriptions appears in table | WARN if missing |
 
-**Step 1.2 — Verify Build & Tests Pass:**
+**Step 1.2 — Verify Build & Tests Pass (MANDATORY — do NOT skip):**
 
-**Test runner smoke check:** Before running the full suite, confirm you can get clean pass/fail output from the test runners. Run a single small test file to verify output is parseable. **Skip this step** if the project has a proven test runner from prior reviews in this session — the smoke check is for the first review only, not every module.
+**This is the single most important mechanical check in the review.** Do NOT trust the manifest's "all tests passing" claim — the manifest is the executing agent's assertion, not verified truth. A review that doesn't run tests can issue a false PASS.
 
-Run the project's build and test commands. If they fail, **triage quickly:** stash your changes, re-run failing tests, pop the stash — this classifies failures as pre-existing vs introduced by the execution. Only introduced failures are FAIL findings. This takes 30 seconds and prevents 5-10 minutes of manual investigation.
+Run the project's build and test commands. If they fail, **triage quickly:** stash your changes, re-run failing tests, pop the stash — this classifies failures as pre-existing vs introduced by the execution. Only introduced failures are FAIL findings.
 
-Record test count and pass rate.
+**Test runner smoke check:** Skip if the project has a proven runner from prior reviews in this session.
+
+Record test count and pass rate. Compare against manifest claims — flag `MANIFEST_STALE` if counts diverge.
 
 **Pre-existing code filter:** For verification-mode reviews, run `git diff {first-execution-commit}^..{last-execution-commit} --name-only` early and focus Phase 2 bead verification on files in that diff. Reading unmodified files provides context but isn't necessary for bead verification — if the code predates the execution commits, skip it unless a specific AC references it.
 
@@ -250,6 +252,8 @@ Record test count and pass rate.
 **This is the core phase.** For each bead in the manifest, verify the implementation against the bead's specification.
 
 **BRIEF mode:** Spot-check 3 beads (pick: first bead, a middle bead, last bead). For each, run the full checklist below.
+
+**Verification-only beads:** For beads marked "Verified — no changes needed" in the manifest, spot-check at least 3 against their design docs. Read the pre-existing implementation and compare against the api-surface or data-model spec. Don't pass them through based on manifest claims alone — the manifest says they pass, your job is to verify that claim.
 
 **STANDARD/COMPREHENSIVE mode:** Verify every bead.
 
@@ -586,4 +590,4 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 2.1 — [Version History](VERSIONS.md)*
+*Skill Version: 2.2 — [Version History](VERSIONS.md)*

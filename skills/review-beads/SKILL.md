@@ -347,189 +347,24 @@ Before recording any finding from this phase, **re-read the bead** via `br show 
 
 For each bead, review against all 11 categories. Not every category applies to every bead — skip inapplicable checks.
 
-#### Category 1: FR Coverage
+For the full checklist for each category, see: `references/review-checklists.md#category-checklists-phase-4-bead-by-bead-deep-review`
 
-- [ ] Every Must-Have FR in the PRD has at least one bead
-- [ ] No phantom FRs — bead doesn't claim to implement an FR that doesn't exist in the PRD
-- [ ] Coverage is complete, not partial — if FR requires backend + frontend, both exist
-- [ ] PRD acceptance criteria are reflected in bead success criteria (Given/When/Then alignment)
-- [ ] FR priority matches bead existence — Must-Have FRs are never deferred
+**Categories summary:**
 
-#### Category 2: Use Case Coverage
-
-- [ ] Every main scenario step has a bead (or is covered by a bead's scope)
-- [ ] Every extension flow has a bead or is in a bead's failure criteria
-- [ ] Every alternative flow has a bead or is in a bead's out-of-scope with justification
-- [ ] Error conditions appear as failure criteria in relevant beads
-- [ ] Actor-specific behavior is preserved — if UC says "admin sees X", the bead doesn't genericize to "user sees X"
-
-#### Category 3: Design Compliance
-
-**API surface alignment:**
-- [ ] Every endpoint in the design has a bead
-- [ ] Request/response shapes in bead match the design (property names, types, nesting)
-- [ ] HTTP methods match (POST for save, POST for grid, GET for get, DELETE for delete)
-- [ ] Validation rules in design appear in validator bead
-- [ ] Error responses in design appear in bead failure criteria
-- [ ] Route paths match design conventions
-
-**Data model alignment:**
-- [ ] Every entity in the design has entity + EF config beads
-- [ ] Property names in bead match design (exact casing, exact types)
-- [ ] Constraints in design (required, max length, unique) appear in EF config bead
-- [ ] Enum values in bead match design exactly
-- [ ] Column naming convention matches project standard (PascalCase per pattern alignment)
-- [ ] Relationships in design are reflected in EF config bead
-
-**UI mockup alignment:**
-- [ ] Every screen in the design has a component bead
-- [ ] Component type matches design (list page vs capture page vs embedded list)
-- [ ] Interactions in design (click, filter, sort, validate) are in bead scope
-- [ ] States in design (loading, empty, error, success) are in bead success/failure criteria
-
-#### Category 4: Architecture Compliance
-
-**ADR checklist — verify each applicable ADR:**
-
-| ADR | Check | Applies To |
-|-----|-------|-----------|
-| Enums over strings (ADR-0004) | Status/kind/mode fields use enums, not string constants | Entity, Contracts, EF Config beads |
-| EnumDTO/NamedDTO (ADR-0005) | Dropdown-bindable fields use EnumDTO/NamedDTO | Contracts, DTOMapper beads |
-| Entity mapper result | SaveCommand uses EntityMapperResult, not OneOf | SaveCommand beads |
-| Separate requests superseded | SaveRequest inherits DTO, Guid.Empty for create | Contracts beads |
-| PascalCase columns | EF config uses PascalCase column naming | EF Config beads |
-| IEntityTypeConfiguration | EF config uses IEntityTypeConfiguration<T>, not extension methods | EF Config beads |
-| POST for GridList | Grid endpoint uses POST, not GET | Grid Endpoint beads |
-
-**Multi-tenancy & RLS:**
-- [ ] Entities implementing ITenantEntity have RLS considerations in beads
-- [ ] Beads that query across tenants note bypass requirements
-- [ ] No bead assumes cross-org data access without explicit RLS bypass scoping
-
-**Authorization:**
-- [ ] Endpoint beads specify authorization requirements
-- [ ] Platform admin UX pattern followed — org-scoped, never cross-org views
-
-**CQRS:**
-- [ ] No bead combines a command and a query
-- [ ] Commands and queries have separate beads with correct pattern references
-
-#### Category 5: API Pattern Compliance
-
-- [ ] Vertical slice structure — features are self-contained directories
-- [ ] Endpoint base class — beads reference correct endpoint base (e.g., `IdentityEndpoint`)
-- [ ] Save pattern — upsert via EntityMapper, not separate create/update
-- [ ] Get pattern — dual identifier support (ID + slug/name), 404-not-403
-- [ ] Grid pattern — POST endpoint, QueryParameters builder class, PagedResponse
-- [ ] Delete pattern — `ExecuteDeleteAsync`, dependency checks, explicit transaction
-- [ ] Lookup pattern — returns `NamedDTO[]` for dropdown binding
-- [ ] Contracts placement — ALL DTOs, requests, responses in Contracts project, not API project
-- [ ] Validators — FluentValidation, in API project (not Contracts)
-- [ ] Service registration — `Add{Feature}Services()` in a central registration point
-- [ ] Mapper patterns — EntityMapper uses EntityMapperResult, DTOMapper has DataContext if needed
-
-#### Category 6: Web Pattern Compliance
-
-- [ ] UI component library — beads reference the project's component library first (check project CLAUDE.md or pattern docs for component names)
-- [ ] Feature-colocated services — HTTP service class lives with the feature, not in a shared folder
-- [ ] Signal state — component state uses Angular signals, not BehaviorSubjects
-- [ ] Standalone components — no NgModules, no CommonModule imports
-- [ ] Zoneless — no manual change detection (no `ChangeDetectorRef`, no `NgZone.run`)
-- [ ] Routing — lazy-loaded routes, child routes for list-to-capture navigation, canDeactivate guards
-- [ ] Enum patterns — `as const` objects, not TypeScript enums
-- [ ] Model definitions — interfaces (not classes) for DTOs, matching backend property names
-
-#### Category 7: Test Coverage
-
-- [ ] Test plan from design doc is traceable to test beads
-- [ ] Test beads specify executable commands (`dotnet test --filter`, `ng test`)
-- [ ] Negative test cases present — what should fail, not just what should succeed
-- [ ] RLS test cases — if entity has tenant isolation, tests verify it
-- [ ] Integration test infrastructure — bead references Testcontainers Postgres (not in-memory)
-- [ ] UI test infrastructure — bead references Vitest (not Jasmine/Karma)
-
-#### Category 7b: Test & Verification Gates
-
-**Gate policy:** `/review` and `/simplify` gate beads between implementation beads are prohibited (they treat preparatory code as "dead code" and delete it). Only test and verify gates are allowed. If `/review` or `/simplify` gates are found, classify as DECISION (not FAIL) — the user chooses whether to remove them. Older beads sets may have been generated before this policy; removal is the recommended resolution but not automatic.
-
-- [ ] **No `/review` or `/simplify` gate beads between sequential implementation beads** — flag as DECISION if found between impl beads that build on each other (dangerous — may delete preparatory code). Gates at phase boundaries before test beads are defensible and may be kept — note as observation, not DECISION.
-- [ ] Backend test gate blocks frontend beads (frontend depends on backend test gate)
-- [ ] UC verification gates exist for each use case (verify scenario flow, not just code review)
-- [ ] Module verification gate exists as final bead in epic
-- [ ] Cadence check — no more than 4-5 implementation beads between consecutive test gates
-- [ ] Gate beads have executable verification commands (test commands, not vague "review code")
-- [ ] Gate beads have correct dependency wiring (impl → test → next phase)
-- [ ] No empty gates — every gate specifies what tests to run
-- [ ] No orphaned gates — every gate has downstream beads that depend on it
-- [ ] For Verification Mode (>90% exists): lightweight gates acceptable (test only, no UC/module verify for ≤10 impl beads)
-
-#### Category 8: Bead Quality
-
-- [ ] **Objective** states intent, not implementation — no code, no pseudo-code
-- [ ] **No source code** in bead description — beads contain intent, agents write code from patterns
-- [ ] **Context references exist** — `## Context to Load` section with specific file paths
-- [ ] **Pattern references are specific** — points to actual pattern doc path, not just "follow patterns"
-- [ ] **In/Out scope bounded** — explicit boundaries, out-of-scope names the other bead
-- [ ] **Success criteria are testable** — observable outcomes, not "make sure it works"
-- [ ] **Failure criteria are realistic AND design-decision-traced** — not generic ("Do NOT over-engineer") but specific ("Do NOT use [rejected approach] per [decision ref]"). Cross-reference against the plan's Design Decision Coverage table — every decision should appear as a failure criterion in at least one bead.
-- [ ] **Verification commands are executable** — real commands with correct filters/paths
-- [ ] **Commit message specified** — conventional commit format, one per bead
-- [ ] **Implements section present** — FR/UC traceability
-
-#### Category 9: No Backwards Compatibility
-
-- [ ] No compatibility shims — no old API route preservation alongside new routes
-- [ ] No adapter layers — no translation between old and new contract shapes
-- [ ] No old API preservation — deprecated endpoints are removed, not maintained
-- [ ] Cleanup beads exist — if old code is being replaced, a bead removes the old code
-- [ ] No migration beads — app is pre-deployment, no incremental data migrations
-
-#### Category 10: Cross-Module Dependencies
-
-- [ ] Dependencies match wired links — `br dep list` matches bead's `## Depends On`
-- [ ] No hidden assumptions — bead doesn't assume another module's entity/service exists without a dependency
-- [ ] Shared contracts created before consuming beads — if Feature B uses Feature A's DTO, the contracts bead for A is wired as a dependency
-- [ ] Cross-module beads specify which module provides what
-
-#### Category 11: Granularity
-
-**Backend granularity rules — one bead per:**
-- Entity definition (+ enums — these group)
-- EF configuration
-- Contract set (DTOs, requests, responses for ONE entity)
-- EntityMapper (create/update mapping, ONE direction: DTO→Entity)
-- DTOMapper (read mapping, ONE direction: Entity→DTO)
-- Each command (SaveCommand OR DeleteCommand OR lifecycle command — never combined)
-- Each query (GetQuery OR GridQuery OR LookupQuery — never combined)
-- Each endpoint (Save OR Get OR Grid OR Delete OR Lookup — never combined)
-- Validator set (for one entity's request types)
-- Service registration
-
-**Frontend granularity rules — one bead per:**
-- Models + enums (may group — same concern)
-- Feature service
-- List page
-- Capture page (may include capture state if state is simple)
-- Embedded list (per child entity)
-- Routing
-
-**Never combine (automatic GRANULARITY finding if violated):**
-- Entity + Contracts (different projects)
-- EntityMapper + DTOMapper (opposite data flow)
-- Commands + Queries (CQRS violation)
-- Endpoints + Commands/Queries (HTTP wiring vs business logic)
-- Validators + Endpoints (validation rules vs HTTP lifecycle)
-- List Page + Capture Page (different routes)
-- Feature Service + any Component (service vs presentation)
-- Routing + Components (infrastructure vs feature)
-- Backend + Frontend (different tech stacks)
-
-**Grouping exceptions (acceptable combinations):**
-- Entity + Enum definitions
-- DTOMapper + DataContext
-- Multiple small endpoints for same entity IF each is under ~20 lines
-- Models + Enum Constants (frontend)
-- Capture State + Capture Page IF state is simple
+| # | Category | Key Focus |
+|---|----------|-----------|
+| 1 | FR Coverage | Every Must-Have FR has beads; acceptance criteria map to success criteria |
+| 2 | UC Coverage | Main/extension/alternative flows covered; actor behavior preserved |
+| 3 | Design Compliance | API surface, data model, UI mockup alignment (shapes, methods, properties) |
+| 4 | Architecture Compliance | ADR adherence, multi-tenancy/RLS, authorization, CQRS separation |
+| 5 | API Pattern Compliance | Vertical slices, endpoint patterns (save/get/grid/delete/lookup), contracts placement |
+| 6 | Web Pattern Compliance | Component library, signals, standalone components, zoneless, routing |
+| 7 | Test Coverage | Test plan traceability, executable commands, negative/RLS cases |
+| 7b | Test & Verification Gates | Gate policy (no /review or /simplify gates), cadence, wiring, executability |
+| 8 | Bead Quality | Objective clarity, context refs, testable criteria, decision-traced failure criteria |
+| 9 | No Backwards Compatibility | No shims, no adapters, cleanup beads exist, no migration beads |
+| 10 | Cross-Module Dependencies | Wired links match, no hidden assumptions, shared contracts ordered |
+| 11 | Granularity | One-bead-per-artifact rules, never-combine list, grouping exceptions |
 
 ---
 

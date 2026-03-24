@@ -179,64 +179,9 @@ See [references/plan-conventions.md](references/plan-conventions.md) for the Des
 
 Check what's already built before decomposing. This is the most important step for non-greenfield work — it determines whether the plan is a build plan or an alignment plan.
 
-**Structured checklist** — for each design element type, search the codebase:
+Use targeted Grep/Glob for element-by-element checks. Mark each element as New, Modify, or Exists.
 
-```
-For each entity in data-model.md:
-  [ ] Entity class exists? Schema matches?
-  [ ] EF Configuration exists? Indexes, constraints match?
-  [ ] Migration exists?
-
-For each feature area in api-surface.md:
-  [ ] Contracts (DTO, Request, Response) exist? Fields match?
-  [ ] EntityMapper exists? Uses correct pattern?
-  [ ] DTOMapper exists? Uses correct pattern?
-  [ ] Commands exist? Return types match design?
-  [ ] Queries exist? Include correct navigations?
-  [ ] Validators exist? Rules match design?
-  [ ] Endpoints exist? Routes, verbs, auth policies match?
-
-For each frontend feature in ui-mockup.md:
-  [ ] Models/interfaces exist?
-  [ ] Feature service exists?
-  [ ] List/grid page exists?
-  [ ] Capture/form page exists?
-  [ ] Routing configured?
-
-Cross-cutting:
-  [ ] DI registration exists?
-  [ ] Audit events wired?
-  [ ] Tests exist? Coverage sufficient?
-```
-
-Use targeted Grep/Glob for this — an Explore agent is overkill for element-by-element checks.
-
-```markdown
-### Implementation Status
-| Design Element | Type | Status | Notes |
-|---------------|------|--------|-------|
-| Widget entity | entity | ✅ Exists | Schema matches design |
-| WidgetDTO | contract | ✅ Exists | Missing new field "Category" |
-| SaveWidgetCommand | command | ⚠ Modify | Exists but uses old return type pattern (need updated pattern per design decision) |
-| GetWidgetQuery | query | ❌ New | Not yet implemented |
-| Widget grid UI | frontend | ❌ New | Not yet implemented |
-```
-
-Mark each element as:
-- **New** — nothing exists, build from scratch per design
-- **Modify** — exists but needs changes to match design (specify WHAT changes)
-- **Exists** — already matches design, verify only (no bead needed unless verification fails)
-
-For greenfield features, every element is "New" — but still document the table to confirm nothing was assumed to exist.
-
-**Task sizing for modifications** (different from greenfield):
-
-| Modification Type | Size | Example |
-|-------------------|------|---------|
-| Pattern replacement (same logic, new type) | S | Change return type from old pattern to new per design decision |
-| Field addition (cascades to DTO + mapper + tests) | M | Add `Category` field across entity, DTO, mapper, validator |
-| Behavioral change (new logic path) | L | Add audit event wiring where none existed |
-| Architecture change (cascading rework) | XL | Move from commands to event-driven pattern |
+See [references/plan-conventions.md](references/plan-conventions.md) for the structured checklist, Implementation Status table format, and task sizing for modifications.
 
 **Step 1.5 — Order by Risk and Dependency:**
 
@@ -436,106 +381,9 @@ These don't block the plan but should be addressed in the design.}
 
 **BRIEF mode skips this phase** — the overview IS the plan with inline task descriptions.
 
-For each task, create `NN-{task-name}.md`:
+For each task, create `NN-{task-name}.md`. Sub-plans encode design intent at the task level: objective, context, pseudocode, contract shapes, pattern references, success/failure criteria, and traceability to FRs and design decisions.
 
-```markdown
-# Sub-Plan: {Task Title}
-
-> Part of [{Feature Name} Plan](overview.md)
-
-## Traceability
-- **Implements:** FR-{MODULE}-{NAME}, FR-{MODULE}-{NAME}
-- **Design Reference:** `docs/designs/{feature}/{relevant-file}.md`
-- **Validates Against:** BDD scenarios tagged @UC-{MODULE}-{NNN} (if applicable)
-
-## Prerequisites
-- [ ] {Previous task} completed
-- [ ] {Required infrastructure in place}
-
-## Objective
-
-{2-4 sentences — what this task delivers and why it matters in the
-overall plan. Reference the design doc for detailed specs.}
-
-## Context
-
-{Situational context: what exists already, what this task builds on,
-what the executing agent needs to understand before starting.}
-
-## Tasks
-
-### Task N: {Task Title}
-
-**Objective:** {One sentence — what this task accomplishes.}
-
-**Approach:**
-{Brief prose description of the implementation strategy. Reference
-design decisions: "We chose X over Y because Z — see design.md."}
-
-**Pseudocode:** (include when the design produced algorithmic detail)
-```
-{Pseudocode showing data flow, branching logic, and entity relationships.
-This is algorithmic intent — NOT compilable source code.
-Include: entity creation patterns, validation logic, mapper flows,
-command/query structure, endpoint wiring.
-Omit: imports, DI registration, boilerplate, exact method signatures.}
-```
-
-**Contract Shapes:** (include when task defines or modifies contracts)
-```
-{DTO/request/response structure definitions showing fields and types.
-These come from the design's api-surface.md — reference, don't reinvent.}
-```
-
-**Pattern Reference:**
-- {Specific file that establishes the pattern to follow}
-- {Location where the new code should live}
-- {Design doc section with full specs}
-
-**Success Criteria:**
-- {Testable assertion — what must be true when done}
-
-**Failure Criteria:** (REQUIRED for implementation tasks. Verification/audit tasks may omit when there are no rejected alternatives — success criteria serve as the constraint.)
-- {What NOT to do — from design decisions: "Do NOT use [rejected approach] — use [chosen approach] per [decision reference]"}
-- {Rejected alternative — from design: "Do NOT use [alternative B] for [concern] — use [alternative A] per design decision [slug]"}
-- {Pattern constraint — "Do NOT [anti-pattern] — use [correct pattern] per project pattern doc"}
-
-To extract failure criteria, read the design's decision records (decisions/*.md):
-1. For each task, identify which design decisions apply
-2. Read the "Rejected Alternatives" or "Cons" from the decision record
-3. Quote the rejected approach verbatim as a "Do NOT"
-4. Include the ADR/decision reference so the executing agent can verify
-
----
-
-{Repeat for each task in this sub-plan}
-
-## Component Success Criteria
-
-- {Overall criteria for this sub-plan as a whole}
-
-## References
-
-- {Links to design docs, api-surface, test-plan, use cases}
-```
-
-**What sub-plans contain:**
-- Objective and context (what and why)
-- Implementation guidance: pseudocode, contract shapes, pattern references (design-level intent)
-- Failure criteria (what NOT to do — prevents re-deriving design constraints)
-- Scope boundaries (in/out)
-- Context references (what to read)
-- Acceptance criteria (what "done" means)
-- Design decision summaries (why this approach)
-
-**What sub-plans do NOT contain:**
-- Compilable source code (pseudocode is algorithmic intent, not code)
-- Commit messages or git workflow (that's /beads territory)
-- Specific file modification lists as checklists (that's /beads territory)
-- Duplicated design doc content (reference it, don't copy it)
-- Test commands or CI pipeline steps (that's /beads territory)
-
-The boundary: **plans describe WHAT to build with enough implementation guidance to prevent the executing agent from re-deriving design decisions. Beads add execution mechanics: file modification lists, commit messages, test commands, and session structure.** Pseudocode, contract shapes, and failure criteria are plan-level concerns because they encode design intent. Git workflow, file lists, and test commands are bead-level concerns because they encode execution mechanics.
+See [references/plan-conventions.md](references/plan-conventions.md) for the sub-plan document template, content rules (what to include vs. omit), failure criteria extraction procedure, and the plan/beads boundary definition.
 
 **Step 3.1 — Reconcile Overview:**
 
@@ -551,121 +399,9 @@ Update the overview to reflect what sub-plans actually contain, so the overview 
 
 ### Phase 3b: Companion Documents (COMPREHENSIVE only)
 
-For COMPREHENSIVE plans, produce these companion documents alongside the sub-plans. These are living documents — updated during implementation as tests are written and security findings are addressed.
+For COMPREHENSIVE plans, produce three companion documents alongside the sub-plans: E2E test plan, security hardening checklist, and test scenario matrix. These are living documents updated during implementation. For non-greenfield plans (>70% exists), companion docs focus on verification of existing behavior rather than planning new behavior.
 
-**Scope-aware companion docs:** For plans where >70% of Implementation Status is "Exists" (non-greenfield), companion docs should focus on **verification of existing behavior** rather than planning new behavior:
-- E2E test plans become smoke tests verifying existing flows still work after modifications
-- Security checklists become audit checklists verifying existing controls
-- Test matrices document existing test coverage and identify gaps, not plan all-new tests
-
-**Step 3b.1 — E2E Test Plan:**
-
-Save to: `${PROJECT_ROOT}/docs/plans/{feature}/e2e-test-plan.md`
-
-```markdown
-# End-to-End Test Plan: {Feature Name}
-
-> Acceptance-level validation for {feature} against the active architecture.
-
-## Scope
-
-{What this E2E plan validates — integrated behavior across which layers.}
-
-Out of scope for pass criteria:
-- {Explicitly excluded areas}
-
-## Environment
-
-- {Required infrastructure — databases, caches, external services}
-- {Test data setup requirements}
-
-## Smoke Checks
-
-- {Health endpoints, startup validation, seed data visibility}
-
-## Critical Path Scenarios
-
-### 1. {Primary workflow}
-1. {Step 1}
-2. {Step 2}
-...
-{Validate state changes, audit records, version increments}
-
-### 2. {Concurrency/isolation}
-### 3. {Error handling/recovery}
-### 4. {Cross-cutting concerns}
-```
-
-**Step 3b.2 — Security Hardening Checklist:**
-
-If the design's security analysis identified security requirements, operationalize them as a prioritized checklist. This turns security findings from the design/review into trackable implementation items.
-
-Save to: `${PROJECT_ROOT}/docs/plans/{feature}/security-hardening-checklist.md`
-
-```markdown
-# Security Hardening Checklist: {Feature Name}
-
-## Scope
-
-This checklist operationalizes security requirements from the design's
-security analysis and any adversarial review findings.
-
-## Priority 0 (Blocker)
-
-- [ ] {Critical security requirement — e.g., RLS migration parity}
-  - [ ] {Sub-item with specific verification}
-  - [ ] {Sub-item}
-
-## Priority 1 (High)
-
-- [ ] {High-priority security requirement}
-  - [ ] {Verification step}
-
-## Priority 2 (Medium)
-
-- [ ] {Medium-priority requirement}
-
-## Exit Criteria
-
-- [ ] All Priority 0 items complete and merged
-- [ ] All Priority 1 items complete and merged
-- [ ] Priority 2 items complete or explicitly deferred with owner and target date
-```
-
-Skip this document if the design's security analysis concluded "No significant security implications."
-
-**Step 3b.3 — Test Scenario Matrix:**
-
-Maps every use case to planned test classes and methods. This is a living document updated during implementation — initial version captures planned coverage, implementation fills in actual test evidence.
-
-Save to: `${PROJECT_ROOT}/docs/plans/{feature}/test-scenario-matrix.md`
-
-```markdown
-# Test Scenario Matrix
-
-> Maps every use case to implemented unit, integration, and architecture tests.
-> Living document — update when tests are added or modified.
-
-## Summary
-
-| Metric | Count |
-|--------|-------|
-| Test projects | {N} |
-| Use cases covered | {N}/{N} |
-| Planned test cases | {N} |
-
-## Use Case → Test Mapping
-
-### UC-{MODULE}-{NNN}: {Title}
-
-| Layer | Test Class | Tests | Count |
-|-------|-----------|-------|-------|
-| Unit | `{Validator}Tests` | {test method names} | {N} |
-| Integration | `{Lifecycle}Tests` | {test method names} | {N} |
-| **Total** | | | **{N}** |
-```
-
-Derive initial test mapping from the design's per-feature test plans. During implementation, update with actual test class names and method counts.
+See [references/plan-conventions.md](references/plan-conventions.md) for companion document templates (e2e-test-plan.md, security-hardening-checklist.md, test-scenario-matrix.md) and scope-aware adaptation rules.
 
 ---
 
@@ -818,21 +554,9 @@ ${PROJECT_ROOT}/docs/plans/{feature}/
 
 ## Anti-Patterns
 
-**Horizontal-Only Decomposition** — "Task 1: All database work. Task 2: All API work. Task 3: All UI." This produces no testable increment until the last task completes. Default to vertical slices instead — each task delivers a thin end-to-end slice that can be tested independently.
+Avoid: horizontal-only decomposition, deferred risk, testing as Phase N, 200-task over-decomposition, plan-as-design, copy-paste sub-plans, hollow sub-plans, and misaligned decomposition.
 
-**Deferred Risk** — Saving integrations and hard problems for the end. If the external API doesn't work as expected, you want to know in Phase 1, not Phase 3. Early risk discovery means cheaper course corrections — late risk discovery means rework or redesign.
-
-**Testing as Phase N** — "Phase 4: Write all the tests." Each task should include its own test expectations. Testing is part of every task, not a separate phase. If you can't define test criteria for a task, the task isn't well-defined enough.
-
-**The 200-Task Plan** — Over-decomposing into trivial tasks. If a task is "add import statement", it's too small. Merge into coherent behaviour units. The overhead of managing many tiny tasks exceeds the benefit of granularity.
-
-**Plan-as-Design** — If writing the plan surfaces architectural decisions, the design is incomplete. Plans decompose decisions already made, they don't make new ones. The right response is to return to technical-design, not to embed design decisions in sub-plans.
-
-**Copy-Paste Sub-Plans** — Duplicating design doc content into every sub-plan. Reference it instead. Duplication drifts and creates conflicting sources of truth. When the design changes, only one location should need updating.
-
-**Hollow Sub-Plans** — Sub-plans that say "implement the save endpoint" without pseudocode, contract shapes, or pattern references. If the design produced this detail, the sub-plan should carry it through. The executing agent shouldn't have to re-derive algorithmic intent from prose descriptions. The design did the thinking — the plan preserves it at the task level.
-
-**Misaligned Decomposition** — Sub-plans that don't mirror the design's feature decomposition. If the design has `features/applications/` and `features/role-templates/`, the plan should have `02-application-feature.md` and `04-role-template-feature.md` — not a different grouping that forces the agent to mentally map between decomposition schemes.
+See [references/plan-conventions.md](references/plan-conventions.md) for detailed descriptions of each anti-pattern and the correct alternative.
 
 ---
 

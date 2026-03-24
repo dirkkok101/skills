@@ -354,17 +354,6 @@ This is a recurring pattern, not a one-off. Every module with org-scoped endpoin
 
 ---
 
-### Common CONVERGE Fix Patterns
-
-When CONVERGE mode fixes DESIGN_DRIFT findings on status codes, the most common fix pattern is:
-1. Add a new case to the command's union return type (e.g., add `ValidationFailed` to the OneOf)
-2. Map the new case in the endpoint handler with field-based routing (e.g., `Field=="Organization"` → 400, `Field=="Slug"` → 422)
-3. Update tests to assert the correct status code
-
-This pattern recurs across modules — the same OneOf return type change fixes multiple status code mismatches.
-
----
-
 ### Phase 3: Design Traceability (STANDARD+)
 
 **Load:** Design documents from `docs/designs/{feature}/`. Use the doc map from beads.md or discover paths from the project's doc structure.
@@ -392,55 +381,13 @@ For each bead that implements an entity:
 
 **Step 3.3 — ADR Compliance (STANDARD+):**
 
-Read ADRs explicitly referenced by bead failure criteria (STANDARD) or all project ADRs (COMPREHENSIVE). For each:
-1. Extract the decision and its implications
-2. Verify implementation follows the decision
-3. Flag violations as `ADR_VIOLATION`
-
-In STANDARD mode, focus on ADRs cited in bead failure criteria — these are the decisions the beads explicitly encode. In COMPREHENSIVE mode, read all ADRs and check broadly.
+Read ADRs explicitly referenced by bead failure criteria (STANDARD) or all project ADRs (COMPREHENSIVE). Verify implementation follows each decision. Flag violations as `ADR_VIOLATION`.
 
 **Step 3.4 — Architecture Compliance (STANDARD+):**
 
-Verify implementation follows architecture constraints from `docs/architecture/` and the design's chosen approach. Check each applicable concern:
+Verify implementation follows architecture constraints from `docs/architecture/`. Check: multi-tenancy (tenant interface, query filtering, isolation tests), authorization (server-side enforcement matching design), CQRS separation (if applicable), and any project-specific constraints. Flag violations as `ARCH_VIOLATION`.
 
-**Multi-tenancy:**
-- [ ] Entities that should be tenant-scoped implement the project's tenant interface (e.g., `ITenantEntity`)
-- [ ] Queries include tenant filtering (no cross-tenant data leaks)
-- [ ] Tests verify tenant isolation
-
-**Authorization:**
-- [ ] Endpoints have authorization policies matching the design's auth requirements
-- [ ] Admin-only endpoints are protected, not just role-gated at the UI level
-- [ ] Authorization is enforced server-side, not just client-side
-
-**CQRS (if applicable per architecture):**
-- [ ] Commands and queries are separated into distinct handlers
-- [ ] No command handler reads data for display; no query handler mutates state
-
-**Other architecture constraints:**
-- [ ] Check `docs/architecture/` for project-specific constraints
-- [ ] Verify the implementation uses the design's chosen approach, not a rejected alternative
-
-Flag violations as `ARCH_VIOLATION`.
-
-**Step 3.5 — FR Acceptance Criteria Depth (COMPREHENSIVE):**
-
-For each Must-Have FR referenced by any bead:
-1. Read the PRD's Given/When/Then acceptance criteria
-2. For each criterion, find the implementing code AND the verifying test
-3. An FR is "covered" only if ALL acceptance criteria have both code and tests
-4. Flag partial coverage as `FR_GAP`
-
-```markdown
-## FR Coverage Verification
-
-| FR ID | Priority | ACs Total | ACs Verified | Code | Tests | Status |
-|-------|----------|-----------|-------------|------|-------|--------|
-| FR-ENT-ENABLE | Must | 10 | 10 | ✅ | ✅ | Full |
-| FR-ENT-DISABLE | Must | 5 | 3 | ✅ | ⚠ 2 missing | Partial — FAIL |
-```
-
-**Step 3.6 — UC Scenario Verification (STANDARD+):**
+**Step 3.5 — UC Scenario Verification (STANDARD+):**
 
 For each use case referenced by beads or in the execution manifest's UC Coverage table:
 1. Read the UC document
@@ -460,7 +407,11 @@ For each use case referenced by beads or in the execution manifest's UC Coverage
 | UC-001 | Ext.5a | Server error during save | — | FAIL (UC_GAP) |
 ```
 
-This is the pipeline's end-to-end traceability check: PRD defined the UC, design mapped it to flows, plan decomposed it into tasks, beads carried the intent, execute produced the code — this step verifies the code actually implements the scenario.
+This is the pipeline's end-to-end traceability check.
+
+**Step 3.6 — FR Acceptance Criteria Depth (COMPREHENSIVE only):**
+
+For each Must-Have FR referenced by any bead, read the PRD's Given/When/Then acceptance criteria. For each criterion, find implementing code AND verifying test. Flag partial coverage as `FR_GAP`.
 
 ---
 
@@ -493,6 +444,10 @@ Flag gaps as `CROSS_MODULE_GAP`.
 For each test gate bead in the manifest:
 - Were the verification commands actually run?
 - Do the tests referenced in the gate actually exist and pass?
+
+**Step 4.5 — Deferred Bead Accounting:**
+
+Check whether any beads were closed as "deferred" (not "completed") — e.g., E2E beads requiring a different execution context. List them in the report so the user knows what's still outstanding. Do NOT flag deferred beads as FAILs — they were intentionally skipped per execute skill guidance.
 
 ---
 
@@ -571,7 +526,9 @@ br create "doc: fix {design-doc} — {description of mismatch}" --type task -p 3
 ```
 These are low-priority (p3) doc fixes, not implementation work. Group related mismatches into a single issue (e.g., "doc: align api-surface status codes with implementation" for multiple status code mismatches in the same design file).
 
-**Step 5.3 — Present to User (non-CONVERGE):**
+**Step 5.3 — Present to User (if CONVERGE disabled):**
+
+Since CONVERGE is the default, this step only applies when the user explicitly requested "review only" or "no converge".
 
 Present the executive summary and finding counts. Use AskUserQuestion:
 
@@ -660,23 +617,9 @@ If implementation contradicts a higher-trust source, the implementation is wrong
 
 **Recommended pipeline:** `/execute` → `/review-execute` (bead satisfaction) → `/review` (code quality) → `/compound` (learnings).
 
-**Do NOT delegate finding generation to Explore agents.** Agents lack pattern context — they flag correct framework behavior as violations (e.g., flagging `ThrowIfAnyErrors()` as a legacy pattern when it's the correct validation pipeline). Generate findings in the main context where you can Read files, grep for patterns, and verify line-by-line.
+**Agent boundary: agents READ, you GENERATE.** Agents load files and produce summaries. YOU generate findings from what they read. Do NOT ask agents to identify issues — they lack pattern context and produce 10-20% false positives.
 
-**Agents may be used for:**
-- Loading upstream docs (design, PRD, ADRs) in parallel
-- Bulk file verification (confirming a pattern is absent across many files via grep)
-
-**Agent delegation threshold:** Skip agents entirely when <5 files to read. For verification-mode reviews with ≤3 modification beads, direct file reads are faster than agent spin-up. Agent summaries don't replace reading the code — you'll end up reading files yourself anyway. When agents ARE used, instruct them to produce **concise summaries** (key facts per file), not full file contents — 100KB+ agent outputs exceed read limits and waste context.
-
-**When delegating bulk verification to agents**, include in the agent prompt:
-- The specific patterns to check for (exact method names, not descriptions)
-- The patterns that are CORRECT and should NOT be flagged (e.g., "ThrowIfAnyErrors() is validation pipeline — do NOT flag")
-- The bead's failure criteria verbatim (so the agent knows the boundary)
-- The bead's **In Scope** section (so the agent doesn't flag pre-existing code outside bead scope)
-- Whether design decisions exempt certain files (e.g., "ExportAuditLog is exempt per sub-plan decision")
-- **Key architectural constraints** from CLAUDE.md or project pattern docs (e.g., "no DbContext in endpoints", "commands return result types not entities", "use vertical slice structure"). Without these, agents may suggest fixes that violate the project's patterns.
-
-Even with these precautions, expect 10-20% false positive rate from agents. Triage all agent findings before including them in the report.
+**Skip agents** when <5 files to read, or for verification-mode with ≤3 modification beads (direct reads are faster). When agents ARE used, instruct them to produce **concise summaries** (key facts per file, not full contents) and include: bead In Scope section, failure criteria, correct patterns to NOT flag, and key architectural constraints from CLAUDE.md.
 
 ---
 
@@ -693,17 +636,7 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.12*
-*v1.12: Role Templates review feedback. Prior review detection in Phase 0 — check for existing review reports before starting, ask user whether to re-run or upgrade depth. Prevents wasted re-review work.*
-*v1.11: Sessions feedback. Bead source 3-tier fallback. Mandatory Phase 3 API surface comparison. Smoke check skip.*
-*v1.10: Tier 3 consolidated. Agent threshold. Pattern check before DESIGN_DRIFT. Pre-existing filter. Test triage. Phase 4 skip.*
-*v1.9: Role Templates feedback. Test runner smoke check.*
-*v1.8: Applications review. Diagnose before revert. Pattern pre-check. Agent architectural constraints. Manifest reconstruction as Step 0.*
-*v1.7: Users review feedback. Verification-mode Phase 3 scoping. WARN actionability. JSON test reporter.*
-*v1.6: CONVERGE as default mode.*
-*v1.5: Organizations feedback. Pre-existing vs introduced distinction. Same-session hardening. Manifest validation in Phase 0. Cross-org auth test checklist. Common CONVERGE fix pattern.*
-*v1.4: Verification-mode STANDARD recommendation. Clean pass abbreviated output. Same-session fresh-eyes doc. UPSTREAM_DOC tracking via br issues.*
-*v1.3: CONVERGE skip when prior STANDARD passed clean. Agent prompts include bead scope and design exemptions.*
-*v1.2: Explicit manifest-missing fallback. Agent pattern context in prompts. 10-20% false positive rate expected.*
-*v1.1: UC scenario verification, architecture compliance, ADR in STANDARD+, non-greenfield awareness, cross-module deps, bead re-read requirement, CONVERGE manifest update.*
-*v1.0: Initial release — bead-by-bead AC/FC verification, design traceability, FR depth, execution manifest, CONVERGE mode, finding classification, trust hierarchy, /review delineation.*
+*Skill Version: 2.0*
+*v2.0: Progressive disclosure refactor — condensed version history, moved CONVERGE fix patterns to appendix, reordered Phase 3 (STANDARD+ first, COMPREHENSIVE last), deferred bead accounting (Phase 4.5), clarified agent boundary ("agents READ, you GENERATE"), fixed Step 5.3 label for CONVERGE-default flow.*
+*v1.1-1.12: Production-tested across 11 modules. Key additions: CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, prior review detection, manifest reconstruction, auth test checklist, verification-mode scoping, agent delegation threshold, pattern pre-check before fixes, diagnose-before-revert. See CHANGELOG.md for full history.*
+*v1.0: Initial release — bead-by-bead verification, CONVERGE mode, finding classification, trust hierarchy.*

@@ -201,22 +201,13 @@ When multiple beads are ready simultaneously (no dependency between them), they 
 
 #### Multi-Agent Concurrent Execution
 
-When multiple agents execute on the same branch simultaneously (e.g., parallel module execution), expect these issues and handle them proactively:
+When multiple agents execute on the same branch simultaneously, expect build collisions, file reverts, and test interference. Full guidance: `../_shared/references/multi-agent-execution.md`
 
-**Build artifact collisions:** Other agents' builds delete/lock DLLs mid-compilation, causing spurious build errors. **Fix:** Retry the build once. If it fails again with the same MSB3030/FileNotFoundException, wait 10 seconds and retry — the other agent's build will finish.
-
-**File reverts:** Other agents may revert your changes via their own git operations (commit, checkout, stash). **Fix:** After each commit, verify your changes are in the commit with `git show --stat HEAD`. If a file you changed is missing, re-apply with `Write` (full file overwrite) rather than `Edit` (which fails on stale content).
-
-**Shared file conflicts:** Other agents may break files you depend on (test files, shared components). **Fix:** Do NOT fix other agents' files. If their broken code blocks your tests, use module-scoped tests (`--filter "YourModule"`) instead of the full suite.
-
-**File reservation (default when agent-mail available):** Use `macro_file_reservation_cycle` to reserve files before editing. This is the **default** when agent-mail is available, not optional. Without reservation, other agents commit YOUR unstaged files during the window between `git add` and `git commit` (the pre-commit hook runs in between, creating a race window). This has caused lost work across multiple modules. **Exception:** Skip reservation for beads modifying ≤2 files where the edit takes <30 seconds — the reservation overhead exceeds the risk.
-
-**Pre-commit hook transience:** Pre-commit hooks that run builds may fail when another agent is building simultaneously due to file locks. **Fix:** Retry the commit once after a transient hook failure. If it fails twice with the same error, wait 10 seconds and retry.
-
-**Verification strategy during concurrent execution:**
-- **Per-bead:** Module-scoped tests (`--filter "YourModule"`) — reliable even when other agents have broken code
-- **Test gate bead:** Full suite — run only when your module's beads are complete and other agents aren't actively building
-- **If full suite is broken by others:** Log the failing tests, verify they're NOT in your changed files (`git diff --name-only`), proceed with module-scoped tests
+**Key rules:**
+- Use file reservation (`macro_file_reservation_cycle`) by default when agent-mail is available
+- Use module-scoped tests per bead; defer full suite to test gate
+- After each commit, verify with `git show --stat HEAD` — other agents can steal staged files
+- Do NOT fix other agents' files
 
 **Test gate beads:** When the next bead is a test gate (tagged `test`), run the verification commands specified in the gate bead. If all pass, close the gate and proceed. If any fail, fix the failing implementation beads before continuing.
 
@@ -299,8 +290,7 @@ docs/patterns/                   — coding patterns (source of truth for STYLE)
 docs/architecture/               — system architecture (source of truth for CONSTRAINTS)
 ```
 
-For subsequent beads in the same module, reload module specs only if context was compacted since the last bead. The reset in Step 2.9 clears implementation details (code written, errors fixed, patterns followed) — module-level reference documents naturally remain in the conversation context until compaction forces a reload.
-Do NOT re-read these on every bead — only on the first bead or after context compaction.
+For subsequent beads in the same module, module specs persist until context compaction — don't re-read every bead.
 
 **Step 2.4 — Design Implementation:**
 
@@ -403,23 +393,12 @@ This prevents work loss on crash.
 
 **Step 2.9 — Summarise & Reset:**
 
-Record a structured per-bead completion entry. These entries accumulate into the execution manifest (written in Phase 4):
-```markdown
-### bd-{id}: {title}
-- **Status:** Completed
-- **Files changed:** {list of file paths}
-- **Tests added:** {count} ({list of test file paths})
-- **FRs addressed:** {FR IDs from bead's "Implements" field}
-- **UCs contributed to:** {UC IDs and steps this bead helps implement}
-- **ACs claimed:** {which acceptance criteria this bead satisfies}
-- **Design elements implemented:** {api-surface endpoint, data-model entity, etc.}
-- **Commit:** {commit hash} — {commit message}
-- **Key implementation choice:** {one sentence}
-```
+Append a per-bead entry to the manifest (see `../_shared/references/execution-manifest.md` for full template). For verification-only beads, use: `Status: Verified — no changes needed`.
 
-Update progress tracking. Then reset:
-- Clear mental model of the previous bead's implementation details
+Update progress tracking. Then **reset implementation context:**
+- Clear the implementation details (code written, errors fixed, design choices made)
 - Do NOT carry forward files loaded for the previous bead
+- **Module specs persist** (design overview, data model, PRD) until context compaction — don't re-read every bead
 - Start the next bead fresh — re-read from Step 2.1
 
 #### Auto-Recovery
@@ -546,54 +525,11 @@ Close the feature epic in the issue tracker.
 
 **Step 4.4 — Write Execution Manifest (MANDATORY):**
 
-**You MUST write** a structured execution manifest to `docs/execution/{feature}/manifest.md`. This file is the primary input for `/review-execute`. Without it, review-execute must reconstruct context from git log — slower, less structured, and error-prone.
+**You MUST write** a structured execution manifest to `docs/execution/{feature}/manifest.md`. This is the primary input for `/review-execute`. Without it, review-execute must reconstruct from git log — slower and error-prone. Write early and update incrementally per bead, not all at end-of-session.
 
-**Manifest writing robustness:**
-1. **Verify working directory** before writing — `pwd` must be the project root. Late-session directory drift (e.g., after `cd` to a subfolder for a frontend build) causes silent write failures.
-2. **Create directory first:** `mkdir -p docs/execution/{feature}/`
-3. **Write early, update incrementally** — start the manifest after the first bead completes. Append each bead's entry as you go. Don't leave it all for Phase 4 when context is full and the session is ending.
-4. Commit and push the manifest as the final commit.
+Template and robustness guidance: `../_shared/references/execution-manifest.md`
 
-```markdown
-# Execution Manifest: {Feature Name}
-
-> **Date:** {date}
-> **Epic:** {epic-id}
-> **Beads Completed:** {N} of {N}
-> **Build:** Passing
-> **Tests:** All passing
-
-## Bead Completion Log
-
-{All structured per-bead entries from Step 2.9}
-
-## Commits
-
-{git log --oneline for this feature's commits}
-
-## Files Changed
-
-{git diff main --stat}
-
-## FR Coverage Claimed
-
-| FR ID | Bead(s) | ACs Claimed | Files |
-|-------|---------|-------------|-------|
-| {FR-ID} | {bd-ids} | {AC list} | {file paths} |
-
-## UC Coverage Claimed
-
-| UC ID | Step/Flow | Bead(s) | Implementation |
-|-------|-----------|---------|----------------|
-| {UC-ID} | Main.{N}: {description} | {bd-ids} | {endpoint/component handling this step} |
-| {UC-ID} | Ext.{N}: {description} | {bd-ids} | {error handler / validation} |
-
-## Design Elements Implemented
-
-| Design Element | Source Doc | Bead | Status |
-|---------------|-----------|------|--------|
-| {endpoint/entity/component} | {api-surface.md / data-model.md} | {bd-id} | Implemented |
-```
+For verification-only runs (all beads confirmed, zero code changes), use the compact variant from the reference.
 
 **Step 4.5 — Report Completion:**
 
@@ -762,21 +698,7 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.13*
-*v4.13: Role Templates + Sessions feedback. Pre-scan for completed work before creating tracker beads (git log + spot-check). Stale bead description detection. Working directory discipline (absolute paths, never cd into subdirs). Skip tracker creation when all beads are verification-only.*
-*v4.12: Authentication feedback. File reservation ≤2 file exception. Verification fast path explicit.*
-*v4.11: Entitlements + IdP feedback. File reservation default. Test verification inlined. Per-class fallback.*
-*v4.10: Users feedback. Legacy review/simplify gate handling. E2E/Aspire deferral.*
-*v4.9: Applications feedback. Flat execution plan. Verification-only fast path. Pre-commit hook retry. File reservation.*
-*v4.8: Languages feedback. Multi-Agent section. Module-scoped tests. Self-review multi-agent acknowledgment.*
-*v4.7: Organizations feedback. Multi-agent filtered test fallback. Manifest robustness. Self-review proportionality for verification beads.*
-*v4.6: Cumulative health score (PAUSE@40/STOP@60). Rationalization prevention Iron Law. AI slop detection. Context budget per bead. Confidence Substitution anti-pattern.*
-*v4.5: Execution manifest made MANDATORY with stronger language (review-execute depends on it — cross-cutting run didn't produce one).*
-*v4.4: Production feedback from cross-cutting execution. Full test suite mandatory (not filtered). Checkpoint threshold raised to 8+ files. Anti-pattern: sub-agent delegation for implementation reads.*
-*v4.3: UC gate execution. Removed Step 2.8 upstream verification (deferred to /review-execute). Design decision awareness. Doc map paths. UC Coverage in manifest.*
-*v4.2: Pipeline alignment — removed /review and /simplify gate bead handling. Execution manifest. Structured per-bead entries. beads.md as preferred source. Lightweight self-review. Removed user-approval prerequisite and hardcoded dotnet commands.*
-*v4.1: Systemic blocker circuit breaker in Phase 1 baseline check — >10 failing tests across multiple modules triggers STOP with AskUserQuestion before any bead work.*
-*v4.0: Crash resilience — per-bead push, git stash checkpointing. Explicit file staging (never git add -A). Design/PRD/ADR verification in self-review. Tier ordering check. Module spec loading from docs/ folders.*
-*v3.5: Collaborative model. COMPREHENSIVE mode per-bead check-in. PRD path in upstream verification. Use case path for BDD scenarios.*
-*v3.4: AskUserQuestion stage gates — Decision Gate for blockers, Batch Review for learnings.*
-*v3.1: Duration targets, execution health circuit breaker, review fix re-entry section, auto-recovery, per-bead summaries, anti-patterns.*
+*Skill Version: 5.0*
+*v5.0: Progressive disclosure refactor — extracted multi-agent execution to shared reference, extracted manifest template to shared reference, condensed version history. Fixes: project-specific error codes generalized, context reset clarified (module specs persist, implementation resets), compact manifest variant for verification-only runs.*
+*v4.6-4.13: Production-tested across 11 modules. Key additions: cumulative health score, Iron Law verification, AI slop detection, multi-agent execution handling, verification-only fast path, pre-scan for completed work, flat execution plan, working directory discipline. See CHANGELOG.md for full history.*
+*v4.0-4.5: Pipeline alignment, crash resilience, execution manifest, systemic blocker circuit breaker.*

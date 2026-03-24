@@ -243,6 +243,8 @@ Run the project's build and test commands. If they fail, **triage quickly:** sta
 
 Record test count and pass rate. Compare against manifest claims — flag `MANIFEST_STALE` if counts diverge.
 
+**Deferred frontend test gates:** If the manifest says frontend tests were deferred, still verify TypeScript compilation independently (e.g., type-check command with no emit). "Deferred" means the test runner can't execute, not that all frontend verification is skipped.
+
 **Pre-existing code filter:** For verification-mode reviews, run `git diff {first-execution-commit}^..{last-execution-commit} --name-only` early and focus Phase 2 bead verification on files in that diff. Reading unmodified files provides context but isn't necessary for bead verification — if the code predates the execution commits, skip it unless a specific AC references it.
 
 ---
@@ -253,7 +255,9 @@ Record test count and pass rate. Compare against manifest claims — flag `MANIF
 
 **BRIEF mode:** Spot-check 3 beads (pick: first bead, a middle bead, last bead). For each, run the full checklist below.
 
-**Verification-only beads:** For beads marked "Verified — no changes needed" in the manifest, spot-check at least 3 against their design docs. Read the pre-existing implementation and compare against the api-surface or data-model spec. Don't pass them through based on manifest claims alone — the manifest says they pass, your job is to verify that claim.
+**Verification-only beads:** For beads marked "Verified — no changes needed" in the manifest, spot-check at least 3 against their design docs. Don't pass them through based on manifest claims alone.
+
+**Upfront context batch:** Before starting per-bead checks, extract ALL "Context to Load" file paths from ALL beads and read them in one parallel batch. This prevents discovering missing files mid-review and ensures commands, services, and test files are loaded alongside the endpoints they support.
 
 **STANDARD/COMPREHENSIVE mode:** Verify every bead.
 
@@ -590,4 +594,4 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 2.2 — [Version History](VERSIONS.md)*
+*Skill Version: 2.3 — [Version History](VERSIONS.md)*

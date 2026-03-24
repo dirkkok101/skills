@@ -158,6 +158,11 @@ The backend "one pattern artifact per bead" rule doesn't apply to frontend where
 
 **Verification beads can be batched.** Instead of 3 separate verify beads (contracts, commands, endpoints), one "verify backend implementation against design" bead that covers all related concerns is more efficient and produces the same result.
 
+**Frontend verification beads must have a clear "verify or fix" policy.** Either:
+- **"Verify and document"** — explicitly no fixes, output is a gap list for future beads
+- **"Verify and fix"** — specific UI changes listed in scope
+Don't leave it ambiguous — "verify frontend compliance" with no fix policy leads to beads that document gaps without resolving them, which feels incomplete.
+
 **Never combine:**
 - Entity/EF Config with Contracts (different projects)
 - EntityMapper with DTOMapper (opposite data flow)
@@ -816,6 +821,8 @@ Failure criteria are propagated from the plan's sub-plan Failure Criteria sectio
 {Brief guidance on HOW to approach the work — not implementation code.
 Reference design decisions and pattern docs.}
 
+**For non-greenfield beads:** The approach must reference the ACTUAL code path, not the design's idealized approach. If the design says "call ConsumeAndRotateAsync" but the real fix is in ClaimsPrincipalBuilder, the approach should say "trace the token flow from {file} — the actual modification point is in {file}, not the command." The "Context to Load" section gets the right files loaded; the "Approach" section should explain what to do with them based on actual code, not design pseudocode.
+
 ## Acceptance Criteria
 Given {precondition}
 When {action}
@@ -1399,8 +1406,9 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.14*
-*v5.14: Authentication feedback. Test bead sizing (≤15 tests per bead). Dependency validation in Phase 3 (verify referenced fields/types exist). Contract change beads must list downstream consumers. Downstream consumers field added to Context to Load template.*
+*Skill Version: 5.15*
+*v5.15: Role Templates + Sessions feedback. Non-greenfield approach must reference actual code paths (not design pseudocode). Frontend verification beads need explicit "verify or fix" policy. Schema migration generalized to any ORM.*
+*v5.14: Authentication feedback. Test bead sizing ≤15. Dependency validation. Contract change downstream consumers.*
 *v5.13: Entitlements + IdP feedback. Compilation unit check. Frontend beads coarser. Verification beads batchable.*
 *v5.12: Users feedback. Small feature slice grouping. EF migration in entity scope. E2E execution-context tagging.*
 *v5.11: Applications feedback. Context path validation via glob in Phase 3.*

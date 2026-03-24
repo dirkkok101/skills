@@ -157,6 +157,13 @@ Query the issue tracker for ready beads and the feature's dependency tree. Produ
 
 Filter to YOUR module's beads only. Epic dependency trees often include beads from other modules — identify and exclude them upfront so you don't waste time tracing irrelevant dependencies.
 
+**Pre-scan for completed work:** Before creating beads in the tracker, check whether the work already exists:
+1. Scan `git log --oneline` for commit messages matching bead titles
+2. For each bead, spot-check whether the target files already satisfy the success criteria
+3. If ALL beads would hit the verification-only fast path (zero code changes), skip tracker creation entirely — verify inline and close the epic with a comment
+
+**Stale bead descriptions:** If beads.md says "17 new tests needed" but the test files already have full coverage, flag the discrepancy. Proceed with verification-only mode rather than treating stale descriptions as authoritative. Beads.md was written at planning time — the codebase may have changed since then.
+
 **Step 1.2 — Verify Baseline:**
 
 Run the project's build and test commands. If baseline fails, assess severity before proceeding:
@@ -686,6 +693,10 @@ Selected learnings are documented via /compound.
 
 ## Context Management
 
+### Working Directory Discipline
+
+Always use absolute paths for build/test commands. Never `cd` into subdirectories for frontend builds or test runs — use the full path instead (e.g., run build from project root with a path argument). If you must `cd`, return to the project root immediately after. Directory drift causes: silent manifest write failures, build commands running in wrong context, git operations on wrong repo.
+
 ### Between Beads: Reset
 
 Each bead starts with a clean context. After completing a bead:
@@ -751,8 +762,9 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 4.12*
-*v4.12: Authentication feedback. File reservation ≤2 file exception. Verification fast path made explicit (checklist question format). Clearer verification-only bead handling.*
+*Skill Version: 4.13*
+*v4.13: Role Templates + Sessions feedback. Pre-scan for completed work before creating tracker beads (git log + spot-check). Stale bead description detection. Working directory discipline (absolute paths, never cd into subdirs). Skip tracker creation when all beads are verification-only.*
+*v4.12: Authentication feedback. File reservation ≤2 file exception. Verification fast path explicit.*
 *v4.11: Entitlements + IdP feedback. File reservation default. Test verification inlined. Per-class fallback.*
 *v4.10: Users feedback. Legacy review/simplify gate handling. E2E/Aspire deferral.*
 *v4.9: Applications feedback. Flat execution plan. Verification-only fast path. Pre-commit hook retry. File reservation.*

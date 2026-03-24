@@ -112,57 +112,7 @@ If a kill criterion is violated or at serious risk: "Kill criterion '{criterion}
 
 This is the most important step for any module where code may already exist. Run it BEFORE choosing a decomposition strategy — the results determine whether this is a greenfield plan, an alignment plan, or a verification checklist.
 
-```
-IF Implementation Status shows > 90% "Exists":
-  → Verification Mode: produce gap-analysis.md + companion docs
-  → If remaining work is trivial (< 3 discrete items): single verification sub-plan
-  → If remaining work is non-trivial (3+ distinct gaps with real implementation): separate sub-plans per gap are acceptable
-  → The gap analysis IS the primary artifact — sub-plans detail specific fixes
-
-IF Implementation Status shows > 70% "Exists" (but < 90%):
-  → Non-Greenfield Fast Path: derive tasks from gaps, not design work decomposition
-  → Skip importing design's Work Decomposition section
-  → Tasks focus on "what to change" not "what to build"
-  → Companion docs focus on verification, not new behavior
-
-IF Implementation Status shows < 30% "Exists":
-  → Greenfield Path: standard decomposition from design
-  → Import design Work Decomposition as starting point
-
-ELSE:
-  → Hybrid: some greenfield tasks, some modification tasks
-```
-
-**Gap analysis is the single source of truth.** The gap-analysis.md file (or the overview's Implementation Status table) is the authoritative record of what exists, what needs modification, and what's new. Do NOT duplicate this information across overview, gap analysis, and sub-plans — reference it. The overview's Design Coverage table can summarize with a single line ("44/44 exist — see gap-analysis.md for modification details") when all elements exist.
-
-**Design feedback:** If the gap analysis or decomposition reveals a design-level issue (architectural tension, missing specification, contradicted assumption), document it as a `## Design Feedback` section in the overview — not buried in sub-plan context paragraphs. This surfaces issues that should go back to `/technical-design` without blocking plan completion.
-
-**Gap analysis approach:** Use targeted Grep/Glob for element-by-element checks, not Explore agents. Explore agents over-report existence without catching field-level gaps.
-
-For small modules (< 20 design elements): run Grep/Read calls directly.
-For large modules (20+ design elements): partition gap analysis agents by layer with no overlap:
-- Agent A: data layer (entities, configs, enums, migrations)
-- Agent B: backend logic (commands, queries, validators, mappers, services)
-- Agent C: contracts only (DTOs, requests, responses)
-- Agent D: frontend (components, services, routing, models)
-- Agent E: cross-cutting (DI registration, audit events, tests)
-
-Explore agents are useful for initial context loading (Phase 0) but not for the gap analysis itself.
-
-**Verify ALL agent claims — absence AND modification.** If an agent reports "file not found" or "tests missing," confirm with a targeted Grep. If an agent reports "field X should be Y," verify against the design doc (not just the code). Agents miss files in non-obvious locations and confidently report modifications against invented requirements.
-
-**Test project discovery:** Do NOT assume test files are in `test/` or `tests/`. Search the entire repository for test projects (`*.Tests`, `*.Test`, `spec` directories). The gap analysis prompt should say "search the entire repository for test files related to {module}" not "search test/ directory."
-
-**Test mapping precision:** When test counts exceed design cases, note which mappings were verified vs inferred. Mark approximate counts with `~` and flag for verification during execution.
-
-**Re-planning (overwriting existing plans):** When a plan directory already exists:
-1. Read the old plan's overview to understand prior state
-2. Run gap analysis against current code (not old plan)
-3. List all old sub-plan and companion doc files explicitly
-4. Remove old files before writing new ones (prevents orphaned files)
-5. Note in the overview what changed from the prior plan and why
-
-**Agent result verification:** Always verify agent claims about **absence** ("no tests exist", "file not found") with targeted Grep/Glob. Presence claims are generally reliable; absence claims need spot-checking. Agents can miss files that exist in non-obvious locations.
+See [references/plan-conventions.md](references/plan-conventions.md) for the full gap analysis procedure: decision logic (>90%/70%/30% thresholds), agent partitioning strategy, structured checklist, Implementation Status table format, task sizing for modifications, re-planning rules, and agent claim verification guidance.
 
 **PAUSE 1 presentation:** Show the FR Coverage table, UC Coverage table, and Dependency Graph as formatted markdown BEFORE the AskUserQuestion. The user cannot approve what they cannot see. For non-greenfield plans with ≤8 tasks, present task summary + gap highlights + dependency graph inline, with full coverage tables in overview.md.
 
@@ -209,60 +159,21 @@ Use **horizontal layering** only for genuine shared prerequisites that multiple 
 
 **Step 1.4 — Map FRs to Tasks:**
 
-Every Must-Have FR from the PRD must appear in at least one task.
+Every Must-Have FR from the PRD must appear in at least one task. Flag any uncovered Must-Have FRs as blocking issues.
 
-```markdown
-### FR Coverage
-| FR | Task(s) | Status |
-|----|---------|--------|
-| FR-{MODULE}-{NAME} | T01, T03 | ✅ Covered |
-| FR-{MODULE}-{NAME} | T02 | ✅ Covered |
-| FR-{MODULE}-{NAME} | — | ⚠ Gap (deferred?) |
-```
-
-Flag any uncovered Must-Have FRs as blocking issues. If the project uses an issue tracker, offer to create tracked items: "These Must-Have FRs have no covering task. Want me to create tracked issues for them?"
+See [references/plan-conventions.md](references/plan-conventions.md) for the FR Coverage table template.
 
 **Step 1.4b — Map UCs to Tasks:**
 
-Every use case from the PRD must be executable end-to-end across the task sequence. A UC may span multiple tasks — that's fine, but the full scenario flow must be covered. If tasks covering a UC can run in parallel (per the dependency graph), verify the UC has no ordering dependency between them.
+Every use case from the PRD must be executable end-to-end across the task sequence. Tier 1 UC gaps are blockers; Tier 2 may be deferred with rationale.
 
-```markdown
-### UC Coverage
-| UC | Title | Tier | Task(s) | Ordering | End-to-End? |
-|----|-------|------|---------|----------|-------------|
-| UC-{MODULE}-001 | {title} | 1 | T02, T03, T05 | Sequential (T02→T03→T05) | ✅ Full scenario covered |
-| UC-{MODULE}-002 | {title} | 2 | T03 | Single task | ✅ Covered |
-| UC-{MODULE}-003 | {title} | 1 | T02 | — | ⚠ Steps 3-5 not covered (failure paths) |
-```
-
-For Tier 1 UCs, verify:
-- Every scenario step has a covering task
-- Every failure path has a covering task
-- Every business rule (BR-*) maps to a validation task
-- If UC tasks are parallelizable, the UC doesn't require them in sequence
-
-UC Coverage gap handling:
-- **Tier 1 UC gap** → blocker, do not proceed until resolved
-- **Tier 2 UC gap** → may be deferred with explicit owner and rationale
-- **UC tied to scope-excluded FR** → mark as `Scope Exclusion` in the table, not as a gap or blocker. Reference the design's Scope Exclusions section. This is NOT a planning failure — it's an intentional design decision.
+See [references/plan-conventions.md](references/plan-conventions.md) for the UC Coverage table template, Tier 1 verification checklist, and gap handling rules.
 
 **Step 1.4c — Design Coverage Matrix:**
 
-Every design element (endpoint, entity, command, query, contract, mapper) must have a covering task. This goes beyond FR coverage — a design may specify 6 endpoints for a single FR.
+Every design element (endpoint, entity, command, query, contract, mapper) must have a covering task. This goes beyond FR coverage — a design may specify 6 endpoints for a single FR. Flag gaps as blocking issues.
 
-```markdown
-### Design Coverage
-| Design Element | Type | Source File | Task | Status |
-|---------------|------|------------|------|--------|
-| POST /api/v1/widgets | endpoint | api-surface.md | T03 | ✅ Covered |
-| WidgetDTO | contract | api-surface.md | T02 | ✅ Covered |
-| SaveWidgetCommand | command | api-surface.md | T03 | ✅ Covered |
-| GetWidgetQuery | query | api-surface.md | T04 | ✅ Covered |
-| Widget entity | entity | data-model.md | T01 | ✅ Covered |
-| widget.saved audit | audit | design.md | — | ⚠ Gap |
-```
-
-Derive the element list from the design's api-surface files (endpoints, contracts, commands, queries) and data-model (entities, migrations). Flag gaps as blocking issues.
+See [references/plan-conventions.md](references/plan-conventions.md) for the Design Coverage table template.
 
 **Step 1.4d — Implementation Gap Analysis (Run FIRST — see Step 1.1):**
 

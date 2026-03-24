@@ -185,50 +185,11 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 
 ## Severity Calibration
 
-**Every finding gets a severity. Calibrate carefully — inflation kills trust.**
+**Every finding gets a severity. Calibrate carefully — inflation kills trust.** CRITICAL and HIGH map to FAIL; MEDIUM and LOW map to WARN.
 
-### CRITICAL
+For concrete examples of each severity level (CRITICAL, HIGH, MEDIUM, LOW) with bead-specific scenarios, see: `references/review-checklists.md#severity-calibration`
 
-The build won't compile, data will be wrong, security is vulnerable, a Must-Have FR is violated, or a required bead is missing entirely. An agent executing the bead set will produce broken software.
-
-Examples:
-- Must-Have FR has zero bead coverage
-- Bead references entity property that doesn't exist in data model
-- Missing bead for entity that other beads depend on
-- Security-sensitive endpoint has no authorization bead
-- Bead wires to wrong entity (Role bead references Permission table)
-
-### HIGH
-
-An agent will guess wrong. The bead provides enough information to execute, but the execution will produce incorrect results that won't be caught until review or testing.
-
-Examples:
-- Empty gate bead — no file paths, no verification commands
-- Orphaned gate — gate exists but nothing blocks on it
-- Stale context reference — file moved or renamed
-- Wrong pattern reference — bead says `commands` pattern but should be `queries`
-- Missing dependency — bead will fail because prerequisite doesn't exist yet
-- Frontend bead depends on backend impl bead instead of test gate
-
-### MEDIUM
-
-An agent would likely succeed but could be confused, leading to suboptimal implementation or wasted time asking questions.
-
-Examples:
-- Bead objective is ambiguous — two valid interpretations
-- Success criteria are vague — "works correctly" instead of testable outcomes
-- Missing out-of-scope section — agent might drift into adjacent work
-- Bead combines two small pattern artifacts that COULD be separate (borderline grouping)
-
-### LOW
-
-Cosmetic or minor quality issues that don't affect execution.
-
-Examples:
-- Inconsistent bead title convention
-- Missing FR tag that's obvious from context
-- Verification command uses wrong test filter (but close)
-- Bead could reference a learning doc but doesn't need to
+For the shared FAIL/WARN severity model and finding quality standards, see: `../_shared/references/review-finding-taxonomy.md`
 
 ---
 
@@ -340,97 +301,11 @@ Any Must-Have FR with coverage status `MISSING` or `Partial` is a CRITICAL findi
 
 **Step 3.1 — Count expected beads from design:**
 
-Read the design docs and derive what the bead set SHOULD contain.
-
-**From data model (per entity):**
-
-| Design Artifact | Expected Bead | Condition |
-|----------------|---------------|-----------|
-| Entity definition | `{Entity} Entity + Enums` | Always |
-| Entity with relationships/indexes | `{Entity} EF Configuration` | Always |
-| Entity exposed via API | `{Entity} Contracts` | Always |
-| Entity with create/update | `{Entity} EntityMapper` | Has save endpoint |
-| Entity returned via API | `{Entity} DTOMapper` | Has get/grid endpoint |
-| Entity with create/update | `{Entity} SaveCommand` | Has save endpoint |
-| Entity with delete | `{Entity} DeleteCommand` | Has delete endpoint |
-| Entity with lifecycle states | `{Entity} Lifecycle Commands` | Has enable/disable/suspend |
-| Entity with get-by-id | `{Entity} GetQuery` | Has get endpoint |
-| Entity with grid/list | `{Entity} GridQuery + QueryParameters` | Has grid endpoint |
-| Entity as dropdown source | `{Entity} LookupQuery` | Has lookup endpoint |
-
-**From API surface (per entity):**
-
-| Design Artifact | Expected Bead | Condition |
-|----------------|---------------|-----------|
-| Save endpoint | `{Entity} Save Endpoint` | Always with save |
-| Get endpoint | `{Entity} Get Endpoint` | Always with get |
-| Grid endpoint | `{Entity} Grid Endpoint` | Always with grid |
-| Delete endpoint | `{Entity} Delete Endpoint` | Always with delete |
-| Lookup endpoint | `{Entity} Lookup Endpoint` | Has lookup |
-| Lifecycle endpoints | `{Entity} Lifecycle Endpoints` | Has lifecycle |
-| Any endpoint | `{Entity} Validators` | Always |
-| All of the above | `{Entity} Service Registration` | Always (last backend bead) |
-
-**From UI mockup (per feature):**
-
-| Design Artifact | Expected Bead | Condition |
-|----------------|---------------|-----------|
-| TypeScript interfaces | `{Feature} Models + Enums` | Always |
-| HTTP service | `{Feature} Feature Service` | Always |
-| List/grid page | `{Feature} List Page` | Has list page |
-| Capture/form page | `{Feature} Capture Page` | Has capture page |
-| Component state | `{Feature} Capture State` | Has capture with complex state |
-| Embedded child grid | `{Feature} Embedded List` | Has child entities |
-| Route definitions | `{Feature} Routing` | Always |
-
-**From stage gate rules (test/verify gates only — no /review or /simplify gates):**
-
-| Boundary | Expected Gates | Count |
-|----------|---------------|-------|
-| Per feature backend | test (integration tests) | 1 |
-| Per feature frontend | test (UI tests) | 1 |
-| Per use case | verify (UC scenario) | 1 |
-| Module | verify (module complete) | 1 |
+Read the design docs and derive what the bead set SHOULD contain. Use the decomposition tables (data model, API surface, UI mockup, stage gates) from: `references/review-checklists.md#granularity-decomposition-tables-phase-3`
 
 **Step 3.2 — Derive expected bead count:**
 
-```markdown
-## Expected Bead Count Derivation
-
-### Entities: {list}
-
-| Entity | Backend Beads | Condition Notes |
-|--------|--------------|-----------------|
-| Role | 17 (full CRUD + lookup + lifecycle) | All endpoints in API surface |
-| Permission | 11 (CRUD, no lifecycle, no lookup) | No lifecycle states in data model |
-| Entitlement | 8 (read-only + grid) | No save/delete in API surface |
-
-### Frontend Features: {list}
-
-| Feature | Frontend Beads | Condition Notes |
-|---------|---------------|-----------------|
-| {Feature} | 5 (models, service, list, capture, routing) | Full UI |
-| Permissions | 4 (models, service, list, routing) | No capture page |
-
-### Stage Gates
-
-| Level | Count |
-|-------|-------|
-| Feature ({N}) × 6 | {N×6} |
-| Use Case ({N}) × 2 | {N×2} |
-| Module × 2 | 2 |
-
-### Tests
-
-| Type | Count |
-|------|-------|
-| Integration tests ({N} features) | {N} |
-| UI tests ({N} features) | {N} |
-
-### Total Expected: {sum}
-### Total Actual: {bead count from br}
-### Delta: {difference}
-```
+Use the expected bead count template from: `references/review-checklists.md#expected-bead-count-template`
 
 **Step 3.3 — Identify decomposition mismatches:**
 

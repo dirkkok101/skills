@@ -366,7 +366,7 @@ Glob `docs/**/*.md` to find every markdown file in the documentation hierarchy. 
 | docs/architecture/ | {N} | system-context.md, ... |
 | docs/prd/ | {N} | prd.md |
 | docs/learnings/ | {N} | architecture.md, gotcha.md, ... |
-| docs/reference/ | {N} | capstone-patterns.md, ... |
+| docs/reference/ | {N} | integration-patterns.md, ... |
 | docs/reviews/ | {N} | review-20260303.md, ... |
 ```
 
@@ -1267,7 +1267,7 @@ See plan for details.
 ## Example: Plan Task → Pattern Beads
 
 **Plan says:**
-> Task 3: Implement Role CRUD — Save, Get, Grid, Delete endpoints with full Capstone pattern alignment
+> Task 3: Implement Role CRUD — Save, Get, Grid, Delete endpoints with full project pattern alignment
 
 **`/beads` skill produces (reading api-surface.md to confirm which endpoints exist):**
 

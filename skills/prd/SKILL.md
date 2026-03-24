@@ -356,143 +356,25 @@ Track unknowns throughout the PRD process. Update this section as questions surf
 
 **BRIEF/STANDARD modes skip this phase — user stories in Phase 6 are sufficient.**
 
-**Use cases are standalone files**, not sections inside the PRD. This prevents the PRD from becoming a monolith (the identity project's 134KB PRD taught us this). Each use case is 3-15KB — manageable, reviewable, and referenceable by design and plan docs independently.
+**Use cases are standalone files**, not sections inside the PRD. Each use case is 3-15KB — manageable, reviewable, and referenceable independently.
 
-**File location depends on scope:**
-- **Feature-scoped use cases** (most common) → `docs/prd/{feature}/use-cases/` — colocated with the PRD they belong to
-- **Cross-module use cases** (span multiple features/aggregates) → `docs/use-cases/` — shared common folder
-
-```bash
-# Feature-scoped use cases (default)
-mkdir -p "${PROJECT_ROOT}/docs/prd/{feature}/use-cases"
-
-# Cross-module use cases (only when a UC spans multiple features)
-mkdir -p "${PROJECT_ROOT}/docs/use-cases"
-```
+For tier definitions (Tier 1/2/3), file structure, use case template, scenario table format, index table format, and traceability index: see [references/prd-conventions.md](references/prd-conventions.md#use-case-template--conventions).
 
 **Step 5.1 — Identify Use Case Set:**
 
-Map personas and workflows from discovery to 5-10 use cases. Each use case represents a complete user goal, not a single action.
-
-```markdown
-| UC ID | Goal | Primary Actor | Depth Tier | Status |
-|-------|------|---------------|-----------|--------|
-| UC-{MODULE}-001 | {Goal as active verb phrase} | {Persona} | Tier 1/2/3 | Draft |
-```
-
-**Depth tiers:**
-- **Tier 1** — Full Cockburn format: preconditions, success/failure guarantees, step-by-step scenario, extensions, failure paths. For core flows that define the feature.
-- **Tier 2** — Standard format: scenario flow with steps, postconditions, failure paths. For important but less complex flows.
-- **Tier 3** — Index entry with links to relevant guide sections and endpoint lists. For flows that are heavily dependent on external configuration or environment.
+Map personas and workflows from discovery to 5-10 use cases. Each represents a complete user goal. Assign depth tiers (Tier 1 = full Cockburn, Tier 2 = standard, Tier 3 = index entry).
 
 **Step 5.2 — Write Each Use Case:**
 
-Save each to:
-- **Feature-scoped:** `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
-- **Cross-module:** `${PROJECT_ROOT}/docs/use-cases/UC-{MODULE}-{NNN}-{slug}.md`
-
-Default to feature-scoped. Only use the common folder when a use case genuinely spans multiple features or aggregate roots.
-
-```markdown
-# UC-{MODULE}-{NNN}: {Goal as Active Verb Phrase}
-
-> {One-sentence summary of what this use case establishes.}
-
-## Metadata
-
-| Field | Value |
-|-------|-------|
-| **Actor** | {Persona from Phase 3} |
-| **Trigger** | {Event that starts this use case} |
-| **Preconditions** | {State that must be true BEFORE the use case starts} |
-| **Depth Tier** | Tier {1/2/3} |
-| **Status** | Draft |
-| **Related Docs** | {Links to PRD sections, guide sections, other UCs} |
-
-## Scenario Flow
-
-### Phase 1: {Phase Name}
-
-| Step | Action | Details |
-|------|--------|---------|
-| 1.1 | {Actor or System} {action at user-intention level} | {Specifics — validation rules, API routes, business logic} |
-| 1.2 | ... | ... |
-
-### Phase 2: {Phase Name}
-...
-
-## Postconditions
-
-- {Observable state of the world when goal is achieved}
-
-## Failure Paths
-
-| Failure | Behavior |
-|---------|----------|
-| {What goes wrong} | {How the system responds — specific error, rollback, guarantee} |
-
-## Known Deferred Edges
-
-- {Edge case intentionally excluded from v1 with rationale}
-```
-
-**Tier 1 use cases** add these sections:
-
-```markdown
-## Minimal Guarantee (on failure)
-
-{What the system guarantees even if the use case fails —
- e.g., "No data corrupted, audit log records the attempt"}
-
-## Business Rules
-
-| Rule ID | Rule | Parameters |
-|---------|------|-----------|
-| BR-{MODULE}-{NNN} | {Specific rule} | {Thresholds, limits, constraints} |
-```
-
-Guidelines:
-- 3-9 steps per phase — write at user-intention level, not UI-action level
-- Every step that can fail gets a failure path entry
-- Use the table format for scenario steps (not numbered prose) — it's scannable and supports detail columns
-- Reference other UCs for flows that continue across use cases
+Save each to the appropriate location (feature-scoped: `docs/prd/{feature}/use-cases/`, cross-module: `docs/use-cases/`). Use the template from the conventions reference.
 
 **Step 5.3 — Reference Use Cases in PRD:**
 
-Add a use case index section to the PRD that links to the standalone files:
-
-```markdown
-## Use Cases
-
-Feature-scoped use cases are in `docs/prd/{feature}/use-cases/`.
-Cross-module use cases are in `docs/use-cases/`.
-
-| UC ID | Title | Depth | Actor | Scope | Status |
-|-------|-------|-------|-------|-------|--------|
-| [UC-{MODULE}-001](use-cases/UC-{MODULE}-001-{slug}.md) | {title} | Tier 1 | {actor} | Feature | Draft |
-| [UC-{MODULE}-002](../../use-cases/UC-{MODULE}-002-{slug}.md) | {title} | Tier 2 | {actor} | Cross-module | Draft |
-```
+Add a use case index section to the PRD that links to the standalone files.
 
 **Step 5.4 — Optional: Traceability Index (COMPREHENSIVE, 5+ use cases):**
 
-For projects with 5+ use cases, create a traceability index that maps scenarios to implementation evidence:
-
-Save to: `${PROJECT_ROOT}/docs/prd/{feature}/use-cases/traceability-index.md`
-
-For cross-module use cases, maintain a separate index at `${PROJECT_ROOT}/docs/use-cases/traceability-index.md`.
-
-```markdown
-# Traceability Index
-
-> Scenario-level index of supported use cases.
-> Tracks: which scenarios are implemented, where documented, what automated evidence exists.
-
-| Scenario ID | Scenario Name | Depth Tier | Status | Primary Doc | Test Evidence | Open Gaps |
-|-------------|--------------|------------|--------|-------------|---------------|-----------|
-| UC-{MODULE}-001 | {title} | Tier 1 | {status} | [link] | {test files} | {gaps} |
-```
-
-This is a living document — update it as use cases move from Draft → Implemented.
+For projects with 5+ use cases, create a traceability index mapping scenarios to implementation evidence. Save to `docs/prd/{feature}/use-cases/traceability-index.md`.
 
 #### PAUSE 2: Review each use case (Guided Review — Pattern 5)
 

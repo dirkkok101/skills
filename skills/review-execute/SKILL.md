@@ -182,8 +182,8 @@ Creating the manifest upfront (even reconstructed) is more efficient than workin
 **Step 0.2 — Load Bead Descriptions:**
 
 Read bead descriptions from one of these sources (in preference order):
-1. `docs/beads/{feature}/beads.md` — if the beads skill wrote a beads file
-2. `br show bd-{id}` for each bead ID in the manifest — most mature modules won't have a separate beads.md, only tracker entries
+1. `br show bd-{id}` for each bead ID in the manifest — **preferred** for large bead sets (avoids file size limits)
+2. `docs/beads/{feature}/beads.md` — read in chunks if it exceeds read limits (common for 15+ beads). Read by track: backend beads first, then frontend, then gates.
 3. Manifest bead summaries — last resort if br is unavailable; less detailed
 
 Parse:
@@ -243,7 +243,7 @@ Run the project's build and test commands. If they fail, **triage quickly:** sta
 
 Record test count and pass rate. Compare against manifest claims — flag `MANIFEST_STALE` if counts diverge.
 
-**Deferred frontend test gates:** If the manifest says frontend tests were deferred, still verify TypeScript compilation independently (e.g., type-check command with no emit). "Deferred" means the test runner can't execute, not that all frontend verification is skipped.
+**Frontend build verification (MANDATORY for modules with frontend beads):** Run the project's type-check command (e.g., type-check with no emit) regardless of whether frontend tests are deferred. "Deferred tests" means the test runner can't execute, not that frontend compilation is unchecked. This has been skipped in multiple reviews — it's not optional.
 
 **Pre-existing code filter:** For verification-mode reviews, run `git diff {first-execution-commit}^..{last-execution-commit} --name-only` early and focus Phase 2 bead verification on files in that diff. Reading unmodified files provides context but isn't necessary for bead verification — if the code predates the execution commits, skip it unless a specific AC references it.
 
@@ -594,4 +594,4 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 2.3 — [Version History](VERSIONS.md)*
+*Skill Version: 2.4 — [Version History](VERSIONS.md)*

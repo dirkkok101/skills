@@ -574,28 +574,11 @@ Compliance Criteria: (from discovery compliance checkpoints)
 
 #### Systematic Edge Case Elicitation
 
-After drafting the initial requirements, probe for edge cases — **focus on Must Have FRs and complex interactions first.** Don't exhaustively probe every FR; prioritize where bugs would be most costly.
-
-For prioritized FRs, ask:
-
-- **Duplicates:** What if the user does this twice? What if the same data already exists?
-- **Boundaries:** What if the input is empty? Maximum length? Zero? Negative?
-- **Concurrency:** What if two users do this simultaneously?
-- **Permissions:** What if the user doesn't have access? What about partial access?
-- **State:** What if a dependency is unavailable? What about stale data?
-- **Lifecycle:** What about deletion? Archival? Migration of existing data?
-
-Each discovered edge case becomes either a new acceptance criterion on an existing FR, or a new FR if it's significant enough.
+After drafting requirements, probe Must Have FRs for edge cases across 6 categories (duplicates, boundaries, concurrency, permissions, state, lifecycle). See [references/prd-conventions.md](references/prd-conventions.md#systematic-edge-case-elicitation) for the full checklist.
 
 #### Requirement Quality Check
 
-Before presenting requirements to the user, scan for these quality issues:
-
-**Ambiguity words** — flag any requirement containing: "appropriate", "reasonable", "quickly", "user-friendly", "intuitive", "properly", "sufficient", "as needed", "etc.", "and/or". These words mask undecided requirements. Replace each with a specific, testable statement.
-
-**Testability** — every acceptance criterion must be verifiable by a test. "The system should handle errors gracefully" is not testable. "Given a network timeout, when the user submits, then a retry dialog appears within 2 seconds" is testable.
-
-**Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
+Before presenting requirements, scan for ambiguity words, testability, and independence issues. See [references/prd-conventions.md](references/prd-conventions.md#fr-quality-checklist) for the complete quality check rules.
 
 #### PAUSE 3: Validate requirements one at a time (Guided Review — Pattern 5)
 
@@ -648,18 +631,7 @@ Measurement: {How to verify}
 Rationale: {Why this target — trace to problem statement, success metrics, or persona needs}
 ```
 
-Categories to consider:
-1. **Performance** — API response time, page load, batch throughput
-2. **Security** — Authentication, encryption, audit logging, rate limiting
-3. **Scalability** — Concurrent users, data volume, geographic distribution
-4. **Data** — Retention, backup, deletion, migration
-5. **Accessibility** — WCAG 2.1 AA, keyboard navigation, screen readers
-
-Every NFR has a number, not an adjective. "Fast" is not a requirement. "< 200ms P95" is. Every NFR target should trace to either the problem statement, a success metric, or a persona need — arbitrary targets are waste.
-
-**Mandatory NFR: Audit coverage.** Any module with state-changing operations (create, update, delete, status transitions) MUST include an audit NFR (e.g., `NFR-{MODULE}-AUDIT`) specifying: 100% mutation coverage, actor ID + timestamp + entity ID in every log entry, and the audit event type naming convention (`{entity_type}.{action}`).
-
-**Minimum counts are strict.** COMPREHENSIVE requires at least 6 NFRs — not 5, not "around 6". Count them before finalizing. If you have fewer than 6, add NFRs for categories you haven't covered (performance, security, scalability, data, accessibility).
+5 categories to consider (Performance, Security, Scalability, Data, Accessibility), mandatory audit NFR for state-changing modules, and strict minimum counts by mode (BRIEF: 2-3, STANDARD: 4-6, COMPREHENSIVE: 6-10). See [references/prd-conventions.md](references/prd-conventions.md#nfr-categories--minimums) for full details.
 
 ---
 
@@ -875,44 +847,9 @@ For COMPREHENSIVE PRDs with multiple stakeholders, add a formal approval section
 
 ## BRIEF Mode Template
 
-For BRIEF scope, skip Phases 3, 5, 8, 8b, 9, 10b. Produce this streamlined one-page format:
+For BRIEF scope, skip Phases 3, 5, 8, 8b, 9, 10b. Produces a streamlined one-page PRD with: Problem, Goals, Non-Goals, Assumptions, 3-5 requirements with acceptance criteria, NFRs, and Open Questions.
 
-```markdown
-# PRD: {Feature Name} (Brief)
-
-**Date:** {today} | **Scope:** BRIEF | **Status:** Draft
-
-## Problem
-{2-3 sentences — what's broken and for whom}
-
-## Goals
-- {Measurable outcome 1}
-- {Measurable outcome 2}
-
-## Non-Goals
-- {What we're explicitly NOT doing}
-
-## Assumptions
-- {Key assumptions that could change scope if wrong}
-
-## Requirements
-
-### FR-{MODULE}-{NAME}: {Title} [Must]
-As a {role}, I want {action}, so that {benefit}.
-- Given {X}, When {Y}, Then {Z}
-- Given {error}, When {invalid}, Then {handled}
-
-### FR-{MODULE}-{NAME}: {Title} [Must]
-...
-
-{3-5 stories total}
-
-## NFRs
-- NFR-{MODULE}-{NAME}: {target with number and rationale}
-
-## Open Questions
-- {Anything unresolved}
-```
+See [references/prd-conventions.md](references/prd-conventions.md#brief-mode-template) for the complete template.
 
 ---
 
@@ -958,163 +895,15 @@ When exiting, update PRD metadata: Status, Next Step, Completion Date.
 
 ## Structural Conventions (Non-Negotiable)
 
-Every PRD produced by this skill must follow these conventions exactly. Only content varies between PRDs — structure, naming, and formatting are fixed.
+Every PRD produced by this skill must follow these conventions exactly. Only content varies between PRDs — structure, naming, and formatting are fixed. Covers: mandatory H2 section order (15 sections for COMPREHENSIVE), naming/numbering conventions for all elements (Goals, FRs, NFRs, UCs, Personas, Epics), fixed heading levels, persona sub-fields, FR/NFR body structure templates, table column formats, MoSCoW headings, and 7 strict rules.
 
-### Mandatory Sections (COMPREHENSIVE)
-
-Every COMPREHENSIVE PRD must contain ALL of these H2 sections in this order:
-
-1. `## Document History`
-2. `## Table of Contents`
-3. `## Problem Statement`
-4. `## Goals`
-5. `## Non-Goals`
-6. `## Success Metrics`
-7. `## User Personas`
-8. `## Assumptions & Constraints`
-9. `## Use Cases`
-10. `## Functional Requirements`
-11. `## Non-Functional Requirements`
-12. `## Integration Points`
-13. `## Prioritisation (MoSCoW)`
-14. `## Domain Validation`
-15. `## Document Approval`
-
-Optional H2 sections (add when relevant, after Document Approval):
-- `## Appendix: API Endpoint Summary (Indicative)`
-- `## Appendix: Database Tables (Indicative)`
-
-### Naming & Numbering Conventions
-
-| Element | Format | Example |
-|---------|--------|---------|
-| Goals | `- **G{n}:** {text}` | `- **G1:** Reduce time-to-access` |
-| Non-Goals | `- **NG{n}:** {text} — Reason: {why}` | `- **NG1:** Mobile — Reason: desktop-only` |
-| Assumptions | `- **A{n}:** {text}` | `- **A1:** API handles load` |
-| Constraints | `- **C{n}:** {text}` | `- **C1:** Must use existing schema` |
-| FR IDs | `FR-{MODULE}-{DESCRIPTIVE-NAME}` | `FR-APP-REGISTER` |
-| NFR IDs | `NFR-{MODULE}-{DESCRIPTIVE-NAME}` | `NFR-APP-RESPONSE-TIME` |
-| UC IDs | `UC-{MODULE}-{NNN}` | `UC-APP-001` |
-| Personas | `### P{n}: {Role Title}` | `### P1: Platform Administrator (Primary)` |
-| Epics | `### Epic: {Name}` | `### Epic: User Lifecycle` |
-
-### Heading Levels (Fixed)
-
-| Element | Level | Example |
-|---------|-------|---------|
-| Sections | H2 | `## Problem Statement` |
-| Epics | H3 | `### Epic: User Lifecycle` |
-| Personas | H3 | `### P1: Platform Administrator` |
-| NFRs | H3 | `### NFR-APP-LATENCY: API Response Time` |
-| FRs | H4 | `#### FR-APP-SAVE: Save Application` |
-| Sub-sections | H3 | `### Assumptions`, `### Constraints`, `### Risks`, `### Open Questions` |
-
-### Persona Sub-Fields (All 6 Mandatory)
-
-Every persona MUST have exactly these 6 bold sub-fields:
-
-```
-- **Goals:** {2-3 items}
-- **Pain Points:** {2-3 items}
-- **Current Workaround:** {how they cope today}
-- **Success Criteria:** {how they know the feature works}
-- **Tech Level:** {description}
-- **Frequency:** {how often they use this}
-```
-
-### FR Body Structure (Fixed Format)
-
-```
-#### FR-{MODULE}-{NAME}: {Title}
-Priority: Must / Should / Could / Won't
-Complexity: S / M / L / XL
-Related: UC-{MODULE}-{NNN}
-
-As a {persona} (P{n}),
-I want to {action},
-So that {benefit}.
-
-Acceptance Criteria:
-  Given {precondition}
-  When {action}
-  Then {expected result}
-
-Security Criteria:
-  - {requirement}
-```
-
-Lines Priority, Complexity, Related appear one per line, no bold. Acceptance Criteria are indented 2 spaces. Security Criteria required on any FR that modifies data, touches auth, or handles PII. Compliance Criteria required on any FR touching regulated data.
-
-### NFR Body Structure (Fixed Format)
-
-```
-### NFR-{MODULE}-{NAME}: {Title}
-Category: Performance / Security / Scalability / Data / Accessibility
-Target: {specific number — "P95 < 200ms", not "fast"}
-Load Condition: {context}
-Measurement: {how to verify}
-Rationale: {traces to problem statement, success metrics, or persona needs}
-```
-
-### Table Formats (Fixed Columns)
-
-| Table | Columns (in order) |
-|-------|-------------------|
-| Success Metrics | Metric \| Current \| Target \| By When \| How Measured |
-| Risks | Risk \| Likelihood \| Impact \| Mitigation |
-| Open Questions | # \| Question \| Context \| Status \| Decision \| Owner |
-| Document Approval | Role \| Name \| Status \| Date |
-
-### MoSCoW Headings (Fixed Text)
-
-```
-### Must Have (MVP)
-### Should Have (v1)
-### Could Have (Future)
-### Won't Have (Yet)
-```
-
-### Integration Points Sub-Headings (Fixed Text)
-
-```
-### Consumed Services
-### Exposed Services
-### Integration NFRs
-```
-
-### Strict Rules
-
-1. FR IDs are DESCRIPTIVE, never sequential numbers (`FR-APP-REGISTER` not `FR-APP-001`)
-2. NFR targets contain specific numbers, never adjectives
-3. No ambiguity words in acceptance criteria: "appropriate", "reasonable", "quickly", "user-friendly", "intuitive", "properly", "sufficient", "as needed", "etc.", "and/or"
-4. At least one error/edge case acceptance criterion per Must Have FR
-5. Must Have list ≤ 10 items
-6. Won't Have items always have a "Reason:" rationale
-7. Dependency Graph section uses ASCII `──>` arrows showing FR-to-FR build order
+See [references/prd-conventions.md](references/prd-conventions.md#structural-conventions-non-negotiable) for the complete specification.
 
 ---
 
 ## Anti-Patterns
 
-**The Monologue** — Agent generates entire PRD, dumps it for approval. Instead, pause and validate at each phase. The user knows things the agent doesn't.
-
-**Solution-First** — Writing features before establishing the problem. If Phase 2 doesn't hurt to read, you haven't described a real problem.
-
-**Vague Criteria** — "System should be fast" or "handle errors appropriately". Every requirement needs a number or a specific behavior. Flag ambiguity words.
-
-**Happy Path Only** — Acceptance criteria that only cover success. Every Must Have FR needs at least one error/edge case criterion. Use the edge case elicitation checklist.
-
-**The Kitchen Sink** — v1 through v10 in one doc. Strict MoSCoW with Won't Have. If the Must Have list has more than 10 items, some of them aren't Must Haves.
-
-**Silent Assumptions** — Taking things for granted without documenting them. If an assumption proves false and there's no record, nobody knows which requirements to revisit.
-
-**Orphan Stories** — Stories not linked to personas or use cases. If you can't name the persona, the requirement may not solve a real problem.
-
-**Arbitrary NFR Targets** — Setting performance or scalability targets without rationale. "P95 < 200ms" means nothing without knowing the current baseline and why that number matters. Every target traces to a real need.
-
-**Monolith PRD** — Embedding use cases, detailed scenarios, and gap analysis inline in the PRD. A 134KB PRD is unreadable and unmaintainable. Use cases are standalone files. The PRD references them by link and index table. Each artifact should be reviewable on its own.
-
-**Undocumented Evolution** — Making significant changes to the PRD without recording what changed and why. The Document History table exists for this — update it after each adversarial review round, scope change, or user feedback incorporation.
+10 named anti-patterns covering common PRD failures: The Monologue, Solution-First, Vague Criteria, Happy Path Only, The Kitchen Sink, Silent Assumptions, Orphan Stories, Arbitrary NFR Targets, Monolith PRD, Undocumented Evolution. See [references/prd-conventions.md](references/prd-conventions.md#anti-patterns) for full descriptions.
 
 ---
 

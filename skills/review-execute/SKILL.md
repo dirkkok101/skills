@@ -84,53 +84,28 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 ### CONVERGE Mode
 
-When the user says "converge", "fix all issues", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
+For the shared CONVERGE pattern (the loop, classification, authority hierarchy, progressive loading, convergence criteria, same-session detection): `../_shared/references/converge-mode.md`
 
-- `CONVERGE` alone → uses STANDARD depth
-- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth
-- `CONVERGE + BRIEF` → uses BRIEF depth
+**CONVERGE is the default mode.** Unless the user explicitly says "no converge" or "review only", always run with CONVERGE enabled.
 
 **When to skip CONVERGE:** If a prior STANDARD review already found 0 FAILs, CONVERGE adds no value — the fix loop never activates. In this case, recommend running COMPREHENSIVE (for deeper traceability) without CONVERGE (the fix loop overhead). CONVERGE is most valuable when the prior review found FAILs that need automated fixing, or when no prior review exists.
 
-**CONVERGE changes to the normal review flow:**
-- **Skip interactive stage gates** but **always show a findings summary before fixing:** "Found {N} issues: {count} MECHANICAL, {count} DECISION. Fixing MECHANICAL items now." This gives the user visibility before code changes.
-- **Replace per-finding walkthrough** with a classified summary table (MECHANICAL / JUSTIFIED_DEVIATION / DECISION).
-- **WARNs are listed** but NOT auto-fixed unless trivial (additive-only, <10 lines).
-- **Code fixes are applied directly** — CONVERGE mode modifies implementation files to fix MECHANICAL findings.
+**Progressive loading waves (review-execute specific):**
+- Wave 1: Execution manifest + bead descriptions + changed files (catches most issues)
+- Wave 2: Design docs (api-surface, data-model) for beads with findings
+- Wave 3: PRD acceptance criteria + ADRs for deep traceability checks
 
-**MECHANICAL vs DECISION heuristic:** A finding is MECHANICAL when the design doc is unambiguous AND the project has a confirming pattern (e.g., another endpoint already uses the correct status code). DECISION is reserved for genuine contradictions, missing design guidance, or choices where the design is ambiguous. Even if a fix touches shared types (like adding a new result type), it's MECHANICAL if the design clearly specifies the expected behavior.
+**MECHANICAL examples for review-execute:** wrong HTTP verb, missing entity property, test verifying wrong thing, missing import. Even if a fix touches shared types (like adding a new result type), it's MECHANICAL if the design clearly specifies the expected behavior.
 
-**The loop:**
+**Pattern pre-check:** Before writing any fix, verify the fix approach against the project's architectural constraints (ADRs, pattern docs, CLAUDE.md). A fix that violates the project's patterns (e.g., injecting DbContext into an endpoint when the project forbids it) creates a new finding. Check constraints BEFORE writing code.
 
-1. **Review** — Run at the selected depth. Use progressive loading:
-   - Wave 1: Execution manifest + bead descriptions + changed files (catches most issues)
-   - Wave 2: Design docs (api-surface, data-model) for beads with findings
-   - Wave 3: PRD acceptance criteria + ADRs for deep traceability checks
-2. **Classify** findings:
-   - **MECHANICAL** — wrong HTTP verb, missing entity property, test verifying wrong thing, missing import. Auto-fix.
-   - **JUSTIFIED_DEVIATION** — implementation differs from design with documented rationale. Verify and PASS.
-   - **DECISION** — design contradiction, scope question, architectural choice needs user input. Escalate via AskUserQuestion.
-3. **Fix** MECHANICAL findings.
-   - **Pattern pre-check:** Before writing any fix, verify the fix approach against the project's architectural constraints (ADRs, pattern docs, CLAUDE.md). A fix that violates the project's patterns (e.g., injecting DbContext into an endpoint when the project forbids it) creates a new finding. Check constraints BEFORE writing code.
-   - **Cascade check:** After fixing a file, run the project's build and test commands. If tests fail, **diagnose first** — determine whether the failure is from your fix (revert) or from a pre-existing bug your fix exposed (fix the bug). Do NOT automatically revert and reclassify. The Applications review found 2 production bugs (audit entityId, delete cascade) by investigating test failures instead of reverting. Only revert if your fix genuinely caused the regression.
-4. **Update manifest** — After fixes, update `docs/execution/{feature}/manifest.md` with new commit hashes, changed file lists, and any corrected FR/UC coverage claims. A stale manifest after CONVERGE undermines future reviews.
-5. **Re-review** — Run again on fixed code.
-6. **Compare** — Did FAILs decrease? If increased, revert and stop.
-7. **Repeat** until 0 FAILs or max 5 rounds.
+**Cascade check:** After fixing a file, run the project's build and test commands. If tests fail, **diagnose first** — determine whether the failure is from your fix (revert) or from a pre-existing bug your fix exposed (fix the bug). Do NOT automatically revert and reclassify. Only revert if your fix genuinely caused the regression.
 
-**Authority hierarchy for verification:**
-```
-ADRs > Pattern docs > Architecture docs > Design (api-surface, data-model) > PRD (FRs, ACs) > Plan > Beads > Implementation
-```
+**Update manifest after fixes:** Update `docs/execution/{feature}/manifest.md` with new commit hashes, changed file lists, and any corrected FR/UC coverage claims. A stale manifest after CONVERGE undermines future reviews.
 
-When implementation contradicts a higher-trust source, the implementation is wrong.
-
-**Same-session detection:** If execution occurred in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW — the reviewer shares the executing agent's blind spots.
-
-**Same-session fresh-eyes mitigation:** Same-session reviews share the executing agent's context and biases. To compensate:
-1. **Re-read design docs from scratch** — do NOT rely on conversation context. Re-read the api-surface.md and data-model.md line-by-line against the implementation. The Organizations review found F1 (bootstrap 409→400) only by forcing a line-by-line re-read.
+**Same-session fresh-eyes mitigation (review-execute specific):** Same-session reviews share the executing agent's context and biases. To compensate:
+1. **Re-read design docs from scratch** — do NOT rely on conversation context. Re-read the api-surface.md and data-model.md line-by-line against the implementation.
 2. **Load one doc the executing agent didn't read** — spot-check 2 claims against it (e.g., if the agent didn't read the PRD, verify 2 FR ACs against code).
-3. **For COMPREHENSIVE mode, recommend deferring to a fresh session** — same-session COMPREHENSIVE has limited additional value over STANDARD because the reviewer's blind spots are the same as the executor's.
 
 **Non-greenfield execution review:** If the execution manifest or plan's Implementation Status shows >70% of design elements already existed before execution:
 - **Verification beads** ("verify X matches design") — the AC is "confirm existing code matches spec." Review by reading the code and checking against the spec, not by looking for newly written code.
@@ -142,6 +117,8 @@ When implementation contradicts a higher-trust source, the implementation is wro
 ---
 
 ## Finding Classification
+
+For the shared severity model (FAIL/WARN definitions), MECHANICAL vs DECISION heuristic, pre-existing drift handling, and finding quality standards, see `../_shared/references/review-finding-taxonomy.md`.
 
 Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 
@@ -163,40 +140,7 @@ Every finding has a **class** (what's wrong) and a **severity** (FAIL or WARN):
 | `ADR_VIOLATION` | Implementation violates an architectural decision record | **FAIL** |
 | `UPSTREAM_DOC` | Issue is in the upstream doc, not the implementation | **WARN** (note separately; create `br` issue) |
 
-**Severity model:** FAIL = blocks PR/merge. WARN = quality improvement, doesn't block. Aligned with review-prd, review-design, review-plan, review-beads.
-
-**Pre-existing vs introduced:** For non-greenfield reviews, design drift may exist in code the execution did NOT modify. Apply this rule:
-- **Introduced by execution** (code was changed by a bead) → default severity from table above
-- **Pre-existing in unmodified code** → **WARN** regardless of class, tagged `PRE_EXISTING`. The execution didn't introduce it, and fixing it may be out of bead scope. Create a `br` issue (p3) for follow-up.
-- **Edge case — bead touched the file but not the drifting code path:** Still **WARN** + `PRE_EXISTING` unless the bead's scope explicitly included that code path.
-
----
-
-## Severity Calibration
-
-**Every finding gets a severity. Calibrate carefully — inflation kills trust.**
-
-### FAIL Examples
-
-- Bead AC says "returns 404 when not found" but endpoint returns 200 with empty body
-- Bead failure criterion says "Do NOT use SaveRequest pattern" but implementation uses SaveRequest
-- Design api-surface specifies `PATCH /api/v1/entities/{id}` but implementation uses `PUT`
-- Data-model specifies `DisabledReason` property but entity class doesn't have it
-- Test asserts `response.StatusCode == 200` but doesn't check response body shape
-- ADR-0014 says "enums over string constants" but implementation uses string constants
-- Bead marked complete but the endpoint isn't registered in DI/routing
-- UC-001 main step 5 says "system displays confirmation" but no confirmation response/component exists
-- Entity implements tenant-scoped queries but missing `ITenantEntity` interface per architecture docs
-- Endpoint has no authorization policy but design specifies admin-only access
-- Command and query combined in same handler (CQRS violation per architecture)
-- Bead depends on cross-module service but import/DI registration is missing
-
-### WARN Examples
-
-- Implementation adds a helper method not mentioned in bead scope (minor scope creep)
-- Test uses hardcoded values instead of test factory patterns
-- Manifest says "3 tests added" but git shows 4 test files (manifest stale, not harmful)
-- Bead references pattern doc but implementation uses a slightly different variant that still works
+**Severity model and pre-existing drift rules:** See `../_shared/references/review-finding-taxonomy.md` for FAIL/WARN definitions, calibration examples, and the PRE_EXISTING tagging rules for non-greenfield reviews.
 
 ---
 
@@ -561,23 +505,12 @@ AskUserQuestion:
 
 ## Finding Quality Standards
 
-These standards are non-negotiable. Every finding must meet ALL of them:
+See `../_shared/references/review-finding-taxonomy.md` for the full non-negotiable standards (re-read before flagging, quote defects, cite sources, verify current state) and the cross-skill "What NOT to Flag" list.
 
-1. **Re-read the bead description** before writing any finding — do not flag based on remembered bead content. Read from `docs/beads/{feature}/beads.md` or `br show bd-{id}`.
-2. **Read the actual code** before writing any finding — do not flag based on file names or manifest claims alone
-3. **Quote the specific defect** — "the code at {file}:{line} does X" or "the code omits X"
-4. **Cite the authority source** — "bead AC2 says Y" or "api-surface.md line 34 specifies Z"
-5. **The issue must cause a concrete problem** — "this means the endpoint returns the wrong shape" or "this test doesn't catch the failure mode"
-6. **Verify the finding against the actual codebase state** — grep to confirm before flagging
-
-### What NOT to Flag
-
-- **Code style issues** — that's `/review`'s job, not this skill's
+**Skill-specific exclusions** (in addition to the shared list):
+- **Code style issues** — that is `/review`'s job, not this skill's
 - **Missing tests for code not covered by any bead** — only verify bead-scoped work
-- **Design decisions made outside the bead scope** — if the bead didn't reference it, don't flag it
-- **Upstream doc issues** — tag as `UPSTREAM_DOC` and list separately; not implementation defects
-- **Performance or optimization concerns** — unless a bead AC specifically mentions performance
-- **Cosmetic differences from pattern docs** — if the pattern intent is followed, minor structural variations are fine
+- **Design decisions made outside the bead scope** — if the bead did not reference it, do not flag it
 
 ---
 

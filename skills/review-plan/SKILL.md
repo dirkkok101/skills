@@ -43,6 +43,14 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 > **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
 
+## Shared References
+
+Before starting any review, load these shared reference files:
+- **CONVERGE loop & classification:** `../_shared/references/converge-mode.md`
+- **Severity model & finding quality:** `../_shared/references/review-finding-taxonomy.md`
+
+These define the CONVERGE mode behavior, MECHANICAL vs DECISION classification, authority hierarchy, PRE_EXISTING severity rules, and finding quality standards shared across all review skills. Skill-specific CONVERGE behavior (wave definitions, authority hierarchy overrides) is documented inline below.
+
 ---
 
 ## Mode Selection
@@ -56,43 +64,86 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 ### CONVERGE Mode
 
-When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop.
+When the user says "converge", "fix all issues", "autoresearch", or selects CONVERGE mode, run the autoresearch convergence loop. CONVERGE can be combined with any review depth:
 
-**Shared loop, classification, convergence criteria, same-session detection, and report formats:** [`../_shared/references/converge-mode.md`](../_shared/references/converge-mode.md)
+- `CONVERGE` alone → uses STANDARD depth
+- `CONVERGE + COMPREHENSIVE` → uses COMPREHENSIVE depth (all phases + companion docs)
+- `CONVERGE + BRIEF` → uses BRIEF depth (structural + design fidelity only)
 
-**Severity model and finding quality standards:** [`../_shared/references/review-finding-taxonomy.md`](../_shared/references/review-finding-taxonomy.md)
+**CONVERGE changes to the normal review flow:**
+- **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
+- **Replace Phase 7 interactive walkthrough** with a summary table of all findings, classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
+- **READ-ONLY does not apply** in CONVERGE mode — the plan is modified directly.
+- **MECHANICAL findings are auto-fixed regardless of severity.** Count errors, stale numbers, missing table rows, and arithmetic mismatches are the same class of issue whether they appear in a summary table (FAIL) or a companion doc (WARN). Auto-fix all MECHANICAL findings.
+- **Trivial WARN auto-fix heuristic:** If the fix is additive-only (no deletions, no semantic changes) and under 10 lines, auto-fix it without escalation. Examples: adding a checklist item to a sub-plan, adding a verification task, fixing a count.
+- **Non-trivial WARNs** (judgment calls, scope decisions, authority source conflicts) are escalated via AskUserQuestion after FAILs reach 0.
 
-**Plan-review-specific CONVERGE behavior:**
+**The loop:**
 
-- **Progressive loading waves:** Wave 1: overview.md + design.md + PRD. Wave 2: sub-plans + feature api-surfaces. Wave 3: agents for broad ADR/pattern/architecture surveys.
-- **MECHANICAL findings are auto-fixed regardless of severity** — count errors, stale numbers, missing table rows, and arithmetic mismatches are all MECHANICAL whether in overview (FAIL) or companion doc (WARN).
-- **Trivial WARN auto-fix heuristic:** If additive-only, no semantic changes, and under 10 lines, auto-fix without escalation. Non-trivial WARNs escalated after FAILs reach 0.
-- **Plan-specific authority hierarchy:** `Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Pattern docs > Architecture docs > Plan overview > Sub-plans`
-- **Cascade scope is the plan directory only** — cross-module cascades noted as observations.
-- **Phase ordering for CONVERGE:** Consider running Phase 6 (internal consistency / arithmetic) immediately after Phase 0 — arithmetic errors are the cheapest fixes and most common MECHANICAL findings.
-- **Verification Mode phase collapsing:** For plans where >90% exists and the gap analysis IS the plan, Phases 2 and 3 collapse into a single check: "does the gap analysis correctly identify what needs to change?"
-- **Test counts single source of truth:** The test-scenario-matrix is authoritative. Overview and sub-plans should reference it instead of stating counts that drift.
+1. **Review** — Run the review at the selected depth. Use progressive loading:
+   - Wave 1: overview.md + design.md + PRD (catches structural + coverage gaps)
+   - Wave 2: sub-plans + feature api-surfaces (catches design fidelity issues)
+   - Wave 3: agents for broad ADR/pattern/architecture surveys
+2. **Classify** findings:
+   - **MECHANICAL** — stale count, missing table row, wrong FR ID, internal contradiction where one side is clearly correct per authority hierarchy. Auto-fix these.
+   - **JUSTIFIED_DEVIATION** — plan deviates from convention with explicit, documented rationale. Verify rationale is sound; if yes, mark as PASS.
+   - **DECISION** — plan contradicts design, design contradicts PRD, scope question requiring user judgment. Escalate via AskUserQuestion.
+3. **Fix** mechanical findings using minimum changes. **Cascade check:** after cross-cutting fixes, grep the plan directory for related terms before declaring fix complete. **Cascade scope is the plan directory only** — cross-module cascades noted as observations.
+4. **Re-review** — Run the review again on the fixed plan.
+5. **Compare** — Did Critical+Major findings decrease? If increased, revert and stop.
+6. **Repeat** until 0 FAILs or max 5 rounds.
+7. **WARN triage** — After FAILs reach 0, present remaining WARNs to the user as a final batch via AskUserQuestion with "Fix / Accept as-is" options. Trivial WARNs (1-line fixes with zero ambiguity, like adding a missing prerequisite) may be auto-fixed alongside FAILs.
 
-**Agent usage guidelines:**
+**Same-session detection:** If the plan's creation date matches today AND the conversation contains /plan invocations or plan-writing activity, flag as same-session. Note this in the report. For same-session reviews:
+- Phase 2 confidence is LOW (not MODERATE) — the reviewer shares the generating agent's blind spots
+- Phase 2 agents should use a deliberately adversarial prompt: "Assume the plan author has blind spots. Look for unstated assumptions, implicit design decisions, and coverage claims that rely on 'already implemented' without evidence."
+- Phase 1 should use explicit Read calls per section (not mental checklist from memory)
+- Verify at least 3 specific claims against the actual codebase using Grep/Read
+- Recommend independent spot-check on Phase 2 if the plan is used for production /beads Same-session reviews catch internal consistency errors (Phase 6) and adversarial depth-check failures (Phase 4) but are blind to the generating agent's systematic biases. Recommend independent spot-check on Phase 2 (design fidelity) if time permits.
 
-- **Non-greenfield agent prompts:** Include: "This is a non-greenfield plan", "verification coverage is not a gap", "authority source discrepancies are observations not findings", "framework concerns are inherently compliant", "verification tasks don't need to describe HOW — that's /beads territory."
-- **Agent context:** Provide both plan files AND current gap analysis to prevent confusing old and new analyses.
-- **Agent finding classification:** Instruct agents to classify each finding with reasoning. Reviewer validates — agents sometimes misclassify DECISION as MECHANICAL.
-- **Agent sub-plan reading:** Agents must read full sub-plan body before flagging FR coverage as incomplete.
-- **Agent false positive rate:** Expect 30-40%. For plans with ≤3 sub-plans, skip agents — direct reads are more efficient.
-- **Agent finding triage table:** Include `## Agent Finding Triage` with disposition column (Accepted / False Positive / Reclassified).
+**Confidence level:** Include in the convergence report:
+- **HIGH** — independent reviewer, fresh context, all authority sources loaded from disk
+- **MODERATE** — same-session review, non-greenfield plan with mostly verification tasks
+- **LOW** — same-session review, same agent, large plan with many judgment calls
 
-**Same-session plan reviews:**
+**Authority hierarchy for mechanical fixes:**
+```
+Technical design (api-surface, data-model) > PRD (FRs, UCs, ACs) > ADRs > Pattern docs > Architecture docs > Plan overview > Sub-plans
+```
 
-Same-session reviews have reduced independence (see shared converge-mode.md for confidence levels). Additional plan-specific mitigations:
-- Phase 2 confidence is LOW — reviewer shares generating agent's blind spots. Use deliberately adversarial agent prompts.
-- Phase 1 should use explicit Read calls per section (not mental checklist from memory).
-- Increase spot-checks to 5 minimum. Target gap analysis claims: test infrastructure existence, file content verification, "Modify" element accuracy.
-- **Codebase spot-check:** A 30-second Grep to verify key gap analysis claims significantly increases confidence (Phase 3).
+**Non-greenfield agent prompts:** When launching agents to review non-greenfield plans, include ALL of these in the prompt:
+- "This is a non-greenfield plan. All design elements already exist in code."
+- "'Covered by T01 (verification)' means 'verified to match design,' not 'needs building.' Do NOT flag verification coverage as gaps."
+- "If a discrepancy exists between two authority sources (PRD says X, design says Y) and the plan follows one consistently, this is NOT a plan finding — note it as an observation only."
+- "Concerns handled by the framework or platform are inherently compliant unless the plan explicitly modifies them."
+- "If the plan says 'T02 verifies encryption' and the gap analysis says 'code exists,' that IS sufficient coverage. Do NOT flag it as insufficient because the plan doesn't describe HOW to verify — that's /beads territory."
 
-**Companion doc depth:** Scale by plan complexity. For ≤3 sub-plans, structural check suffices. For >3, cross-reference against design test plans and security analysis.
+**Agent context:** Agents should receive both the plan files AND the current gap analysis (not just the authority source). This prevents agents from confusing old and new gap analyses.
 
-**Token budget:** For 10+ sub-plans, expect 30-50 documents. Models with <200K context may need two-pass approach.
+**Agent finding classification:** Instruct agents to classify each finding AND provide reasoning. The reviewer validates or reclassifies — agents sometimes classify "missing from design because never designed" as MECHANICAL when it's actually a DECISION.
+
+**Agent sub-plan reading:** Add to agent prompts: "Before flagging any FR coverage as incomplete, read the full sub-plan body for the covering task(s). The overview table is a summary — the sub-plan is the authority."
+
+**Agent false positive rate:** Expect 30-40% false positive rate from review agents. Budget time for triage. For plans with ≤3 sub-plans, skip agents and do direct authority source reads + spot-checks instead — the reviewer's own reads are more efficient than filtering agent noise.
+
+**Companion doc depth:** Scale by plan complexity. For plans with ≤3 sub-plans, structural check is sufficient. For plans with >3 sub-plans, cross-reference companion docs against design test plans and security analysis.
+
+**Same-session spot-checks:** Increase from 3 to 5 minimum. Target gap analysis claims specifically: (a) does the test infrastructure exist where the plan says, (b) do existing files contain what the gap analysis claims, (c) do "Modify" elements actually have the claimed issues. Same-session generating agents consistently produce stale count/existence errors.
+
+**Phase ordering for CONVERGE:** Consider running Phase 6 (internal consistency / arithmetic) immediately after Phase 0, not last. Arithmetic errors are the cheapest fixes and most common MECHANICAL findings. Fixing them first reduces cascading corrections.
+
+**Test counts single source of truth:** The test-scenario-matrix should be the authoritative test count. Overview and sub-plans should reference it ("see test-scenario-matrix.md") instead of stating counts that drift.
+
+**Agent finding triage table:** Include in the review report: `## Agent Finding Triage` with a disposition column (Accepted / False Positive / Reclassified). Makes the review auditable.
+
+**Verification Mode phase collapsing:** For plans where >90% exists and the gap analysis IS the plan, Phases 2 (design fidelity) and 3 (gap analysis fidelity) collapse into a single check: "does the gap analysis correctly identify what needs to change?" Run them as one phase rather than separately. Phase 2's endpoint/contract verification is redundant when the plan's tasks are verification checklists, not construction blueprints. Without this, agents will produce false positives by assuming greenfield context.
+
+**Codebase spot-check:** For non-greenfield plans, the gap analysis claims about implementation state are the foundation of the decomposition. A 30-second Grep to verify key claims (e.g., confirm the named class exists, confirm the endpoint route is registered) significantly increases confidence. This is particularly valuable for Phase 3 (Gap Analysis Fidelity).
+
+**Token budget:** COMPREHENSIVE reviews read the full plan + design + PRD + relevant ADRs/patterns. For plans with 10+ sub-plans, expect 30-50 documents. Models with <200K context may need two-pass approach.
+
+**Convergence report:** For quick convergences (≤3 rounds, ≤10 findings), use compact format:
+`{N} findings → {N} fixed in {N} rounds. {N} decisions escalated. Minor: {N} (not fixed).`
 
 ---
 
@@ -155,9 +206,83 @@ Read the `/plan` skill specification (this skill's sibling: `../plan/SKILL.md`).
 
 **Load:** `/plan` SKILL.md (already loaded in Phase 0.4).
 
-Verify overview document structure (required sections per mode), sub-plan document structure (required/conditional/mandatory sections), companion document compliance (COMPREHENSIVE), anti-pattern detection, and plan/beads boundary violations.
+**Step 1.1 — Overview Document Structure:**
 
-**Full checklists (Steps 1.1-1.5):** [`references/plan-review-checklists.md`](references/plan-review-checklists.md)
+Verify the overview contains all required sections from the `/plan` skill spec:
+
+| Required Section | BRIEF | STANDARD | COMPREHENSIVE |
+|-----------------|-------|----------|---------------|
+| References | Yes | Yes | Yes |
+| Decomposition Strategy | Yes | Yes | Yes |
+| Cross-Cutting Concerns | Yes | Yes | Yes |
+| Task Summary table | Yes | Yes | Yes |
+| FR Coverage table | Yes | Yes | Yes |
+| UC Coverage table | No | Yes | Yes |
+| Design Coverage table | No | Yes | Yes |
+| Design Decision Coverage table | No | Yes | Yes |
+| Implementation Status (non-greenfield) | No | If applicable | If applicable |
+| Dependency Graph | No | Yes | Yes |
+| Critical Path | No | Yes | Yes |
+| Risk Register | No | No | Yes |
+| Testing Summary | No | Yes | Yes |
+| Sub-Plans table | No | Yes | Yes |
+
+Flag missing required sections as **WARN** findings.
+
+**Step 1.2 — Sub-Plan Document Structure (STANDARD+):**
+
+For each sub-plan, verify required sections:
+- Traceability (Implements, Design Reference, Validates Against)
+- Prerequisites
+- Objective
+- Context
+- Tasks (each with: Objective, Approach, Success Criteria)
+- Component Success Criteria
+- References
+
+Verify conditional sections are present when applicable:
+- Pseudocode (when design produced algorithmic detail)
+- Contract Shapes (when task defines or modifies contracts)
+- Pattern Reference (when established patterns exist)
+
+Verify mandatory sections:
+- Failure Criteria — REQUIRED for **implementation tasks**. Must include explicit "do NOT" guidance derived from design decisions and rejected alternatives. Flag missing Failure Criteria on implementation tasks as **WARN**. **Exception:** verification/audit tasks (tasks whose primary objective is confirming existing code matches a specification) may omit Failure Criteria — the success criteria checklist serves as the constraint.
+
+Flag missing required sections as **WARN**. Flag missing conditional sections (when clearly applicable) as **Minor**.
+
+**Step 1.3 — Companion Document Compliance (COMPREHENSIVE):**
+
+If plan mode is COMPREHENSIVE, verify companion documents exist and contain required structure:
+- `e2e-test-plan.md`: Scope, Environment, Smoke Checks, Critical Path Scenarios
+- `security-hardening-checklist.md`: Priority tiers (0/1/2), Exit Criteria (skip if design says "no security implications")
+- `test-scenario-matrix.md`: Summary metrics, UC-to-test mapping
+
+Flag missing COMPREHENSIVE companion docs as **WARN**.
+
+**Step 1.4 — Anti-Pattern Detection:**
+
+Check for each anti-pattern defined in the `/plan` skill spec:
+
+| Anti-Pattern | Detection Signal | Severity |
+|-------------|-----------------|----------|
+| **Horizontal-Only Decomposition** | All tasks scoped to a single layer (all DB, then all API, then all UI) with no end-to-end slice | FAIL |
+| **Deferred Risk** | High-risk or integration tasks appear only in late phases | WARN |
+| **Testing as Phase N** | A dedicated "write tests" phase/task with no per-task test expectations. **Exception:** for non-greenfield plans where existing code has zero tests, a dedicated test task for pre-existing code is legitimate. | WARN |
+| **200-Task Plan** | Excessive task count relative to feature scope; trivial tasks that should be merged | WARN |
+| **Plan-as-Design** | Sub-plans make architectural decisions not present in the design (new patterns, new entities, new API shapes) | FAIL |
+| **Copy-Paste Sub-Plans** | Large blocks of text duplicated verbatim from design docs instead of referenced | Minor |
+| **Hollow Sub-Plans** | Sub-plans with only prose descriptions — no pseudocode, no contract shapes, no pattern references despite design having produced this detail | WARN |
+| **Misaligned Decomposition** | Sub-plan grouping doesn't mirror the design's feature decomposition structure | WARN |
+
+**Step 1.5 — Plan/Beads Boundary Violations:**
+
+Verify no sub-plan contains content that belongs in /beads:
+- Compilable source code (not pseudocode)
+- Commit messages or git workflow instructions
+- File modification checklists (specific files to create/edit)
+- Test commands or CI pipeline steps
+
+Flag violations as **Minor** (they don't block /beads but indicate confusion about the boundary).
 
 ---
 
@@ -395,9 +520,14 @@ Flag naming inconsistencies as **Minor**.
 
 **Step 7.1 — Classify Findings:**
 
-Apply the shared severity model (FAIL / WARN). Minor and observational issues are reported inline as notes, not formal findings.
+Every finding gets a severity:
 
-**Severity model and finding quality standards:** [`../_shared/references/review-finding-taxonomy.md`](../_shared/references/review-finding-taxonomy.md)
+| Severity | Definition | Examples | Autoresearch Mapping |
+|----------|-----------|---------|---------------------|
+| **FAIL** | Blocks /beads — will produce wrong code or miss requirements | Design contradiction, missing Must-Have FR, phantom scope, circular dependencies | Auto-fixed (MECHANICAL) or escalated (DECISION) |
+| **WARN** | Degrades quality — causes rework or confusion during /execute | Missing plan sections, hollow sub-plans, ADR violations, false FR coverage | Logged, not auto-fixed |
+
+Minor and observational issues are reported inline as notes, not as formal findings. This aligns with review-prd and review-design severity models and ensures CONVERGE mode works consistently across all review skills.
 
 **Step 7.2 — Determine Verdict:**
 
@@ -412,9 +542,67 @@ Apply the shared severity model (FAIL / WARN). Minor and observational issues ar
 
 Save to: `${PROJECT_ROOT}/docs/reviews/review-plan-{feature}-{date}.md`
 
-Report structure: Executive Summary (verdict, finding counts, 2-3 sentence health summary), Authority Source Compliance table (6 authority sources with FAIL/WARN/Minor counts), Critical Findings (each with Phase, Authority, Plan Location, Issue, Impact, Resolution), Major Findings (same format), Minor Findings (one-line each), Observations (one-line each).
+```markdown
+# Plan Review: {Feature Name}
 
-Each finding must cite the specific authority source, plan location, and concrete resolution per the finding quality standards in the shared taxonomy.
+> **Date:** {date}
+> **Plan:** `docs/plans/{feature}/overview.md`
+> **Mode:** {BRIEF | STANDARD | COMPREHENSIVE}
+> **Verdict:** {PASS | PASS WITH CONDITIONS | FAIL}
+
+## Executive Summary
+
+**Findings:** {total} ({N} Critical, {N} Major, {N} Minor, {N} Observation)
+
+{2-3 sentence summary of the plan's overall health and the most important findings.}
+
+### Authority Source Compliance
+
+| Authority Source | Status | FAIL | WARN | Minor |
+|-----------------|--------|----------|-------|-------|
+| /plan skill spec (structural) | Pass/Fail | {N} | {N} | {N} |
+| Technical design (fidelity) | Pass/Fail | {N} | {N} | {N} |
+| Gap analysis (scope) | Pass/Fail/N/A | {N} | {N} | {N} |
+| PRD (traceability) | Pass/Fail | {N} | {N} | {N} |
+| Architecture/patterns/ADRs | Pass/Fail | {N} | {N} | {N} |
+| Internal consistency | Pass/Fail | {N} | {N} | {N} |
+
+## Critical Findings
+
+### C1. {Title}
+- **Phase:** {which review phase found this}
+- **Authority:** {specific document, section, requirement}
+- **Plan Location:** {file and section in the plan}
+- **Issue:** {description — what the plan says vs what the authority says}
+- **Impact:** {what goes wrong if not fixed — why this blocks /beads}
+- **Resolution:** {concrete fix}
+
+### C2. ...
+
+## Major Findings
+
+### M1. {Title}
+- **Phase:** {which review phase}
+- **Authority:** {specific reference}
+- **Plan Location:** {file and section}
+- **Issue:** {description}
+- **Resolution:** {concrete fix}
+
+### M2. ...
+
+## Minor Findings
+
+- **m1.** {one-line description} — {plan location} — {fix}
+- **m2.** ...
+
+## Observations
+
+- **o1.** {note for awareness}
+- **o2.** ...
+
+---
+*Review performed against: /plan skill spec v3.5, design doc, PRD, {N} ADRs, {N} pattern docs*
+```
 
 **PAUSE:** Present the review summary and verdict, then use a Decision Gate:
 

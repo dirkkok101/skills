@@ -52,6 +52,14 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 > **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
 
+## Shared References
+
+Before starting any review, load these shared reference files:
+- **CONVERGE loop & classification:** `../_shared/references/converge-mode.md`
+- **Severity model & finding quality:** `../_shared/references/review-finding-taxonomy.md`
+
+These define the CONVERGE mode behavior, MECHANICAL vs DECISION classification, authority hierarchy, PRE_EXISTING severity rules, and finding quality standards shared across all review skills. Skill-specific CONVERGE behavior (wave definitions, authority hierarchy overrides) is documented inline below.
+
 ---
 
 ## Mode Selection

@@ -42,6 +42,12 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 > **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
 
+## Shared References
+
+Before starting execution, load these shared reference files when applicable:
+- **Multi-agent execution:** `../_shared/references/multi-agent-execution.md` — load when other agents are active on the same branch
+- **Execution manifest template:** `../_shared/references/execution-manifest.md` — load when writing the manifest in Phase 4
+
 ---
 
 ## Mode Selection

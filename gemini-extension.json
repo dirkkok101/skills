@@ -1,6 +1,6 @@
 {
   "name": "workflow-skills",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "description": "Complete feature development workflow with structured SDLC phases: init, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, review-prd, review-design, review-plan, review-beads, review-execute, compound, diagnose, qa, benchmark, security-audit, ship.",
   "author": "Dirk Kok",
   "license": "MIT",

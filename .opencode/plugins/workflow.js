@@ -10,7 +10,7 @@
  */
 
 const PLUGIN_NAME = "workflow-skills";
-const PLUGIN_VERSION = "4.2.0";
+const PLUGIN_VERSION = "5.0.0";
 
 const SKILLS = [
   { name: "workflow:init",            trigger: "project setup, scaffold, initialize docs structure" },

@@ -1,6 +1,6 @@
 {
   "name": "workflow-skills",
-  "version": "4.2.0",
+  "version": "5.0.0",
   "description": "Complete feature development workflow with structured SDLC phases",
   "keywords": ["workflow", "sdlc", "planning", "review", "execute"],
   "skills": "skills/",

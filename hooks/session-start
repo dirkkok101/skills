@@ -5,7 +5,7 @@
 set -euo pipefail
 
 cat <<'BOOTSTRAP'
-## Workflow Skills Available (workflow-skills v4.2.0)
+## Workflow Skills Available (workflow-skills v5.0.0)
 
 Use /workflow:<skill> to invoke. Each phase requires explicit user approval before proceeding.
 

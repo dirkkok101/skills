@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-03-24
+
+### Breaking Changes
+- **CSO-compliant descriptions**: All 22 skill descriptions rewritten to contain only trigger conditions. Agents that matched on workflow summary text in descriptions may need prompt updates.
+
+### Added
+- **Multi-platform adapters**: Claude Code, Cursor, Codex, OpenCode, Gemini CLI. Platform-specific plugin manifests and installation guides.
+- **Session start hook**: `hooks/session-start` injects skill awareness (names + triggers + pipeline) at every session start.
+- **Skill test suite**: 3 test suites (CSO compliance, structural integrity, reference validity) with 244 checks. Run via `bash tests/run-all.sh`.
+- **Shared references**: `converge-mode.md` (CONVERGE loop pattern), `review-finding-taxonomy.md` (severity model, MECHANICAL heuristic), `multi-agent-execution.md`, `execution-manifest.md`.
+
+### Changed
+- **execute** (v5.3): Production-tested across 15 modules. Multi-agent concurrent execution handling, batch-verify mode (>70% verification-only), verification fast path, pre-scan for completed work, atomic stage+commit, frontend health check, proportional frontend verification.
+- **review-execute** (v2.5): Production-tested across 15 modules (16 bugs caught). CONVERGE as default, PRE_EXISTING severity for non-greenfield, mandatory test run, test URL audit, cross-org auth test checklist, proportional frontend verification, upfront context batch.
+- **beads** (v5.16): Test files mandatory in context-to-load, feature slice grouping, compilation unit check, frontend coarseness rule, verification bead batching, path/dependency validation, column constraint scoping.
+- **review-beads** (v2.8): Fixed stale /review+/simplify references in stage gate counts and gate chain checks.
+- All 22 skills: descriptions rewritten for CSO compliance (trigger-only, no workflow summaries).
+- All 14 largest skills: version history moved to VERSIONS.md files.
+- README: 364→157 lines, multi-platform quick start, project-specific references removed.
+
+### Removed
+- Skill-specific reference files (reverted — essential workflow content must stay inline for reliability).
+- Project-specific domain references from README (capstone, guardian, identity).
+- Stale version table from README (versions are in VERSIONS.md per skill).
+
 ## [4.2.0] - 2026-03-23
 
 ### Added

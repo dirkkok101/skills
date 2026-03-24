@@ -67,12 +67,11 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 **Verification-mode recommendation:** For verification-mode executions (>70% pre-existing, gap-closure/modification beads), recommend STANDARD unless the user explicitly requests COMPREHENSIVE. The extra UC/FR depth in COMPREHENSIVE rarely finds issues in modification-only bead sets — it loads 8+ design docs but typically produces the same verdict as STANDARD in twice the context.
 
-**Verification-mode Phase 3 scoping:** For verification-mode reviews, Phase 3 (Design Traceability) can be abbreviated:
-- **API surface:** Verify routes/verbs/contracts for changed endpoints only (not all endpoints in the module)
+**Verification-mode Phase 3 scoping:** For verification-mode reviews, Phase 3 (Design Traceability) is abbreviated but NOT skippable. Use this concrete checklist:
+- **API surface (mandatory):** For every endpoint touched by a bead, open the api-surface.md and compare response codes, verbs, and request/response shapes line-by-line. Do this systematically, not by following threads. This is how the Sessions review caught the missing token rotation — line-by-line comparison, not ad-hoc tracing.
 - **Data model:** Verify properties for new/modified entities only
 - **UC tracing:** Skip unless a bead's scope explicitly mentions UC scenario steps
 - **FR AC depth:** Skip unless greenfield beads exist
-This scoping is appropriate because most code is pre-existing and was already validated by prior reviews.
 
 **Clean pass abbreviated output:** When Round 1 produces 0 FAILs, use an abbreviated 1-page report: verdict, WARN table, and one-line per-bead status. Omit the full AC verification matrix, design traceability tables, and architecture compliance tables — these are compliance documentation, not actionable findings. The full template is for reports WITH findings to discuss.
 
@@ -225,7 +224,12 @@ Creating the manifest upfront (even reconstructed) is more efficient than workin
 
 **Step 0.2 — Load Bead Descriptions:**
 
-Read all bead descriptions from `docs/beads/{feature}/beads.md` (preferred) or via `br show bd-{id}` for each bead in the manifest. Parse:
+Read bead descriptions from one of these sources (in preference order):
+1. `docs/beads/{feature}/beads.md` — if the beads skill wrote a beads file
+2. `br show bd-{id}` for each bead ID in the manifest — most mature modules won't have a separate beads.md, only tracker entries
+3. Manifest bead summaries — last resort if br is unavailable; less detailed
+
+Parse:
 - Objective
 - Success Criteria (each criterion individually)
 - Failure Criteria (each criterion individually)
@@ -265,7 +269,7 @@ If user hasn't specified:
 
 **Step 1.2 — Verify Build & Tests Pass:**
 
-**Test runner smoke check:** Before running the full suite, confirm you can get clean pass/fail output from both backend and frontend test runners. Run a single small test file to verify the runner works and output is parseable. If the runner produces noisy or unparseable output (e.g., ANSI escape codes breaking grep, serialized error objects), fix the invocation now — don't discover it mid-review after 3 failed attempts.
+**Test runner smoke check:** Before running the full suite, confirm you can get clean pass/fail output from the test runners. Run a single small test file to verify output is parseable. **Skip this step** if the project has a proven test runner from prior reviews in this session — the smoke check is for the first review only, not every module.
 
 Run the project's build and test commands. If they fail, **triage quickly:** stash your changes, re-run failing tests, pop the stash — this classifies failures as pre-existing vs introduced by the execution. Only introduced failures are FAIL findings. This takes 30 seconds and prevents 5-10 minutes of manual investigation.
 
@@ -680,8 +684,9 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 1.10*
-*v1.10: Consolidated Tier 3 feedback (IdP + Entitlements + Auth reviews). Agent delegation threshold (<5 files → skip agents). Project-wide pattern check before DESIGN_DRIFT classification. Pre-existing code filter for verification-mode. Test failure triage via stash/unstash. Phase 4 skip for verification-mode. Concise agent summaries. Project-agnostic language throughout.*
+*Skill Version: 1.11*
+*v1.11: Sessions review feedback. Bead description source: explicit 3-tier fallback (beads.md → br show → manifest). Verification-mode Phase 3: mandatory line-by-line API surface comparison (not ad-hoc). Test runner smoke check: skip after first review in session.*
+*v1.10: Tier 3 consolidated. Agent threshold. Pattern check before DESIGN_DRIFT. Pre-existing filter. Test triage. Phase 4 skip.*
 *v1.9: Role Templates feedback. Test runner smoke check.*
 *v1.8: Applications review. Diagnose before revert. Pattern pre-check. Agent architectural constraints. Manifest reconstruction as Step 0.*
 *v1.7: Users review feedback. Verification-mode Phase 3 scoping. WARN actionability. JSON test reporter.*

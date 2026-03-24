@@ -165,7 +165,7 @@ Filter to YOUR module's beads only. Epic dependency trees often include beads fr
 
 **Pre-scan for completed work:** Before creating beads in the tracker, check whether the work already exists:
 1. Scan `git log --oneline` for commit messages matching bead titles
-2. For each bead, spot-check whether the target files already satisfy the success criteria
+2. For each bead, spot-check whether the target files already satisfy the **success criteria** — not just bead status. A bead marked "closed" may have no actual work done (stale state from a prior session).
 3. If ALL beads would hit the verification-only fast path (zero code changes), skip tracker creation entirely — verify inline and close the epic with a comment
 
 **Stale bead descriptions:** If beads.md says "17 new tests needed" but the test files already have full coverage, flag the discrepancy. Proceed with verification-only mode rather than treating stale descriptions as authoritative. Beads.md was written at planning time — the codebase may have changed since then.
@@ -224,6 +224,8 @@ When multiple agents execute on the same branch simultaneously, expect build col
 
 **E2E / Aspire beads:** If a bead requires a different execution context (e.g., Aspire AppHost, browser automation, Docker compose), skip it with a comment: "Requires {context} — deferred to separate session." Do not block on beads that can't run in the current environment. Close as "deferred" not "completed."
 
+**Frontend test gate health check:** Before claiming any frontend test bead, run a single small test to verify the test runner works. If the runner hangs, can't resolve path aliases, or produces unparseable output, note it as a blocker immediately — don't spend 10 minutes discovering this at the end of execution.
+
 **UC verification gates:** When the next bead is a UC verification gate (`verify({module}): UC-{ID}`), trace the use case's main scenario steps through the implemented code:
 1. Read the UC document referenced by the gate
 2. For each main scenario step, confirm the endpoint/component exists and handles it
@@ -269,12 +271,7 @@ Read ONLY the files specified in the bead's "Context to Load" section. Understan
 - Files from previous beads
 - Unrelated services or modules
 
-**Context budget per bead:** Beads should load a bounded amount of context to prevent bloat. Module spec files (loaded in Step 2.3a on the first bead in a module) are excluded from this budget — they are reference documents, not bead-specific context:
-- **BRIEF mode:** Max 5 bead-specific context files
-- **STANDARD mode:** Max 8 bead-specific context files
-- **COMPREHENSIVE mode:** Max 12 bead-specific context files
-
-If a bead references more files than the budget, load the most directly relevant first. If the bead genuinely needs all files, it may be too coarse — flag as a potential splitting candidate before proceeding.
+Well-scoped beads typically load 3-5 files. If a bead references significantly more, it may be too coarse — flag as a potential splitting candidate before proceeding.
 
 **Step 2.3a — Load Module Specs (first bead in module only):**
 
@@ -704,4 +701,4 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 5.0 — [Version History](VERSIONS.md)*
+*Skill Version: 5.1 — [Version History](VERSIONS.md)*

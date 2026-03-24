@@ -168,7 +168,13 @@ Filter to YOUR module's beads only. Epic dependency trees often include beads fr
 2. For each bead, spot-check whether the target files already satisfy the **success criteria** — not just bead status. A bead marked "closed" may have no actual work done (stale state from a prior session).
 3. If ALL beads would hit the verification-only fast path (zero code changes), skip tracker creation entirely — verify inline and close the epic with a comment
 
-**Stale bead descriptions:** If beads.md says "17 new tests needed" but the test files already have full coverage, flag the discrepancy. Proceed with verification-only mode rather than treating stale descriptions as authoritative. Beads.md was written at planning time — the codebase may have changed since then.
+**Batch-verify mode (>70% verification-only):** When pre-scan reveals most beads are already implemented, switch to batch-verify mode:
+- Group verification-only beads and check them in batches (3-5 at a time) rather than full orient→load→design→implement→verify→commit→reset per bead
+- Only run the full execution cycle for beads that need actual code changes
+- Collapse verification gates (UC gates, module gate) into a single pass if they all check existing code
+- This saves significant time — Portal had 12/15 beads verification-only, each with unnecessary per-bead ceremony
+
+**Stale bead descriptions:** If beads.md says "17 new tests needed" but the test files already have full coverage, flag the discrepancy. Proceed with verification-only mode rather than treating stale descriptions as authoritative. Close with a comment noting the discrepancy (e.g., "Verified — code has 14 items, bead said 13, extra is valid Translation Keys addition").
 
 **Step 1.2 — Verify Baseline:**
 
@@ -701,4 +707,4 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 5.1 — [Version History](VERSIONS.md)*
+*Skill Version: 5.2 — [Version History](VERSIONS.md)*

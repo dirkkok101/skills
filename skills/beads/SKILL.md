@@ -147,6 +147,8 @@ If a bead genuinely needs more files than the budget, it's a split signal — th
 
 **Entity beads that add new database tables/collections** must include the schema migration step in their scope (e.g., EF Core migration, Prisma migrate, Alembic revision, Flyway script). Without the migration, tests fail with cryptic DB errors that waste execution time debugging.
 
+**Column constraint changes** (nullable→non-nullable, new FK, new unique index) must include test seed updates in the same bead. Changing a column from nullable to non-nullable breaks every test that inserts into that table with a null value. This is predictable — scope it upfront, not as a reactive fix.
+
 **E2E / integration beads requiring different execution contexts** (Aspire AppHost, browser automation, Docker compose) should be tagged `execution-context:{type}` and placed in a separate epic or explicitly marked "separate-session" so the executor knows upfront they can't run in a standard test session.
 
 **Compilation unit check:** After decomposing, verify each bead: "Can the codebase compile after ONLY this bead is implemented?" If not (e.g., bead removes a type that the next bead's code depends on), either merge the beads or mark them as an **atomic group** — they must be implemented together and produce a single compilable commit. Common cases: replacing a type system (boolean flags → OneOf result types), extracting a shared interface that multiple consumers reference.

@@ -391,7 +391,7 @@ If any item fails, fix the issue, re-run tests, then re-review.
 
 This is the correct path for verification beads where the codebase already matches the design.
 
-**If code was changed:** Track which files you created or modified. Stage ONLY those files — NEVER use `git add -A` or `git add .`. Commit with the message specified in the bead, following the project's commit conventions from CLAUDE.md for co-authorship and formatting. Close the bead in the issue tracker.
+**If code was changed:** Track which files you created or modified. Stage ONLY those files — NEVER use `git add -A` or `git add .`. **Minimize the stage-to-commit window** — other agents running `git add -A` can steal your staged files during the pre-commit hook. Stage and commit in a single shell command when possible, or use `git stash` before staging to protect your changes. Close the bead in the issue tracker.
 
 **Step 2.8a — Push (if committed):**
 ```bash
@@ -707,4 +707,4 @@ When all beads complete: **"Feature complete. Run `/review-execute` for bead-by-
 
 ---
 
-*Skill Version: 5.2 — [Version History](VERSIONS.md)*
+*Skill Version: 5.3 — [Version History](VERSIONS.md)*

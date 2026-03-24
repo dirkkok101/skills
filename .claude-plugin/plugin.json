@@ -1,17 +1,13 @@
 {
-  "name": "workflow-skills",
+  "name": "workflow",
+  "description": "Complete feature development workflow with structured SDLC phases, scope-based routing, and requirement traceability. 22 skills covering the full software development lifecycle.",
   "version": "5.0.0",
-  "description": "Complete feature development workflow with structured SDLC phases",
-  "keywords": ["workflow", "sdlc", "planning", "review", "execute"],
-  "skills": "skills/",
-  "agents": "",
-  "commands": "",
-  "hooks": "hooks/",
   "author": {
     "name": "Dirk Kok",
     "email": "dirkkok101@github.com"
   },
   "homepage": "https://github.com/dirkkok101/skills",
   "repository": "https://github.com/dirkkok101/skills",
-  "license": "MIT"
+  "license": "MIT",
+  "keywords": ["skills", "workflow", "sdlc", "planning", "beads", "code-review", "execute", "prd", "technical-design", "research", "diagnose", "qa", "security-audit", "ship"]
 }

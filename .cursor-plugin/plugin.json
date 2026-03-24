@@ -4,8 +4,6 @@
   "description": "Complete feature development workflow with structured SDLC phases",
   "keywords": ["workflow", "sdlc", "planning", "review", "execute"],
   "skills": "skills/",
-  "agents": "",
-  "commands": "",
   "hooks": "hooks/",
   "author": {
     "name": "Dirk Kok",

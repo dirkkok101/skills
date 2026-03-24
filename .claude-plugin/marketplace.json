@@ -5,8 +5,7 @@
     "email": "dirkkok101@github.com"
   },
   "metadata": {
-    "description": "Workflow and documentation skills for structured software development: feature lifecycle (diagnose, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, ship, security-audit, qa, benchmark, compound) and documentation lifecycle (audit, write, ADR)",
-    "version": "4.2.0"
+    "description": "Workflow and documentation skills for structured software development: feature lifecycle (diagnose, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, ship, security-audit, qa, benchmark, compound) and documentation lifecycle (audit, write, ADR)"
   },
   "plugins": [
     {

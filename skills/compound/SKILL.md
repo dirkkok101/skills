@@ -1,13 +1,10 @@
 ---
 name: compound
 description: >
-  Capture learnings from feature development to make future work easier.
-  Each call captures one or more focused learnings — pattern discoveries,
-  gotchas, architecture decisions, process improvements, or context gaps.
-  Learnings are routed to the right location based on scope (project-specific
-  vs global) and surfaced in future sessions through CLAUDE.md references.
-  Called after review cycles during execute, after /review approval, or at
-  any point during development when insight is fresh.
+  Use when learnings emerge during development — pattern discoveries, gotchas,
+  architecture decisions, or process improvements. Triggers on "compound",
+  "capture learning", after review cycles, after /review approval, or when
+  insight is fresh.
 argument-hint: "[learning-topic] or 'review' to process review findings"
 ---
 

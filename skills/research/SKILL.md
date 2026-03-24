@@ -1,14 +1,10 @@
 ---
 name: research
 description: >
-  Deep research phase that produces a structured research brief through
-  systematic investigation. Surveys the landscape, evaluates options, and
-  synthesises findings with source attribution and confidence ratings.
-  Output feeds directly into brainstorm or PRD. Use when starting a new
-  feature that needs competitive analysis, technical landscape review, or
-  prior art investigation. Trigger when user says "research this",
-  "what's out there for", "investigate options for", or before any major
-  new initiative where the problem space is unfamiliar.
+  Use when starting a new feature that needs competitive analysis, technical
+  landscape review, or prior art investigation. Triggers on "research this",
+  "what's out there for", "investigate options for", or before any major new
+  initiative where the problem space is unfamiliar.
 argument-hint: "[research topic or feature idea]"
 ---
 

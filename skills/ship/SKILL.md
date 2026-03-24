@@ -1,10 +1,8 @@
 ---
 name: ship
 description: >
-  Automated release pipeline from reviewed code to pull request. Generates
-  CHANGELOG entries, enforces review readiness, creates branch and PR with
-  FR/bead traceability. Use when review is complete, user says "ship",
-  "create PR", "ready to merge", or after /review approval.
+  Use when review is complete, user says "ship", "create PR", "ready to
+  merge", or after /review approval.
 argument-hint: "[feature-name] or [branch-name]"
 ---
 

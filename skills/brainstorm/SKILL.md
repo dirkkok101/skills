@@ -1,13 +1,9 @@
 ---
 name: brainstorm
 description: >
-  Problem framing and approach selection through structured dialogue. Uses 5
-  Whys to find root problems, imports research findings, generates 2-3
-  genuinely different approaches with a "Do Less" option, classifies feature
-  scope, and routes to the appropriate next skill. Brainstorm is lean — deep
-  research moves to /research, deep requirements to /discovery or /prd. Use
-  when starting any new feature, refactoring, or when user says 'brainstorm',
-  'let's explore', 'how should we approach'.
+  Use when starting any new feature, refactoring, or exploring approaches.
+  Triggers on "brainstorm", "let's explore", "how should we approach",
+  or when the user has a problem but no clear direction yet.
 argument-hint: "[feature description]"
 ---
 

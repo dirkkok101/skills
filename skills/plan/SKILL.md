@@ -1,14 +1,8 @@
 ---
 name: plan
 description: >
-  Transform approved technical designs into implementation plans through
-  structured dialogue. Decomposes work into right-sized, ordered tasks
-  with clear dependencies, acceptance criteria, and risk-aware sequencing.
-  Plans are permanent documentation — they explain WHAT to build and in
-  what order, not HOW to write the code. The agent co-authors with the
-  user, pausing to validate decomposition and ordering before detailing
-  sub-plans. Use when design is approved, user says "write the plan",
-  "plan this", "create plan for...", or a design document exists.
+  Use when design is approved, user says "write the plan", "plan this",
+  "create plan for...", or a design document exists.
 argument-hint: "[feature-name] or path to design doc"
 ---
 

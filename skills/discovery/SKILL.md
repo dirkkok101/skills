@@ -1,12 +1,9 @@
 ---
 name: discovery
 description: >
-  Deep requirements elicitation between brainstorm and PRD through structured
-  dialogue. Maps actors and workflows, walks domain-specific checklists,
-  analyses integrations and security, and produces a discovery brief that feeds
-  directly into PRD. Use after brainstorm for complex features, when user says
-  'discover requirements', 'deep dive', 'requirements elicitation', or when
-  brainstorm scope classifier recommends COMPREHENSIVE.
+  Use after brainstorm for complex features, when user says "discover
+  requirements", "deep dive", "requirements elicitation", or when brainstorm
+  scope classifier recommends COMPREHENSIVE.
 argument-hint: "[feature name or brainstorm reference]"
 ---
 

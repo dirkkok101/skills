@@ -1,12 +1,9 @@
 ---
 name: init
 description: >
-  Initialize a project's documentation structure and workflow configuration.
-  Creates the full docs/ folder hierarchy, adds workflow guidance to the
-  project's CLAUDE.md, and verifies the project is ready for the skill
-  pipeline. Idempotent — safe to run on existing projects. Use when starting
-  a new project, when user says "init", "initialize project", "set up docs",
-  "set up workflow", or when onboarding a project to the skill pipeline.
+  Use when starting a new project, when user says "init", "initialize
+  project", "set up docs", "set up workflow", or when onboarding a project
+  to the skill pipeline. Idempotent — safe to run on existing projects.
 argument-hint: "[project name]"
 ---
 

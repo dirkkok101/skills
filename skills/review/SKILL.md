@@ -1,13 +1,9 @@
 ---
 name: review
 description: >
-  Multi-perspective code review using parallel agents with three-layer context
-  isolation. Launches specialised review agents in the background, consolidates
-  findings by severity, and presents only actionable results. Conditional
-  upstream agents verify implementation against design, plan, and PRD when those
-  documents exist. Use when implementation is complete (/execute finished), user
-  says "review", "code review", or "check the code", before creating a PR, or
-  after significant changes.
+  Use when implementation is complete (/execute finished), user says
+  "review", "code review", or "check the code", before creating a PR,
+  or after significant changes.
 argument-hint: "[feature-name] or [file paths]"
 ---
 

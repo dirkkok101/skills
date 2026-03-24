@@ -1,13 +1,9 @@
 ---
 name: prd
 description: >
-  Generate a Product Requirements Document through structured dialogue with
-  the user. Produces tiered output: Brief (1-page), Standard (full PRD), or
-  Comprehensive (PRD + Cockburn use cases + security/compliance criteria).
-  The agent co-authors with the user, pausing at key decision points rather
-  than generating everything at once. Use when starting a business feature
-  that needs requirements, when user says "write requirements", "create PRD",
-  "define user stories", or after brainstorm/discovery approval.
+  Use when starting a business feature that needs requirements, when user
+  says "write requirements", "create PRD", "define user stories", or after
+  brainstorm/discovery approval.
 argument-hint: "[feature name or brainstorm reference]"
 ---
 

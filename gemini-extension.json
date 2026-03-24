@@ -1,9 +1,11 @@
 {
   "name": "workflow-skills",
-  "version": "3.6.0",
-  "description": "Complete feature development workflow skills with scope-based routing: init, diagnose, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, and compound.",
+  "version": "4.2.0",
+  "description": "Complete feature development workflow with structured SDLC phases: init, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, review-prd, review-design, review-plan, review-beads, review-execute, compound, diagnose, qa, benchmark, security-audit, ship.",
   "author": "Dirk Kok",
   "license": "MIT",
   "homepage": "https://github.com/dirkkok101/skills",
-  "repository": "https://github.com/dirkkok101/skills"
+  "repository": "https://github.com/dirkkok101/skills",
+  "skills": "skills/",
+  "templates": "templates/"
 }

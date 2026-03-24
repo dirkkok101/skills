@@ -1,0 +1,49 @@
+#!/usr/bin/env bash
+# hooks/session-start — Workflow skills bootstrap hook
+# Outputs skill awareness text for injection into the session context.
+
+set -euo pipefail
+
+cat <<'BOOTSTRAP'
+## Workflow Skills Available (workflow-skills v4.2.0)
+
+Use /workflow:<skill> to invoke. Each phase requires explicit user approval before proceeding.
+
+### Skills
+
+| Command | Trigger |
+|---------|---------|
+| /workflow:init | Project setup, scaffold docs structure |
+| /workflow:research | Background research, competitive analysis |
+| /workflow:brainstorm | New feature idea, problem framing, scope classification |
+| /workflow:discovery | Complex feature domain requirements (COMPREHENSIVE scope) |
+| /workflow:prd | Formal product requirements (after brainstorm/discovery) |
+| /workflow:technical-design | Architecture, API specs, data models (after PRD) |
+| /workflow:plan | Implementation plan, task decomposition (after design) |
+| /workflow:beads | Work packages with FR traceability (after plan) |
+| /workflow:execute | Implement from approved beads |
+| /workflow:review | Parallel agent code review (after implementation) |
+| /workflow:review-prd | Adversarial PRD quality review |
+| /workflow:review-design | Adversarial design review against PRD/ADRs |
+| /workflow:review-plan | Adversarial plan review against authority sources |
+| /workflow:review-beads | Adversarial bead compliance review |
+| /workflow:review-execute | Post-execution bead satisfaction verification |
+| /workflow:compound | Capture learnings by phase/domain (after review) |
+| /workflow:diagnose | Bug investigation, root cause analysis |
+| /workflow:qa | Browser-based QA testing, diff-aware |
+| /workflow:benchmark | Performance benchmarking, regression detection |
+| /workflow:security-audit | OWASP + STRIDE zero-noise audit |
+| /workflow:ship | Release pipeline: changelog, PR, traceability |
+
+### Pipeline (scope-based routing)
+
+BRIEF (0-2 pts):         brainstorm -> plan -> beads -> execute -> review -> ship
+STANDARD (3-4 pts):      brainstorm -> prd -> technical-design -> plan -> beads -> execute -> review -> ship
+COMPREHENSIVE (5+ pts):  brainstorm -> discovery -> prd -> technical-design -> plan -> beads -> execute -> review -> ship
+Bug fix:                 diagnose -> fix / beads / brainstorm
+
+### Rules
+- Never write implementation code until user explicitly approves
+- All phases produce documentation under docs/
+- Requires br (beads-rust) CLI for task management
+BOOTSTRAP

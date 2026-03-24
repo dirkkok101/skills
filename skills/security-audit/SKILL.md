@@ -1,12 +1,9 @@
 ---
 name: security-audit
 description: >
-  OWASP Top 10 and STRIDE threat model audit with zero-noise reporting.
-  Framework-aware scanning that understands built-in protections. Every finding
-  requires a concrete exploit scenario and confidence ≥8/10. Read-only — never
-  modifies code. Use after /review, before /ship, when user says "security
-  audit", "security review", "check for vulnerabilities", or before shipping
-  auth/payment/data features.
+  Use after /review, before /ship, when user says "security audit", "security
+  review", "check for vulnerabilities", or before shipping auth, payment, or
+  data features. READ-ONLY — never modifies code.
 argument-hint: "[feature-name] or --diff or --scope auth"
 ---
 

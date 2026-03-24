@@ -1,13 +1,8 @@
 ---
 name: review-execute
 description: >
-  Adversarial post-execution review that verifies implemented code against bead
-  acceptance criteria, failure criteria, design decisions, and upstream docs.
-  Unlike /review (general code quality), this skill performs bead-by-bead
-  traceability verification — did the executed code actually satisfy what each
-  bead specified? Consumes the execution manifest from /execute. Use after
-  /execute completes, user says "review execution", "verify beads", or before
-  creating a PR for executed work.
+  Use after /execute completes, user says "review execution", "verify
+  beads", or before creating a PR for executed work.
 argument-hint: "[feature-name] or path to execution manifest"
 ---
 

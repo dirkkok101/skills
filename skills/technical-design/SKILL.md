@@ -1,12 +1,6 @@
 ---
 name: technical-design
 description: >
-  Transform approved PRD requirements into a technical design through
-  structured dialogue. Explores alternatives and trade-offs BEFORE
-  committing to detailed design. Produces architecture diagrams, data
-  models, per-feature API/implementation specs with test plans, operational
-  design, and work decomposition. The agent co-authors with the user,
-  pausing after key decisions rather than generating everything at once.
   Use when user says "design the system", "create technical spec", "API
   design", "architecture", or after PRD approval. Also use for technical
   improvements after brainstorm.

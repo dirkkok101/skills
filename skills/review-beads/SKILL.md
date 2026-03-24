@@ -1,13 +1,8 @@
 ---
 name: review-beads
 description: >
-  Adversarial bead compliance review against ALL upstream artifacts — PRD, design,
-  architecture, patterns, ADRs, use cases, and plans. Beads are the last checkpoint
-  before code is written. If a bead is wrong, the implementation will be wrong.
-  Reviews 11 categories: FR coverage, UC coverage, design compliance, architecture
-  compliance, API patterns, web patterns, test coverage, stage gates, bead quality,
-  backwards compatibility, cross-module dependencies, and granularity. Use when
-  beads are created (/beads completed), user says "review beads", or before /execute.
+  Use when beads are created (/beads completed), user says "review beads",
+  "check beads", "bead review", or before starting /execute.
 argument-hint: "[feature-name] or [epic-id]"
 ---
 

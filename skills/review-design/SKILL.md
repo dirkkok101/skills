@@ -1,13 +1,8 @@
 ---
 name: review-design
 description: >
-  Adversarial technical design review against PRD, ADRs, patterns, and
-  architecture docs. This is a DOCUMENT review (pre-implementation) — it
-  validates the design blueprint before investing in planning and execution.
-  Every finding cites a specific authority source (PRD requirement, ADR,
-  pattern doc, or architecture constraint). Use before /plan, after
-  /technical-design, when user says "review design", "check the design",
-  or when design quality is uncertain.
+  Use before /plan, after /technical-design, when user says "review design",
+  "check the design", or when design quality is uncertain.
 argument-hint: "[module-name]"
 ---
 

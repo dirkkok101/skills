@@ -1,14 +1,8 @@
 ---
 name: beads
 description: >
-  Convert approved plans into intent-based work packages through structured
-  dialogue. Each bead is a self-contained unit an agent can execute independently
-  — it carries the objective, context references, acceptance criteria, and
-  verification commands needed to produce working code. Beads contain INTENT,
-  not implementation. The agent writes code from codebase patterns, not from
-  copy-paste snippets. Co-authored with the user, pausing to validate
-  decomposition and readiness before finalising. Use when the plan is approved,
-  user says "create beads", "beads for...", or plan documents exist.
+  Use when the plan is approved, user says "create beads", "beads for...",
+  or plan documents exist.
 argument-hint: "[feature-name] or path to plan"
 ---
 

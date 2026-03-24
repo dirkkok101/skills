@@ -1,12 +1,9 @@
 ---
 name: execute
 description: >
-  Execute beads autonomously. Each bead is a self-contained work package — the
-  agent loads surgical context, designs the implementation from codebase patterns,
-  implements, verifies, and commits. Context resets between beads to prevent drift.
-  The agent runs autonomously, only stopping for blockers or when all beads are
-  complete. Use when beads exist (/beads completed), user says "execute", "start
-  implementation", or ready beads exist.
+  Use when beads exist and are ready for implementation. Triggers on
+  "execute", "start implementation", "run beads", or when ready beads
+  exist in the tracker.
 argument-hint: "[epic-id] or [feature-name]"
 ---
 

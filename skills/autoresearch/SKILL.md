@@ -1,15 +1,8 @@
 ---
 name: autoresearch
 description: >
-  Autonomous document quality convergence loop. Applies the Karpathy
-  autoresearch technique to project documentation: review → fix → re-review
-  → re-fix until FAILs reach zero or convergence is detected. Works on PRDs
-  (using /review-prd) and technical designs (using /review-design). The
-  frozen metric is the FAIL count from the review skill. The "model" being
-  optimized is the document itself. Escalates decision-required findings to
-  the user instead of spinning. Use when documents need quality convergence,
-  user says "autoresearch", "converge", "fix all issues", or after a review
-  reveals multiple findings.
+  Use when documents need quality convergence, user says "autoresearch",
+  "converge", "fix all issues", or after a review reveals multiple findings.
 argument-hint: "[prd|design] [module-name]"
 ---
 

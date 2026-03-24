@@ -1,11 +1,8 @@
 ---
 name: qa
 description: >
-  Browser-based QA testing that finds bugs a real user would hit. Diff-aware
-  scoping from execution manifest, health scoring across 8 categories, and
-  self-regulation via risk heuristic. Uses agent-browser for headless testing.
   Use after /execute, before /review, when user says "QA", "test the app",
-  "browser test", or "check the UI".
+  "browser test", "check the UI", or for any feature with UI changes.
 argument-hint: "[feature-name] or [URL]"
 ---
 

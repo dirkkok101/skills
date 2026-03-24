@@ -1,11 +1,9 @@
 ---
 name: diagnose
 description: >
-  Systematic root cause analysis for bugs and unexpected behavior. Investigates,
-  isolates, and either fixes simple issues directly or escalates to appropriate
-  workflow. Use when something is broken, tests fail unexpectedly, behavior
-  doesn't match expectations, user says 'this isn't working', 'there's a bug',
-  'why is this happening', 'debug this', or 'diagnose'. Do NOT use for new
+  Use when something is broken, tests fail unexpectedly, or behavior doesn't
+  match expectations. Triggers on "this isn't working", "there's a bug",
+  "why is this happening", "debug this", or "diagnose". Do NOT use for new
   features, performance optimization, or code quality improvements.
 argument-hint: "[symptom or issue description]"
 ---

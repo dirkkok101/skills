@@ -1,13 +1,8 @@
 ---
 name: review-prd
 description: >
-  Adversarial PRD review against the /prd skill template and cross-cutting
-  requirements. Checks structural completeness, content quality, and
-  cross-cutting compliance. Every finding cites a specific template requirement,
-  cross-cutting standard, or consistency rule. This is a DOCUMENT review
-  (pre-implementation), distinct from /review which is a CODE review
-  (post-implementation). Use before /technical-design, after /prd, when user
-  says "review prd", "check requirements", or when PRD quality is uncertain.
+  Use before /technical-design, after /prd, when user says "review prd",
+  "check requirements", or when PRD quality is uncertain.
 argument-hint: "[module-name]"
 ---
 

@@ -1,11 +1,9 @@
 ---
 name: benchmark
 description: >
-  Performance benchmarking with Core Web Vitals, bundle size tracking, and
-  before/after regression detection. Captures baselines, measures changes, and
-  flags regressions with configurable thresholds. Use after /execute, before
-  /review, when user says "benchmark", "performance", "check speed", or before
-  shipping performance-sensitive changes.
+  Use after /execute, before /review, when user says "benchmark",
+  "performance", "check speed", or before shipping performance-sensitive
+  changes.
 argument-hint: "[feature-name] or [URL]"
 ---
 

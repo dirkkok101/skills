@@ -1,11 +1,7 @@
 ---
 name: review-plan
 description: >
-  Adversarial plan review against six authority sources: the /plan skill
-  specification, technical design, gap analysis, PRD, architecture/patterns/ADRs,
-  and the plan's own internal consistency. Catches design drift, phantom scope,
-  structural non-compliance, and traceability gaps before /beads produces wrong
-  code. Use when a plan is complete (/plan finished), user says "review the plan",
+  Use when a plan is complete (/plan finished), user says "review the plan",
   "check the plan", or before running /beads on a new plan.
 argument-hint: "[feature-name] or path to plan directory"
 ---

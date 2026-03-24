@@ -73,7 +73,10 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 - **UC tracing:** Skip unless a bead's scope explicitly mentions UC scenario steps
 - **FR AC depth:** Skip unless greenfield beads exist
 
-**Clean pass abbreviated output:** When Round 1 produces 0 FAILs, use an abbreviated 1-page report: verdict, WARN table, and one-line per-bead status. Omit the full AC verification matrix, design traceability tables, and architecture compliance tables — these are compliance documentation, not actionable findings. The full template is for reports WITH findings to discuss.
+**Report format by outcome:**
+- **Round 1 = 0 FAILs:** Abbreviated 1-page report — verdict, WARN table, one-line per-bead status
+- **CONVERGE fixed all FAILs:** Hybrid report — detailed findings table showing what was found AND fixed, plus final PASS verdict. Include the fix commits so the user can see what changed.
+- **FAILs remain after CONVERGE:** Full report with unresolved findings for user action
 
 **WARN actionability:** Every PRE_EXISTING WARN must include exact file:line references for BOTH the code AND the upstream doc that need alignment. Example: "W1: `UserDTO.cs:45` uses `LinkMethod` but `api-surface.md:112` specifies `LinkedMethod`." This makes the br issue actionable — the person fixing it doesn't need to re-discover the mismatch.
 
@@ -90,10 +93,12 @@ When the user says "converge", "fix all issues", or selects CONVERGE mode, run t
 **When to skip CONVERGE:** If a prior STANDARD review already found 0 FAILs, CONVERGE adds no value — the fix loop never activates. In this case, recommend running COMPREHENSIVE (for deeper traceability) without CONVERGE (the fix loop overhead). CONVERGE is most valuable when the prior review found FAILs that need automated fixing, or when no prior review exists.
 
 **CONVERGE changes to the normal review flow:**
-- **Skip all interactive stage gates.** CONVERGE implies "just go — fix what you can, escalate what you can't."
-- **Replace interactive findings presentation** with a summary table classified as MECHANICAL / JUSTIFIED_DEVIATION / DECISION.
+- **Skip interactive stage gates** but **always show a findings summary before fixing:** "Found {N} issues: {count} MECHANICAL, {count} DECISION. Fixing MECHANICAL items now." This gives the user visibility before code changes.
+- **Replace per-finding walkthrough** with a classified summary table (MECHANICAL / JUSTIFIED_DEVIATION / DECISION).
 - **WARNs are listed** but NOT auto-fixed unless trivial (additive-only, <10 lines).
 - **Code fixes are applied directly** — CONVERGE mode modifies implementation files to fix MECHANICAL findings.
+
+**MECHANICAL vs DECISION heuristic:** A finding is MECHANICAL when the design doc is unambiguous AND the project has a confirming pattern (e.g., another endpoint already uses the correct status code). DECISION is reserved for genuine contradictions, missing design guidance, or choices where the design is ambiguous. Even if a fix touches shared types (like adding a new result type), it's MECHANICAL if the design clearly specifies the expected behavior.
 
 **The loop:**
 
@@ -351,6 +356,10 @@ For every endpoint with org-scoped or dual-policy authorization (e.g., PlatformA
 - [ ] **PlatformAdmin bypass:** PlatformAdmin accessing any org → success
 
 This is a recurring pattern, not a one-off. Every module with org-scoped endpoints needs these tests. Flag missing cross-org tests as `TEST_GAP`.
+
+**Step 2.7 — Test URL Audit (for endpoint beads):**
+
+For each endpoint bead, grep test files for the endpoint's route pattern and verify URLs match. A test calling `/members/remove` when the endpoint is `/members/delete` silently passes (404 → wrong assertion). This is a systematic check, not ad-hoc reading — grep catches what visual scanning misses.
 
 ---
 
@@ -636,7 +645,8 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 2.0*
-*v2.0: Progressive disclosure refactor — condensed version history, moved CONVERGE fix patterns to appendix, reordered Phase 3 (STANDARD+ first, COMPREHENSIVE last), deferred bead accounting (Phase 4.5), clarified agent boundary ("agents READ, you GENERATE"), fixed Step 5.3 label for CONVERGE-default flow.*
+*Skill Version: 2.1*
+*v2.1: Roles review feedback. CONVERGE shows findings summary before fixing. MECHANICAL vs DECISION heuristic sharpened (unambiguous design + confirming pattern = MECHANICAL). Test URL audit (Step 2.7). Post-CONVERGE report format (hybrid: findings + fixes + verdict).*
+*v2.0: Progressive disclosure refactor — shared references, condensed history, Phase 3 reorder, deferred bead accounting, agent boundary clarified.*
 *v1.1-1.12: Production-tested across 11 modules. Key additions: CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, prior review detection, manifest reconstruction, auth test checklist, verification-mode scoping, agent delegation threshold, pattern pre-check before fixes, diagnose-before-revert. See CHANGELOG.md for full history.*
 *v1.0: Initial release — bead-by-bead verification, CONVERGE mode, finding classification, trust hierarchy.*

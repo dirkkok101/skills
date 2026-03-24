@@ -933,3 +933,76 @@ Ran 4 parallel adversarial review agents (one per file group: execute, review, b
 **Design insight:** The adversarial review technique (parallel specialized agents → consolidation → fix cycle) generalizes beyond code review. Running it against skill definitions caught structural contradictions, false positive risks, and UX problems that manual review missed. This validates the /review skill's three-layer architecture as a general-purpose pattern.
 
 ### Package: v4.1.0 → v4.2.0
+
+---
+
+## Session: Execute + Review-Execute Production Testing (2026-03-23 → 2026-03-24)
+
+### Objective
+Test the /execute and /review-execute skills across all 11 identity modules (Tiers 0-4), refining both skills from production feedback.
+
+### Results
+
+| Module | Tier | Execute | Review-Execute | Bugs Found |
+|--------|------|---------|----------------|------------|
+| Cross-Cutting | 0 | PASS | PASS | 0 |
+| Organizations | 1 | PASS | PASS (2 rounds) | 2 |
+| Languages | 1 | PASS | PASS | 0 |
+| Applications | 1 | PASS | PASS | 2 |
+| Users | 2 | PASS | PASS | 1 |
+| Role Templates | 2 | PASS | PASS | 1 |
+| Authentication | 3 | PASS | PASS | 3 |
+| Entitlements | 3 | PASS | PASS | 0 |
+| Identity Providers | 3 | PASS | PASS | 0 |
+| Sessions | 4 | PASS | PASS | 1 |
+| Roles & Permissions | 4 | PASS | PASS | 6 |
+
+**16 real bugs caught by review-execute** that self-review missed: design drift (status codes, HTTP verbs), test gaps (missing cross-org 403, wrong test URLs), audit mismatches, delete cascade gaps.
+
+### Skill Evolution from Production Feedback
+
+| Skill | Start | End | Key Improvements |
+|-------|-------|-----|-----------------|
+| execute | v4.5 | v5.0 | Multi-agent handling, verification fast path, pre-scan, manifest robustness, working directory discipline, Iron Law, AI slop |
+| review-execute | v1.0 | v2.1 | CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, manifest reconstruction, auth test checklist, test URL audit, MECHANICAL heuristic |
+| beads | v5.7 | v5.15 | Test files in context, feature slice grouping, compilation unit check, frontend coarseness, verification batching, path validation, dependency validation |
+
+### Key Learnings
+
+1. **Multi-agent execution is the #1 pain point.** Build collisions, file reverts, staged file theft, and test interference dominated feedback across 7 modules. File reservation via agent-mail should be default.
+
+2. **Review-execute catches different bugs than /review.** /review finds code quality issues. /review-execute finds design compliance issues — wrong status codes, missing audit fields, delete cascades, test gaps. Both are needed.
+
+3. **CONVERGE exposes pre-existing bugs.** When CONVERGE un-skips tests or changes status codes, pre-existing bugs surface. The "diagnose before revert" rule (v1.8) found 2 production bugs by investigating instead of reverting.
+
+4. **Verification-mode reviews need different calibration.** Full COMPREHENSIVE is overkill for >70% pre-existing modules. STANDARD with mandatory line-by-line API surface comparison catches the same issues in half the time.
+
+5. **The OneOf status code pattern recurs everywhere.** 409→400/403/422 drift was the most common finding class. The shared fix pattern (add result type to OneOf, map in endpoint) became a documented CONVERGE fix pattern.
+
+---
+
+## Session: Progressive Disclosure Refactor (2026-03-24)
+
+### Objective
+Apply progressive disclosure principles to all 22 skills — extract stable content to reference files so SKILL.md files focus on workflow, not encyclopedic content.
+
+### Method
+1. Launched 5 parallel Explore agents to analyze all 22 skills for extractable content
+2. Identified ~4,500 lines of stable content (templates, checklists, decomposition tables, agent prompts, severity calibration)
+3. Extracted to 13 new reference files (shared + skill-specific)
+4. Updated SKILL.md files to link to references
+
+### Results
+
+| Extraction | Files | Lines Extracted |
+|-----------|-------|-----------------|
+| Version histories → VERSIONS.md | 14 | 133 |
+| Shared references (_shared/) | 4 new | ~300 |
+| Skill-specific references | 9 new | ~2,200 |
+| **Total** | **27 new files** | **~2,600** |
+
+**28% average reduction** in SKILL.md content for the 10 largest skills. All workflow phases, PAUSE gates, and decision logic preserved.
+
+### Key Insight
+
+Progressive disclosure is itself an autoresearch technique: frozen metric (SKILL.md line count vs agent needs), analyze gap (stable content loaded every invocation but never changes), systematic fix (extract to references). The same loop that improved our documents improves our skills.

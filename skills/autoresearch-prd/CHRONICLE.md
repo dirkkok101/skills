@@ -557,3 +557,52 @@ Ran 4 parallel adversarial review agents against all changes. Found 47 issues (8
 ### Package Version
 
 v4.1.0 → v4.2.0 (minor: 4 new skills, 5 improved skills, no breaking changes)
+
+---
+
+## Phase 9: Progressive Disclosure Refactor (2026-03-24)
+
+Applied progressive disclosure principles across all 22 skills. The core insight: **skills should be workflow orchestrators, not encyclopedias.** Stable content (templates, checklists, decomposition tables, severity calibration, agent prompts) was extracted to reference files that agents load on demand.
+
+### What We Did
+
+1. **Version history extraction** — moved inline version histories (4-21 lines per skill) to VERSIONS.md files. 14 skills updated, 133 lines removed from SKILL.md files.
+
+2. **Shared reference files** — created cross-skill references for patterns used by 3+ skills:
+   - `_shared/references/review-finding-taxonomy.md` — severity model, MECHANICAL vs DECISION heuristic, PRE_EXISTING rules
+   - `_shared/references/converge-mode.md` — CONVERGE loop, classification, authority hierarchy, progressive loading
+   - `_shared/references/multi-agent-execution.md` — build collisions, file reverts, verification strategy
+   - `_shared/references/execution-manifest.md` — manifest template with compact variant
+
+3. **Skill-specific reference files** — extracted stable content from the 10 largest skills:
+   - `beads/references/decomposition-tables.md` — sizing heuristic, backend/frontend/test tables, test gates
+   - `prd/references/prd-conventions.md` — structural conventions, UC template, FR quality, NFR categories
+   - `technical-design/references/design-conventions.md` — output structure, format conventions, api-surface template
+   - `plan/references/plan-conventions.md` — sub-plan template, coverage matrices, gap analysis
+   - `review/references/agent-prompts.md` — all 9 agent prompt templates
+   - `review-beads/references/review-checklists.md` — 11 category checklists, granularity tables
+   - `review-design/references/design-review-checklists.md` — structural completeness, alignment matrices
+   - `review-plan/references/plan-review-checklists.md` — structural compliance, anti-patterns
+   - `review-prd/references/prd-review-checklists.md` — 11 structural checks, content quality, adversarial depth
+
+### Results
+
+| Skill | Before | After | Lines Saved |
+|-------|--------|-------|-------------|
+| technical-design | 1570 | 1271 | -299 |
+| beads | 1409 | 1193 | -216 |
+| prd | 1134 | 805 | -329 |
+| plan | 935 | 570 | -365 |
+| review-beads | 913 | 623 | -290 |
+| review-design | 692 | 432 | -260 |
+| review-plan | 676 | 496 | -180 |
+| review-execute | 648 | 581 | -67 |
+| review-prd | 641 | 329 | -312 |
+| review | 617 | 348 | -269 |
+| **Total** | **9235** | **6648** | **-2587** |
+
+**28% reduction** in total SKILL.md content across 10 skills. 13 new reference files created (21 total). All workflow phases, PAUSE gates, and decision logic preserved in SKILL.md files.
+
+### Key Observation
+
+The progressive disclosure refactor is itself an application of the autoresearch technique: we identified a frozen metric (SKILL.md line count vs. agent needs), analyzed the gap (stable content loaded every invocation but never changed), and applied a systematic fix (extract to references). The same pattern we used for PRD structural conventions, design format rules, and bead decomposition tables.

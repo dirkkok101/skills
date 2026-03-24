@@ -941,43 +941,50 @@ Ran 4 parallel adversarial review agents (one per file group: execute, review, b
 ### Objective
 Test the /execute and /review-execute skills across all 11 identity modules (Tiers 0-4), refining both skills from production feedback.
 
-### Results
+### Results — All 15 Modules Complete
 
-| Module | Tier | Execute | Review-Execute | Bugs Found |
-|--------|------|---------|----------------|------------|
-| Cross-Cutting | 0 | PASS | PASS | 0 |
-| Organizations | 1 | PASS | PASS (2 rounds) | 2 |
-| Languages | 1 | PASS | PASS | 0 |
-| Applications | 1 | PASS | PASS | 2 |
-| Users | 2 | PASS | PASS | 1 |
-| Role Templates | 2 | PASS | PASS | 1 |
-| Authentication | 3 | PASS | PASS | 3 |
-| Entitlements | 3 | PASS | PASS | 0 |
-| Identity Providers | 3 | PASS | PASS | 0 |
-| Sessions | 4 | PASS | PASS | 1 |
-| Roles & Permissions | 4 | PASS | PASS | 6 |
+| Module | Tier | Execute | Review-Execute | Bugs Fixed | WARNs |
+|--------|------|---------|----------------|------------|-------|
+| Cross-Cutting | 0 | PASS | PASS | 0 | 0 |
+| Organizations | 1 | PASS | PASS (2 rounds) | 2 | 3 |
+| Languages | 1 | PASS | PASS | 0 | 4 |
+| Applications | 1 | PASS | PASS | 2 | 2 |
+| Users | 2 | PASS | PASS | 1 | 3 |
+| Role Templates | 2 | PASS | PASS | 1 | 8 |
+| Authentication | 3 | PASS | PASS | 3 | 5 |
+| Entitlements | 3 | PASS | PASS | 0 | 1 |
+| Identity Providers | 3 | PASS | PASS | 0 | 2 |
+| Sessions | 4 | PASS | PASS | 1 | 2 |
+| Roles & Permissions | 4 | PASS | PASS | 6 | 0 |
+| Portal | 5 | PASS | PASS | 0 | 3 |
+| API Keys | 5 | PASS | PASS | 0 | 2 |
+| Approvals | 5 | PASS | PASS | 0 | 1 |
+| Audit | 6 | PASS | PASS | 0 | 2 |
+| **Totals** | | **15/15** | **15/15 PASS** | **16** | **38** |
 
-**16 real bugs caught by review-execute** that self-review missed: design drift (status codes, HTTP verbs), test gaps (missing cross-org 403, wrong test URLs), audit mismatches, delete cascade gaps.
+**16 real bugs caught by review-execute** that self-review missed: design drift (status codes, HTTP verbs), test gaps (missing cross-org 403, wrong test URLs), audit mismatches, delete cascade gaps. **38 UPSTREAM_DOC WARNs** tracked via br issues for doc maintenance.
 
 ### Skill Evolution from Production Feedback
 
-| Skill | Start | End | Key Improvements |
-|-------|-------|-----|-----------------|
-| execute | v4.5 | v5.0 | Multi-agent handling, verification fast path, pre-scan, manifest robustness, working directory discipline, Iron Law, AI slop |
-| review-execute | v1.0 | v2.1 | CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, manifest reconstruction, auth test checklist, test URL audit, MECHANICAL heuristic |
-| beads | v5.7 | v5.15 | Test files in context, feature slice grouping, compilation unit check, frontend coarseness, verification batching, path validation, dependency validation |
+| Skill | Start | End | Versions | Key Improvements |
+|-------|-------|-----|----------|-----------------|
+| execute | v4.5 | v5.3 | 9 | Multi-agent handling, batch-verify mode, verification fast path, pre-scan, manifest robustness, atomic commits, frontend health check |
+| review-execute | v1.0 | v2.5 | 16 | CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, mandatory test run, proportional frontend verification, upfront context batch, test URL audit |
+| beads | v5.7 | v5.16 | 10 | Test files in context, feature slice grouping, compilation unit check, frontend coarseness, verification batching, path/dependency validation, column constraint scoping |
 
 ### Key Learnings
 
-1. **Multi-agent execution is the #1 pain point.** Build collisions, file reverts, staged file theft, and test interference dominated feedback across 7 modules. File reservation via agent-mail should be default.
+1. **Multi-agent execution is the #1 pain point.** Build collisions, file reverts, staged file theft, and test interference dominated feedback across 7+ modules. File reservation via agent-mail should be default.
 
-2. **Review-execute catches different bugs than /review.** /review finds code quality issues. /review-execute finds design compliance issues — wrong status codes, missing audit fields, delete cascades, test gaps. Both are needed.
+2. **Review-execute catches different bugs than /review.** 16 bugs found — all design compliance issues (wrong status codes, missing audit fields, delete cascades, test gaps). General code review wouldn't find these.
 
-3. **CONVERGE exposes pre-existing bugs.** When CONVERGE un-skips tests or changes status codes, pre-existing bugs surface. The "diagnose before revert" rule (v1.8) found 2 production bugs by investigating instead of reverting.
+3. **CONVERGE exposes pre-existing bugs.** When CONVERGE un-skips tests or changes status codes, pre-existing bugs surface. The "diagnose before revert" rule found 2 production bugs by investigating instead of reverting.
 
-4. **Verification-mode reviews need different calibration.** Full COMPREHENSIVE is overkill for >70% pre-existing modules. STANDARD with mandatory line-by-line API surface comparison catches the same issues in half the time.
+4. **Verification-mode is the common case.** 11 of 15 modules were >70% pre-existing. Batch-verify mode, proportional frontend checks, and abbreviated reports are essential.
 
-5. **The OneOf status code pattern recurs everywhere.** 409→400/403/422 drift was the most common finding class. The shared fix pattern (add result type to OneOf, map in endpoint) became a documented CONVERGE fix pattern.
+5. **The OneOf status code pattern is the most common bug class.** 409→400/403/422 drift appeared in 4 modules. Documented as a common CONVERGE fix pattern.
+
+6. **Skills improve fastest from production feedback.** Each module produced 1-3 targeted improvements. Theoretical analysis (adversarial review) finds structural issues; production feedback finds operational issues. Both needed.
 
 ---
 
@@ -1003,6 +1010,14 @@ Apply progressive disclosure principles to all 22 skills — extract stable cont
 
 **28% average reduction** in SKILL.md content for the 10 largest skills. All workflow phases, PAUSE gates, and decision logic preserved.
 
+### Course Correction: Skill-Specific Extractions Reverted
+
+After first-principles reflection, we reverted the 9 skill-specific extractions. Essential workflow content (checklists, templates, decomposition tables, agent prompts) must stay inline — agents don't auto-load referenced files, and a silent skip creates a failure mode worse than the token savings.
+
+**Kept:** 4 shared references (supplementary patterns, not essential steps) + 14 VERSIONS.md files (agents never need version history).
+
+**Principle:** Skills are self-contained. Shared references enhance; skill-specific content must be inline.
+
 ### Key Insight
 
-Progressive disclosure is itself an autoresearch technique: frozen metric (SKILL.md line count vs agent needs), analyze gap (stable content loaded every invocation but never changes), systematic fix (extract to references). The same loop that improved our documents improves our skills.
+Progressive disclosure works for **supplementary** content (shared patterns, version history) but NOT for **essential workflow steps** (checklists the agent must follow, templates the agent must fill, prompts the agent must use). The distinction: would the skill produce wrong output if this content is missing? If yes → inline. If no → reference file is fine.

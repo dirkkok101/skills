@@ -603,6 +603,79 @@ Applied progressive disclosure principles across all 22 skills. The core insight
 
 **28% reduction** in total SKILL.md content across 10 skills. 13 new reference files created (21 total). All workflow phases, PAUSE gates, and decision logic preserved in SKILL.md files.
 
-### Key Observation
+### Course Correction: Skill-Specific Extractions Reverted
 
-The progressive disclosure refactor is itself an application of the autoresearch technique: we identified a frozen metric (SKILL.md line count vs. agent needs), analyzed the gap (stable content loaded every invocation but never changed), and applied a systematic fix (extract to references). The same pattern we used for PRD structural conventions, design format rules, and bead decomposition tables.
+After first-principles reflection, we reverted the 9 skill-specific reference file extractions. The problem: essential workflow content (checklists, templates, decomposition tables, agent prompts) was moved behind `Read` calls that agents might not follow. A 913-line skill that always works is more reliable than a 623-line skill that silently skips checklists 5% of the time.
+
+**Kept:** 4 shared references (converge-mode, review-finding-taxonomy, multi-agent-execution, execution-manifest) — these are supplementary patterns, not essential workflow steps. Added "Shared References" section to all review-* skills + execute telling agents to load them.
+
+**Reverted:** 9 skill-specific reference files — content restored inline.
+
+**Principle established:** Skills are self-contained. An agent reading SKILL.md must have everything it needs without following links to essential content. Version histories (VERSIONS.md) are fine to externalize — agents never need them.
+
+---
+
+## Phase 10: Execute + Review-Execute Production Validation (2026-03-23 → 2026-03-24)
+
+Executed and reviewed all 15 identity platform modules through the full pipeline.
+
+### Execute Skill Production Results
+
+| Module | Tier | Beads | Mode | Key Finding |
+|--------|------|-------|------|-------------|
+| Cross-Cutting | 0 | 9 | STANDARD | Clean mechanical migration |
+| Organizations | 1 | 8 | STANDARD | 4 design misalignments fixed in verification |
+| Languages | 1 | 7 | STANDARD | Deep EF Core bug found via debugging |
+| Applications | 1 | 24 | STANDARD | Verification fast path saved time (12 beads no-change) |
+| Users | 2 | 29 | STANDARD | Review/simplify gates were ceremony (8/29 beads) |
+| Role Templates | 2 | 6 | BRIEF | All verification-only, zero code changes |
+| Authentication | 3 | 30 | STANDARD | MFA admin enforcement blocked by missing entity field |
+| Entitlements | 3 | 18 | STANDARD | B01-B03 couldn't compile independently (atomic group) |
+| Identity Providers | 3 | 11 | STANDARD | 6/11 beads verification-only |
+| Sessions | 4 | 9 | STANDARD | Sync-over-async deadlock caught by test gate |
+| Roles & Permissions | 4 | 27 | STANDARD | 6 status code mismatches fixed by review-execute |
+| Portal | 5 | 21 | STANDARD | 12/15 verification-only, batch-verify mode validated |
+| API Keys | 5 | 17 | STANDARD | FK cascade from nullable→non-nullable predictable |
+| Approvals | 5 | 9 | STANDARD | Stale closed bead with no actual work |
+| Audit | 6 | 3 | BRIEF | AuditEvents.All recursion bug found as bonus |
+
+### Review-Execute Production Results
+
+| Module | Verdict | Bugs Fixed | WARNs | Key Finding |
+|--------|---------|------------|-------|-------------|
+| Cross-Cutting | PASS | 0 | 0 | Clean first test |
+| Organizations | PASS (2 rounds) | 2 | 3 | Bootstrap save 409→400, missing cross-org test |
+| Languages | PASS | 0 | 4 | PRE_EXISTING naming mismatches |
+| Applications | PASS | 2 | 2 | Audit entityId mismatch, delete cascade gap |
+| Users | PASS | 1 | 3 | Test timing bug (detectChanges) |
+| Role Templates | PASS | 1 | 8 | Missing mock (getLookup) |
+| Authentication | PASS | 3 | 5 | MFA test property drift, audit assertion, missing route |
+| Entitlements | PASS | 0 | 1 | 422 vs 400 — UPSTREAM_DOC not DESIGN_DRIFT |
+| Identity Providers | PASS | 0 | 2 | Error code mapping stale in design doc |
+| Sessions | PASS | 1 | 2 | Audit event name not updated in test |
+| Roles & Permissions | PASS | 6 | 0 | 5 status code drifts + wrong test URL |
+| Portal | PASS | 0 | 3 | All pre-acknowledged deviations |
+| API Keys | PASS | 0 | 2 | RevokedAt missing from data model doc |
+| Approvals | PASS | 0 | 1 | Approve response 200 vs 204 design mismatch |
+| Audit | PASS | 0 | 2 | Stale api-surface entries |
+| **Totals** | **15/15 PASS** | **16** | **38** | |
+
+### Skill Evolution Through Production
+
+| Skill | Start | End | Versions | Key Improvements |
+|-------|-------|-----|----------|-----------------|
+| execute | v4.5 | v5.3 | 9 | Multi-agent handling, batch-verify mode, verification fast path, pre-scan, manifest robustness, atomic commits, frontend health check |
+| review-execute | v1.0 | v2.5 | 16 | CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, manifest reconstruction, auth test checklist, test URL audit, MECHANICAL heuristic, mandatory test run, proportional frontend verification |
+| beads | v5.7 | v5.16 | 10 | Test files in context, feature slice grouping, compilation unit check, frontend coarseness, verification batching, path/dependency validation, column constraint scoping |
+
+### Key Observations
+
+1. **Review-execute catches different bugs than /review.** 16 bugs found — all design compliance issues (wrong status codes, missing audit fields, test gaps, delete cascades). General code review (/review) wouldn't find these.
+
+2. **Multi-agent execution dominated the feedback.** Build collisions, file reverts, staged file theft, test interference, pre-commit hook failures — 7 of 15 modules reported multi-agent friction. File reservation should be default.
+
+3. **Verification-mode is the common case.** 11 of 15 modules were >70% pre-existing. Batch-verify mode, proportional frontend checks, and abbreviated reports are essential for these.
+
+4. **The OneOf status code pattern is the most common bug class.** 409→400/403/422 drift appeared in Organizations, Applications, Roles, and API Keys. Documented as a common CONVERGE fix pattern.
+
+5. **Skills improve fastest from production feedback.** Each module's execution feedback produced 1-3 targeted improvements. Theoretical analysis (adversarial review) found structural issues; production feedback found operational issues. Both are needed.

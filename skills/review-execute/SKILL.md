@@ -645,8 +645,4 @@ When 0 FAILs: **"All beads verified. Run `/review` for code quality review, or `
 
 ---
 
-*Skill Version: 2.1*
-*v2.1: Roles review feedback. CONVERGE shows findings summary before fixing. MECHANICAL vs DECISION heuristic sharpened (unambiguous design + confirming pattern = MECHANICAL). Test URL audit (Step 2.7). Post-CONVERGE report format (hybrid: findings + fixes + verdict).*
-*v2.0: Progressive disclosure refactor — shared references, condensed history, Phase 3 reorder, deferred bead accounting, agent boundary clarified.*
-*v1.1-1.12: Production-tested across 11 modules. Key additions: CONVERGE default, PRE_EXISTING severity, same-session fresh-eyes, prior review detection, manifest reconstruction, auth test checklist, verification-mode scoping, agent delegation threshold, pattern pre-check before fixes, diagnose-before-revert. See CHANGELOG.md for full history.*
-*v1.0: Initial release — bead-by-bead verification, CONVERGE mode, finding classification, trust hierarchy.*
+*Skill Version: 2.1 — [Version History](VERSIONS.md)*

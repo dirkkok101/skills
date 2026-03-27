@@ -40,6 +40,24 @@ For pattern details and examples: `../_shared/references/stage-gates.md`
 
 > **Fallback:** Only if `AskUserQuestion` is not available as a tool (check your tool list), fall back to presenting options as markdown text and waiting for freeform response.
 
+### Adaptive Pause Density
+
+Track consecutive approvals across all PAUSE points (not just within a single pause). After the user approves **3 or more consecutive gates without any revision**, offer to consolidate:
+
+```
+AskUserQuestion:
+  question: "You've approved everything so far without changes. Would you like to review remaining phases together or keep individual gates?"
+  header: "Review Pacing"
+  multiSelect: false
+  options:
+    - label: "Keep individual gates"
+      description: "Continue with focused review at each pause point."
+    - label: "Consolidate remaining"
+      description: "Present remaining phases together for a single review."
+```
+
+If the user chooses "Consolidate remaining", combine the remaining PAUSE points into a single comprehensive review at the end (before Phase 10 self-review). If the user revises anything at a later gate, reset to individual gates for subsequent pauses.
+
 ---
 
 ## Mode Selection
@@ -68,12 +86,25 @@ These PRDs still follow the same structural conventions, but some sections may b
 
 The structural conventions (heading formats, numbering, table columns) still apply without exception. Only the *depth* of content adapts.
 
+### Library & Package PRDs
+
+When the deliverable is a **NuGet package, npm package, or shared library** consumed by developers (not end-users), several sections need a different lens:
+
+- **Personas:** The primary personas are **developers integrating the package**, not end-users of the application. A "Platform Developer" persona describes their integration goals, pain points with current manual setup, and tech level. Secondary personas may include the end-users whose experience the package ultimately enables.
+- **Use Cases:** Frame around **developer integration scenarios** (adding the package, configuring options, handling edge cases) rather than end-user workflows. The end-user flows belong in the consuming project's PRD, not here.
+- **Integration Points:** Use the **Package API Contract** variant (see Phase 8b) instead of the microservices "Consumed Services / Exposed Services" format. The "exposed services" are the public API surface — extension methods, middleware, configuration objects, endpoints.
+- **NFRs:** Include **package-specific NFRs**: binary size, dependency footprint, minimum framework version, API stability guarantees, breaking change policy.
+- **Phase 0.3 (Consumer Research):** **Mandatory** for library PRDs. Read at least 1-2 consuming projects' integration expectations before drafting requirements. See Phase 0 for details.
+- **Success Metrics:** Measured by developer adoption and integration quality (time-to-integrate, configuration errors, support tickets) rather than end-user business KPIs.
+
+The structural conventions still apply without exception. The shift is in perspective: the "user" is the developer, the "product" is the API surface, and "adoption" means successful integration.
+
 ---
 
 ## Collaborative Model
 
 ```
-Phase 0: Prerequisites & Import
+Phase 0: Prerequisites & Import (Step 0.3: Consumer Research for shared libs)
 Phase 1: Document Setup
 Phase 2: Problem & Business Context
 Phase 3: User Personas (STANDARD+)
@@ -126,7 +157,23 @@ cat "${PROJECT_ROOT}/docs/research/{feature}/research-brief.md" 2>/dev/null
 
 Import: problem statement, chosen approach, boundaries, scope classification, **kill criteria**, domain requirements, actor list, workflow maps, security analysis, compliance checkpoints, **glossary terms**.
 
-**Step 0.3 — If No Upstream Exists:**
+**Step 0.3 — Consumer Research (shared libraries/packages only):**
+
+If the PRD's deliverable is a **shared library, NuGet package, npm package, or SDK** consumed by other projects, identify 1-2 consuming projects and read their integration expectations before drafting requirements. This step prevents specifying APIs, protocols, or patterns that contradict what consumers already use.
+
+```
+1. Identify consumers: Ask the user or check the brainstorm for known consuming projects.
+2. Read integration docs: For each consumer, read their integration contracts, identity/auth setup,
+   or any docs that reference the library being specified.
+3. Surface conflicts: Note any discrepancies between what the brainstorm assumed and what consumers
+   actually use (e.g., different CSRF mechanisms, different session storage models, naming mismatches).
+4. Feed into Phase 4: Add consumer-discovered constraints and assumptions to Phase 4.
+   Feed into Phase 6: Let consumer expectations shape FR acceptance criteria.
+```
+
+If no consumers exist yet (greenfield library), skip this step but document the assumption: "No existing consumers — API surface is unconstrained by legacy integration."
+
+**Step 0.4 — If No Upstream Exists:**
 
 Ask user:
 - "What is the feature name and core problem it solves?"
@@ -306,13 +353,24 @@ Do not proceed until the user confirms the problem framing and personas are righ
 
 Things we're taking for granted. If any prove false, requirements may need to change. Assumptions should be informed by the personas from Phase 3.
 
+Bullet format (minimum):
 ```markdown
 ## Assumptions
-- {Technical: "The existing API can handle the additional load"}
-- {Business: "P1 persona (IT Manager) has admin access to configure this feature"}
-- {Data: "Historical data exists for the past 12 months"}
-- {Timeline: "Third-party integration API will be stable by Q2"}
+- **A1:** The existing API can handle the additional load
+- **A2:** P1 persona (IT Manager) has admin access to configure this feature
 ```
+
+Table format (richer — preferred when assumptions have validation plans):
+```markdown
+## Assumptions
+
+| # | Assumption | Impact if Wrong | How to Validate |
+|---|-----------|----------------|-----------------|
+| **A1:** | The existing API can handle the additional load | FRs 3-5 need redesign for async | Load test before MVP |
+| **A2:** | P1 has admin access to configure | Needs new admin provisioning FR | Verify with IT ops |
+```
+
+Both formats are acceptable. The `**A{n}:**` prefix is required in either format. The table format preserves "Impact if Wrong" and "How to Validate" context that bullets lose — use it for STANDARD+ PRDs when assumptions carry significant risk.
 
 **Step 4.2 — Constraints:**
 
@@ -593,9 +651,23 @@ Before presenting requirements to the user, scan for these quality issues:
 
 **Independence** — each FR should be deliverable and valuable on its own. If FR-X only makes sense with FR-Y, consider merging them or making the dependency explicit.
 
-#### PAUSE 3: Validate requirements one at a time (Guided Review — Pattern 5)
+#### PAUSE 3: Validate requirements (Guided Review — Pattern 5, adaptive pacing)
 
-Review each functional requirement individually. For each FR:
+Start by reviewing each functional requirement individually. After the **3rd consecutive approval without revision**, offer the user a pacing choice:
+
+```
+AskUserQuestion:
+  question: "You've approved 3 FRs without changes. How would you like to review the remaining {N} requirements?"
+  header: "Review Pacing"
+  multiSelect: false
+  options:
+    - label: "Continue one-at-a-time"
+      description: "Keep reviewing each FR individually."
+    - label: "Batch the rest"
+      description: "Present remaining FRs together for a single review pass."
+```
+
+**Individual review (default, and first 3 FRs always):**
 
 **Step 1 — Present full detail:** Show the single requirement as formatted markdown with full FR detail — user story, acceptance criteria, priority, and complexity.
 
@@ -618,14 +690,34 @@ AskUserQuestion:
 ```
 
 **Step 3 — Handle verdict:**
-- **Approve:** Record as approved, move to next FR.
-- **Revise:** Collect the user's notes (from "Other" field or follow-up), revise the requirement, re-present it, and re-ask.
+- **Approve:** Record as approved, move to next FR. Track consecutive approval count.
+- **Revise:** Collect the user's notes (from "Other" field or follow-up), revise the requirement, re-present it, and re-ask. Reset consecutive approval count.
 - **Remove:** Drop the FR from the document with a brief rationale note. Move to next FR.
 - **Skip for now:** Queue for a second pass after all other FRs are reviewed.
 
+**Batch review (if user chose "Batch the rest"):**
+
+Present all remaining FRs as formatted markdown in one block, then:
+
+```
+AskUserQuestion:
+  question: "Review the remaining requirements. Flag any that need revision by name."
+  header: "FR Batch Review"
+  multiSelect: true
+  options:
+    - label: "All approved"
+      description: "All remaining requirements are good as-is."
+    - label: "FR-{MODULE}-{NAME-1}"
+      description: "Needs revision — I'll provide notes."
+    - label: "FR-{MODULE}-{NAME-2}"
+      description: "Needs revision — I'll provide notes."
+```
+
+For any flagged FRs, collect notes, revise, and re-present individually.
+
 **Step 4 — Second pass:** After all FRs have been reviewed, re-present any skipped requirements and repeat Steps 1-3 for each.
 
-This per-requirement approach ensures focused review — the detail is immediately above the question, with no scrolling required.
+This adaptive approach gives focused attention where needed while respecting the user's review velocity.
 
 ---
 
@@ -757,6 +849,37 @@ Priority decisions shape what gets built first. Getting them wrong means buildin
 
 This section feeds directly into the technical design's API surface and the plan's dependency graph. Mark Contract Stability clearly — "Stable" means downstream consumers can rely on it without coordination; "Evolving" means breaking changes require coordination.
 
+#### Package API Contract Variant (for NuGet/npm packages and shared libraries)
+
+When the PRD's deliverable is a **shared library or package** rather than a microservice, the "Consumed Services / Exposed Services" table format is a poor fit. Use the **Package API Contract** format instead:
+
+```markdown
+## Integration Points — Package API Contract
+
+### Public API Surface
+| API | Type | Purpose | Stability |
+|-----|------|---------|-----------|
+| `AddMyPackage()` | Extension method | Registers all package services in DI | Stable |
+| `UseMyPackage()` | Middleware | Adds package middleware pipeline | Stable |
+| `/api/health` | Endpoint | Health check endpoint | Stable |
+| `PackageOptions` | Configuration | Consumer-provided settings | Evolving |
+
+### Consumer Integration Pattern
+{How a consuming project adds and configures the package — 5-10 lines of representative code showing the expected DI registration, middleware order, and configuration.}
+
+### Package Dependencies
+| Dependency | Version Constraint | Why |
+|------------|-------------------|-----|
+| {NuGet/npm package} | {range} | {purpose} |
+
+### Consumer Responsibilities
+- {What the consumer must provide — e.g., "Redis connection for session storage"}
+- {What the consumer must configure — e.g., "OIDC authority URL in BffOptions"}
+- {Infrastructure the consumer owns — e.g., "Data protection key ring"}
+```
+
+Use this variant whenever the deliverable is installed via a package manager rather than deployed as a standalone service. The standard "Consumed Services / Exposed Services" format remains the default for microservice PRDs.
+
 ---
 
 ### Phase 9: Domain Validation (COMPREHENSIVE only)
@@ -771,6 +894,7 @@ Verify discovery requirements are fully covered:
 - [ ] All integration points from discovery have corresponding NFRs?
 - [ ] All actors from discovery have at least one use case (in docs/prd/{feature}/use-cases/ or docs/use-cases/)?
 - [ ] All use case files cross-reference back to the PRD?
+- [ ] Cross-PRD alignment verified (if Depends On references another PRD)?
 
 ### Coverage Matrix
 | Discovery Req | Mapped FR | Use Case | Status |
@@ -779,11 +903,43 @@ Verify discovery requirements are fully covered:
 | DR-{MODULE}-{NAME} | — | — | Gap (deferred to v2) |
 ```
 
+#### Cross-PRD Alignment (when Depends On is not N/A)
+
+When the metadata table's **Depends On** field references another PRD, perform an explicit cross-check before finalizing:
+
+```
+1. Read the parent PRD's Functional Requirements section.
+2. Identify every FR in the parent PRD that references or delegates to THIS feature.
+   (e.g., FR-AUTH-BFF-FLOW in a parent authentication PRD that delegates BFF behavior to this PRD)
+3. For each parent FR:
+   - List its acceptance criteria.
+   - Map each criterion to a specific FR in THIS PRD that covers it.
+   - Flag any parent criterion that has no coverage in this PRD.
+4. Document the mapping:
+```
+
+```markdown
+### Cross-PRD Alignment
+
+Parent PRD: {link}
+
+| Parent FR | Parent Criterion | Covered By | Status |
+|-----------|-----------------|------------|--------|
+| FR-AUTH-BFF-FLOW | AC: Token exchange via back-channel | FR-BFF-TOKEN-EXCHANGE | Covered |
+| FR-AUTH-BFF-FLOW | AC: Session cookie httpOnly + secure | FR-BFF-SESSION-MGMT | Covered |
+| FR-AUTH-BFF-FLOW | AC: CSRF protection on mutations | FR-BFF-CSRF | Covered |
+| FR-AUTH-BFF-FLOW | AC: Silent refresh before expiry | — | Gap — add FR or document deferral |
+```
+
+Any gaps must be resolved before approval: either add the missing FR, or document the deferral with rationale in the Coverage Matrix.
+
 ---
 
 ### Phase 10: Self-Review & Approval
 
-**2 rounds minimum. Exit on 2 consecutive clean rounds.**
+**1 thorough round. Fix issues found. Re-check only the fixes.**
+
+The previous "2 consecutive clean rounds" approach added no value — if the first round's fixes are correct, the second round is a rubber stamp. Instead: one focused pass through all themes, fix everything found, then verify only the changed sections.
 
 **Known limitation:** Self-review is performed by the same agent that wrote the PRD. Mitigate by following themes strictly as a checklist, and by asking the user targeted questions where you're least confident.
 
@@ -986,8 +1142,8 @@ Optional H2 sections (add when relevant, after Document Approval):
 |---------|--------|---------|
 | Goals | `- **G{n}:** {text}` | `- **G1:** Reduce time-to-access` |
 | Non-Goals | `- **NG{n}:** {text} — Reason: {why}` | `- **NG1:** Mobile — Reason: desktop-only` |
-| Assumptions | `- **A{n}:** {text}` | `- **A1:** API handles load` |
-| Constraints | `- **C{n}:** {text}` | `- **C1:** Must use existing schema` |
+| Assumptions | `- **A{n}:** {text}` or table with `**A{n}:**` in first column | `- **A1:** API handles load` |
+| Constraints | `- **C{n}:** {text}` or table with `**C{n}:**` in first column | `- **C1:** Must use existing schema` |
 | FR IDs | `FR-{MODULE}-{DESCRIPTIVE-NAME}` | `FR-APP-REGISTER` |
 | NFR IDs | `NFR-{MODULE}-{DESCRIPTIVE-NAME}` | `NFR-APP-RESPONSE-TIME` |
 | UC IDs | `UC-{MODULE}-{NNN}` | `UC-APP-001` |
@@ -1007,7 +1163,7 @@ Optional H2 sections (add when relevant, after Document Approval):
 
 ### Persona Sub-Fields (All 6 Mandatory)
 
-Every persona MUST have exactly these 6 bold sub-fields:
+Every **primary or secondary persona** MUST have exactly these 6 bold sub-fields:
 
 ```
 - **Goals:** {2-3 items}
@@ -1017,6 +1173,18 @@ Every persona MUST have exactly these 6 bold sub-fields:
 - **Tech Level:** {description}
 - **Frequency:** {how often they use this}
 ```
+
+#### Reference Personas (Read-Only Involvement)
+
+When a persona's involvement in the module is **read-only** (viewing dashboards, receiving notifications, consuming reports) and their full definition exists in a project-level personas document, use the lightweight reference format instead of the full 6-field definition:
+
+```
+### P{n}: {Role Title} (Reference)
+> See [project personas](../../personas.md) for full definition.
+- **Module interaction:** {1-2 sentences describing how this persona uses THIS module specifically}
+```
+
+This avoids writing generic 6-field definitions for personas who only consume data. The reference must point to an existing project persona document. If no project persona doc exists, use the full format.
 
 ### FR Body Structure (Fixed Format)
 
@@ -1127,4 +1295,4 @@ This preserves the decision trail — anyone reading the PRD can see what change
 
 ---
 
-*Skill Version: 3.7 — [Version History](VERSIONS.md)*
+*Skill Version: 3.10 — [Version History](VERSIONS.md)*

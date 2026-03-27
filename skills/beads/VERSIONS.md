@@ -1,5 +1,14 @@
 # Beads Skill — Version History
 
+## v5.18
+Production feedback from unified-rbac greenfield (74 beads, STANDARD mode). Infrastructure/cross-cutting decomposition section for non-entity-CRUD features — decompose by compilation units, not entity pattern tables. Proportional Phase 3 self-assessment scaling (≤20: full, 20-50: 30% sample, 50+: spot-check 10). Delegation pattern for >40 bead sets (Phase 0-1 main context, Phase 2 sub-agent, Phase 3 main context). Scope growth check clarified: always compare against sub-task count, 2x threshold for infrastructure features. From unified-rbac 64-bead greenfield run.
+
+## v5.17
+Production feedback from NuGet client v0.2 beads. Incremental bead creation mode (versioned beads.md, epic reuse, version-prefixed bead IDs). Test bead sizing relaxed for modification work (≤15 greenfield, ≤25 modification/verification). Context-aware Phase 0 (skip doc tree scan when upstream docs already loaded from prior skills). br ID capture guidance (batch query after creation, not inline parsing). From first multi-agent flywheel test run.
+
+## v5.16
+Multi-agent flywheel support. `## Files (reservation globs)` section in bead template for Agent Mail file reservation. Dependency minimization pass (Step 1.4b) prunes pattern-sequence edges to compile-order edges, widening parallel tracks (~4 tracks after Contracts instead of 1 deep chain). Backend decomposition table updated with compile-order dependencies. Hard gate vs soft checkpoint distinction — hard gates create `br dep add` edges, soft checkpoints are advisory notes (UI test gates, UC verify, module complete are soft). Parallelism + file reservation completeness checklists in Phase 3 self-assessment.
+
 ## v5.15
 Role Templates + Sessions feedback. Non-greenfield approach must reference actual code paths (not design pseudocode). Frontend verification beads need explicit "verify or fix" policy. Schema migration generalized to any ORM.
 

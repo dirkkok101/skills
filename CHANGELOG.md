@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-03-27
+
+### Added
+- **beads** — `## Files (reservation globs)` section in bead template for Agent Mail file reservation coordination.
+- **beads** — Infrastructure/cross-cutting decomposition section for non-entity-CRUD features (auth rewrites, RLS policies, endpoint migrations).
+- **beads** — Hard gate vs soft checkpoint distinction — hard gates create `br dep add` edges, soft checkpoints are advisory.
+- **beads** — Incremental bead creation mode (versioned beads.md, epic reuse, version-prefixed bead IDs).
+- **beads** — Delegation pattern for >40 bead sets (Phase 0-1 main context, Phase 2 sub-agent, Phase 3 main context).
+- **review-beads** — Parallelism checks: compile-time dependency validation, transitive edge pruning, multi-agent readiness metrics.
+- **review-beads** — Intentionally minimized dependencies and soft checkpoint gates added to "What NOT to Flag".
+
+### Changed
+- **beads** (v5.15→v5.18): Dependency minimization pass (Step 1.4b) prunes pattern-sequence edges to compile-order edges, widening parallel tracks. Backend decomposition table updated with compile-order dependencies. Parallelism metrics in Phase 3 self-assessment and output summary. Context-aware Phase 0 (skip doc scan when upstream docs already loaded). Proportional Phase 3 path validation (≤20 full, 20-50 sample, 50+ spot-check). Test bead sizing relaxed for modification work (≤15 greenfield, ≤25 modification). Scope growth check clarified (always compare against sub-task count). br ID capture guidance (batch query after creation).
+- **review-beads** (v2.8→v2.9): Category 7b gate serialization check and hard/soft classification. Category 8 Files section required. Phase 5 compile-time necessity and parallelism metrics. CONVERGE authority hierarchy: adding unnecessary dependency edges is itself WRONG_DEPENDENCY.
+- **prd** (v3.7→v3.10): Reference persona format, table-compatible assumption/constraint format, consumer research step, adaptive FR review pacing, package API contract variant, self-review efficiency, cross-PRD alignment.
+- **review-prd** (v2.3→v2.11): Eight production CONVERGE + COMPREHENSIVE runs incorporated. Edit-not-Write rule, content additions as DECISION, minimum spot-check, scope-depth mismatch pushback, post-fix corruption scan, justified deviation waivers, reclassification transparency, reference persona support.
+
+### Fixed
+- **beads** — Project-specific reference in Files section example (`NxGN.Identity.Api` → `src`).
+- **prd** — Project-specific reference in Package API Contract example (`NxgnBff` → `MyPackage`).
+
 ## [5.0.0] - 2026-03-24
 
 ### Breaking Changes

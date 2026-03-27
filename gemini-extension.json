@@ -1,6 +1,6 @@
 {
   "name": "workflow-skills",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "description": "Complete feature development workflow with 22 structured SDLC skills: init, research, brainstorm, discovery, prd, technical-design, plan, beads, execute, review, review-prd, review-design, review-plan, review-beads, review-execute, compound, diagnose, qa, benchmark, security-audit, ship, autoresearch.",
   "contextFileName": "GEMINI.md"
 }

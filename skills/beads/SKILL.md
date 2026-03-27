@@ -199,7 +199,7 @@ The tables below are the exemplar for .NET/Angular vertical-slice architecture.
 
 Each entity/feature in a module produces these beads, each aligned to ONE pattern doc. The "Pattern Key" column identifies which pattern to look up in the doc map built by Phase 0 — the actual file path comes from the map, not from a hardcoded location.
 
-| # | Bead Title Convention | Pattern Key | What It Produces | Depends On |
+| # | Bead Title Convention | Pattern Key | What It Produces | Depends On (compile-order) |
 |---|----------------------|-------------|------------------|------------|
 | 1 | `{Entity} Entity + Enums` | `entity` | Entity class, enum types, base class inheritance | — (or cross-module entity deps) |
 | 2 | `{Entity} EF Configuration` | `ef-configuration` | `IEntityTypeConfiguration<T>`, indexes, relationships, `HasConversion<string>()` | #1 |
@@ -207,13 +207,13 @@ Each entity/feature in a module produces these beads, each aligned to ONE patter
 | 4 | `{Entity} EntityMapper` | `entity-mapper` | DI-registered EntityMapper class, `EntityMapperResult<T>`, create/update logic | #1, #3 |
 | 5 | `{Entity} DTOMapper` | `dto-mapper` | DI-registered DTOMapper class, DTOMapperDataContext if lookup data needed | #1, #3 |
 | 6 | `{Entity} SaveCommand` | `commands` | SaveCommand class, upsert logic via EntityMapper | #4 |
-| 7 | `{Entity} DeleteCommand` | `commands` | DeleteCommand class, `ExecuteDeleteAsync`, dependency checks | #1, #2 |
+| 7 | `{Entity} DeleteCommand` | `commands` | DeleteCommand class, `ExecuteDeleteAsync`, dependency checks | #1 |
 | 8 | `{Entity} Lifecycle Commands` | `commands` | Enable/Disable/Suspend/Resume commands (if applicable) | #1 |
 | 9 | `{Entity} GetQuery` | `queries` | GetQuery class, dual identifier support, 404-not-403 | #5 |
 | 10 | `{Entity} GridQuery + QueryParameters` | `queries` | GridQuery, QueryParameters builder class, PagedResponse | #5 |
 | 11 | `{Entity} LookupQuery` | `queries` | LookupQuery returning `NamedDTO[]` for dropdown binding | #5 |
 | 12 | `{Entity} Validators` | `endpoints` | FluentValidation validator classes for each request type | #3 |
-| 13 | `{Entity} Save Endpoint` | `endpoints` | IdentityEndpoint wiring SaveCommand | #6, #12 |
+| 13 | `{Entity} Save Endpoint` | `endpoints` | IdentityEndpoint wiring SaveCommand | #6 |
 | 14 | `{Entity} Get Endpoint` | `endpoints` | IdentityEndpoint wiring GetQuery | #9 |
 | 15 | `{Entity} Grid Endpoint` | `endpoints` | POST endpoint wiring GridQuery | #10 |
 | 16 | `{Entity} Delete Endpoint` | `endpoints` | IdentityEndpoint wiring DeleteCommand | #7 |
@@ -253,7 +253,46 @@ Not every feature needs all 7. Check the discovered `ui-mockup` doc:
 | 27 | `{Feature} Integration Tests` | per discovered test plan | Backend integration tests | Last backend impl bead |
 | 28 | `{Feature} UI Tests` | per discovered test plan | Frontend unit/component tests | Last frontend impl bead |
 
-**Test bead sizing:** Each test bead should target **≤15 new tests**. If the design's test plan specifies 40+ test cases, decompose into per-area test beads (e.g., "MFA tests", "password flow tests", "magic link tests"). A 40-test bead is a mini-project, not a focused work package — the executing agent will either rush through it or close it incomplete.
+**Test bead sizing:** For greenfield test beads, target **≤15 new tests**. For modification/verification test beads (testing changes to existing code), target **≤25 tests** — modification tests are more cohesive because they test closely related changes, and splitting them by arbitrary count forces artificial seams between overlapping concerns. If the design's test plan specifies 40+ test cases for greenfield, decompose into per-area test beads (e.g., "MFA tests", "password flow tests", "magic link tests"). A 40-test bead is a mini-project, not a focused work package — the executing agent will either rush through it or close it incomplete.
+
+## Infrastructure / Cross-Cutting Decomposition
+
+The entity CRUD tables above don't apply to infrastructure features — authorization model rewrites, RLS policy additions, middleware changes, endpoint migrations, configuration refactors. These features have no entities to CRUD. Instead, decompose based on **plan task boundaries and compilation units**.
+
+**When to use this section:** If the plan's tasks don't map to entity CRUD operations (no "Implement {Entity} CRUD"), use this decomposition method instead of the backend/frontend tables above.
+
+**Decomposition algorithm for infrastructure features:**
+
+1. **Start from plan tasks, not pattern tables.** Each plan task → 1-3 beads based on compilation units. A "compilation unit" is a set of changes that must be deployed together for the codebase to compile.
+
+2. **Group by compile independence.** Ask: "Can this subset of changes compile independently from the rest?" If yes, it's a bead. If changes in two different files must exist simultaneously for compilation, they belong in the same bead.
+
+3. **Split signals (same as entity beads):**
+   - Bead modifies >8 files → split by concern
+   - Bead spans API + Contracts projects → split by project
+   - Bead combines creation + deletion of different abstractions → split
+   - Bead touches both infrastructure (middleware, DI) and feature code → split
+
+4. **Common infrastructure bead types:**
+
+| Bead Type | What It Produces | Example |
+|-----------|-----------------|---------|
+| Constants/Definitions | New enum values, policy names, scope constants | `feat(auth): add permission type constants` |
+| Interface/Contract | New interface, abstract class, or shared type | `feat(auth): add IPermissionEvaluator interface` |
+| Implementation | Handler, service, middleware, guard | `feat(auth): add PermissionTypeHandler` |
+| Registration/Wiring | DI registration, middleware pipeline, route config | `feat(auth): register permission services` |
+| Migration/Configuration | Schema migration, config changes, seed data | `feat(auth): add permission type migration` |
+| Endpoint Modification | Modify existing endpoints (authorization, validation) | `feat(auth): add scope authorization to approve endpoint` |
+| Bulk Update | Apply same change across many files (e.g., add attribute to 20 endpoints) | `feat(auth): add authorization policies to admin endpoints` |
+
+5. **Dependency wiring for infrastructure:** Wire compile-order dependencies only (Step 1.4b applies here too). Common pattern:
+```
+Constants ──┬── Interface ──── Implementation ──┐
+            └── Migration                       ├── Registration → Test Gate
+Endpoint Modifications (parallel, independent) ─┘
+```
+
+6. **Bulk update beads:** When a plan task says "apply X to all 93 endpoints," create per-module or per-feature beads, not one mega-bead. Each bead modifies endpoints in one feature directory. These are naturally parallel — no compile dependency between modifying endpoints in different features.
 
 ---
 
@@ -263,17 +302,35 @@ Not every feature needs all 7. Check the discovered `ui-mockup` doc:
 
 Instead, insert **test gates** at semantic boundaries. Test gates verify that code works correctly before downstream beads build on it.
 
+### Gate Types: Hard vs Soft
+
+For multi-agent execution, distinguish two gate types to maximize parallel throughput:
+
+**Hard gate** — downstream CANNOT start until this passes. Creates a `br dep add` dependency edge. Use for gates where downstream work would produce broken code:
+- Schema migration gate before any bead that queries the new table/column
+- Backend test gate before frontend beads (frontend can't test against broken API)
+- Cross-module integration gate when Module B imports types from Module A
+
+**Soft checkpoint** — downstream CAN start optimistically, but must verify this passed before committing. Does NOT create a `br dep add` dependency edge — instead, add a note in the downstream bead's description: `⚠ Soft checkpoint: verify {gate bead title} passed before committing.` Use for gates where downstream work is structurally independent but logically related:
+- Compilation check gates (downstream agents can start — if compilation fails, they'll catch it in their own build step)
+- UC verification gates when downstream beads are in a different feature slice
+- Module completion gate (nothing depends on it — it's the epic terminus)
+
+**Default:** All gates are **hard** unless explicitly marked soft. When in doubt, keep it hard — a slightly deeper critical path is safer than a broken build from optimistic parallelism.
+
+`bv --robot-plan` computes parallel tracks from dependency edges. Soft checkpoints don't appear as edges, so they automatically widen the parallelism window without any change to br commands.
+
 ### Test Gate Placement
 
 ```
-[backend impl beads] → test({feature}): integration tests
-  → [frontend impl beads] → test({feature}): UI tests
+[backend impl beads] → test({feature}): integration tests [HARD]
+  → [frontend impl beads] → test({feature}): UI tests [SOFT]
 ```
 
-| # | Bead Title Convention | Type | Depends On | Purpose |
-|---|----------------------|------|------------|---------|
-| 1 | `test({feature}): integration tests` | test | Last backend impl bead (service registration) | **Blocks ALL frontend beads** |
-| 2 | `test({feature}): UI tests` | test | Last frontend impl bead (routing) | Blocks UC gate |
+| # | Bead Title Convention | Type | Gate | Depends On | Purpose |
+|---|----------------------|------|------|------------|---------|
+| 1 | `test({feature}): integration tests` | test | Hard | Last backend impl bead (service registration) | **Blocks ALL frontend beads** — frontend can't test against broken API |
+| 2 | `test({feature}): UI tests` | test | Soft | Last frontend impl bead (routing) | Advisory before UC gate — UC gate can start optimistically |
 
 **Critical rule:** Frontend beads MUST depend on the backend test gate, never on raw backend implementation beads. This ensures backend code compiles and passes tests before frontend work begins.
 
@@ -285,9 +342,9 @@ After all feature slices contributing to a use case are tested:
 test(A): UI tests + test(B): UI tests → verify({module}): UC-{ID}
 ```
 
-| # | Bead Title Convention | Type | Depends On | Purpose |
-|---|----------------------|------|------------|---------|
-| 3 | `verify({module}): UC-{ID}` | test | All feature test gates for this UC | End-to-end scenario flow verification |
+| # | Bead Title Convention | Type | Gate | Depends On | Purpose |
+|---|----------------------|------|------|------------|---------|
+| 3 | `verify({module}): UC-{ID}` | test | Soft | All feature test gates for this UC | End-to-end scenario flow verification |
 
 ### Module Completion Gate
 
@@ -297,34 +354,36 @@ After all UC gates pass:
 verify: UC-001 + verify: UC-002 → verify({module}): module complete
 ```
 
-| # | Bead Title Convention | Type | Depends On | Purpose |
-|---|----------------------|------|------------|---------|
-| 4 | `verify({module}): module complete` | test | All UC verify gates | Final integration test. **Last bead in the epic.** |
+| # | Bead Title Convention | Type | Gate | Depends On | Purpose |
+|---|----------------------|------|------|------------|---------|
+| 4 | `verify({module}): module complete` | test | Soft | All UC verify gates | Final integration test. **Last bead in the epic.** Epic terminus — nothing depends on it. |
 
 ### Dependency Flow Visualization
 
 For a module with features A and B, use case UC-001 spanning both:
 
 ```
-Feature A:
-  bd-a1 (entity) → bd-a2 (EF) → bd-a3 (contracts) → bd-a4 (mappers)
-    → bd-a5 (commands) → bd-a6 (queries) → bd-a7 (endpoints)
-    → bd-a8 (validators) → bd-a9 (registration)
-      → test(A): integration tests
-        → bd-a10 (models) → bd-a11 (service) → bd-a12 (list page)
-        → bd-a13 (capture) → bd-a14 (routing)
-          → test(A): UI tests
+Feature A (minimized DAG — compile-order edges only):
+  bd-a1 (entity) ──┬── bd-a2 (EF config)
+                    └── bd-a3 (contracts) ──┬── bd-a4 (entity mapper) → bd-a5 (save cmd) → bd-a12 (save endpoint) ──┐
+                                            ├── bd-a5b (DTO mapper) ──┬── bd-a6 (get query) → bd-a13 (get endpoint) ┤
+                                            │                        ├── bd-a7 (grid query) → bd-a14 (grid ep)     ┤
+                                            │                        └── bd-a8 (lookup query) → bd-a15 (lookup ep) ┤
+                                            ├── bd-a9 (delete cmd) → bd-a16 (delete endpoint) ─────────────────────┤
+                                            └── bd-a10 (validators) ───────────────────────────────────────────────→┤
+                                                                                         bd-a11 (registration) ←───┘
+                                                → test(A): integration tests [HARD]
+                                                  → bd-a17 (models) → bd-a18 (service) → bd-a19 (list page)
+                                                  → bd-a20 (capture) → bd-a21 (routing)
+                                                    → test(A): UI tests [SOFT]
 
 Feature B:
-  bd-b1 → ... → bd-b9
-    → test(B): integration tests
-      → bd-b10 → ... → bd-b14
-        → test(B): UI tests
+  (same pattern — parallel with Feature A at all levels)
 
-UC + Module:
+UC + Module (soft checkpoints — no br dep add edges):
   test(A): UI tests + test(B): UI tests
-    → verify(module): UC-001
-      → verify(module): module complete [EPIC CLOSES]
+    ⚠→ verify(module): UC-001 [SOFT]
+      ⚠→ verify(module): module complete [SOFT — EPIC CLOSES]
 ```
 
 ### When to Review Code
@@ -349,6 +408,13 @@ When test or verification gates find issues, the fix priority follows this hiera
 ### Phase 0: Discover Project Documentation
 
 Before creating beads, discover what documentation actually exists in the project. Projects vary — patterns may be flat or nested, decisions may live in `docs/adr/` or inside `docs/designs/{feature}/decisions/`, architecture docs may exist as a separate folder or be embedded in pattern docs. This phase builds a **doc map** that all subsequent phases reference.
+
+**Context-aware Phase 0:** If upstream docs are already in conversation context (because prior skills like /discovery, /prd, /technical-design, /plan were run in this same session), skip the full doc tree scan. Instead:
+1. Confirm the doc paths are still valid (quick glob check, not full content re-read)
+2. Build the doc map from already-loaded context
+3. Proceed directly to Phase 1
+
+This avoids re-reading 20+ documents that are already in the context window. The full Phase 0 scan is needed only on cold starts where no upstream docs have been loaded.
 
 **Step 0.1 — Scan the docs tree:**
 
@@ -596,15 +662,26 @@ ELSE: Hybrid — mix of greenfield beads for "New" and modify beads for "Modify"
 
 **Scope growth check:** When comparing bead count to plan task count:
 - Exclude gate beads from the count (they're mechanical, not scope growth)
-- Compare implementation beads against the plan's **sub-task count**, not the top-level task count. A plan with 6 tasks and 24 sub-tasks should produce ~24 beads, not ~6.
-- For Verification Mode (>90% exists): exempt from the 1.5x threshold entirely — verification beads naturally multiply because each plan task decomposes into multiple verification concerns.
+- **Always compare against sub-task count.** The plan's top-level task count is too coarse — a plan with 16 tasks and 40 sub-tasks should produce ~40 implementation beads, not ~16. If the plan doesn't have explicit sub-tasks, count the distinct deliverables mentioned in each task's description.
+- The 1.5x threshold applies to sub-task count: if sub-tasks = 40 and implementation beads = 64, that's 1.6x — technically over threshold but reasonable for infrastructure features where each sub-task may need 1-2 beads for compile independence. Flag if >2x.
+- For Verification Mode (>90% exists): exempt from the threshold entirely — verification beads naturally multiply because each plan task decomposes into multiple verification concerns.
+- For infrastructure/cross-cutting features: the entity decomposition tables don't set the expectation. The bead count is driven by compilation units, not entities × pattern types.
 
 **br correction protocol:** br has no update-description command. When CONVERGE fixes a bead, use `br comments add` with a `## CORRECTION (review-beads round N)` header. Executing agents should read comments bottom-up (newest first). The original wrong content will still exist in earlier comments.
+
+**br ID capture:** `br create ... --json` output can be fragile to parse inline. Preferred approach: create all beads first (titles + types + priorities), then query for IDs in a single batch with `br list --status open --json` or `br search "{feature}" --json`. Wire dependencies and add comments in a second pass using the queried IDs. This is more reliable than parsing each `br create` output inline and recovers gracefully if any single create command has unexpected output.
 
 **Checkpoint/resume:** Before creating beads, check if beads already exist for this feature (search by epic title or feature label). If found:
 - Present: "{N} beads already exist for {feature}. Delete and recreate, or resume?"
 - Resume: skip to Phase 3 (self-assessment) on existing beads
 - Delete: remove all existing beads, then proceed with full creation
+
+**Incremental bead creation (plan updates):** When adding beads for a plan update (e.g., v0.1 → v0.2) rather than creating a full bead set from scratch:
+- **Detect existing beads.md** — glob for `docs/plans/{feature}/beads*.md`. If found, create a versioned file (e.g., `beads-v0.2.md`) rather than overwriting. The original beads.md remains the record for the earlier version.
+- **Reuse the existing epic** — do not create a new epic. Add new beads under the existing feature epic. If the epic is closed, reopen it.
+- **Bead numbering** — use a version-prefixed convention to avoid ID collisions: `bd-v2-01`, `bd-v2-02`, etc. This makes it clear which plan version each bead belongs to.
+- **Dependencies on existing beads** — new beads MAY depend on already-completed beads from the prior version (e.g., "depends on bd-007: Entity already exists"). Wire these as normal `br dep add` edges — br handles closed dependencies correctly.
+- **Phase 0 can be skipped** — see "Context-aware Phase 0" below.
 
 **Step 1.1b — Read Plan Sub-Plans and Design Docs:**
 
@@ -735,15 +812,56 @@ Within each feature's decomposed beads, wire internal dependencies following the
 
 Test gates depend on the last implementation bead in their group and block the next group's first implementation bead.
 
+**Step 1.4b — Dependency Minimization (multi-agent optimization):**
+
+After wiring pattern-internal dependencies, minimize the DAG to maximize parallel execution tracks. For each dependency edge A → B, ask: "Will the codebase fail to compile if B is implemented before A?" If not, remove the edge. The goal is the **minimum DAG that preserves compilation order**, not the maximum DAG that preserves logical sequence.
+
+**Common false dependencies to prune:**
+- Contracts ↛ EF configuration — different projects, no compile dependency
+- Validators ↛ commands/queries — validators reference request types from Contracts, not command/query classes
+- Separate endpoint beads for the same entity — no compile dependency between GET and POST endpoints
+- EntityMapper ↛ DTOMapper — opposite data flow directions, independent
+- LookupQuery ↛ GridQuery — independent query types
+
+**True dependencies to keep (compile-order):**
+- Entity → EF configuration (EF config references the entity type)
+- Entity → Contracts (DTOs mirror entity shape)
+- Contracts → EntityMapper (mapper maps between entity and DTO)
+- Contracts → DTOMapper (mapper maps between entity and DTO)
+- EntityMapper → SaveCommand (command uses mapper)
+- DTOMapper → GetQuery / GridQuery (queries use mapper)
+- Commands/Queries → Endpoints (endpoints wire commands/queries)
+- All impl beads → Service Registration (DI registers all services)
+
+**Pruned decomposition table (per entity):**
+
+After minimization, the dependency graph fans out after Contracts instead of forming a deep chain:
+
+```
+Entity ──┬── EF Config
+         └── Contracts ──┬── EntityMapper → SaveCommand ──→ Save Endpoint ──┐
+                         ├── DTOMapper ──┬── GetQuery → Get Endpoint ──────┤
+                         │               ├── GridQuery → Grid Endpoint ────┤
+                         │               └── LookupQuery → Lookup Endpoint─┤
+                         ├── DeleteCommand → Delete Endpoint ──────────────┤
+                         └── Validators ─────────────────────────────────→ ┤
+                                                          Service Reg ←────┘
+```
+
+This produces ~4 parallel tracks after Contracts instead of the 1 deep chain from the unpruned table. `bv --robot-plan` computes tracks from the DAG — markdown annotations alone don't affect scheduling.
+
 **Step 1.5 — Identify Parallel Tracks:**
 
-Mark beads that can execute in parallel (no dependency between them). This helps the executing agent (or user) optimise throughput.
+Mark beads that can execute in parallel (no dependency between them). Parallel tracks must be reflected in the dependency wiring itself — if two beads are parallel, they MUST NOT have a dependency edge between them (even a transitive one through shared parents that would serialize them). `bv --robot-plan` computes tracks from the DAG, not from markdown annotations.
+
+After wiring, verify: for any bead set with ≥10 implementation beads, `bv --robot-plan` should show ≥3 tracks. If it shows fewer, revisit Step 1.4b — false dependencies are likely still present.
 
 ```markdown
 ### Parallel Tracks
 - Track A: bd-002 → bd-005 (user-facing flow)
 - Track B: bd-003 → bd-006 (admin flow)
-- Tracks merge at: bd-007 (integration)
+- Track C: bd-004 → bd-008 (validation flow)
+- Tracks merge at: bd-009 (service registration)
 ```
 
 **No PAUSE points in this skill.** Create all beads, run self-assessment, resolve any issues, present the one-line summary. No user interaction during creation.
@@ -753,6 +871,13 @@ Mark beads that can execute in parallel (no dependency between them). This helps
 ### Phase 2: Create Beads
 
 This phase creates work packages in the project's issue tracker. The examples below use `br` (beads-rust); adapt commands to your issue tracker as configured in your CLAUDE.md.
+
+**Delegation for large bead sets (>40 beads):** For bead sets exceeding ~40 beads, the beads.md file will be too large to write inline (~100KB+). Delegate Phase 2 to a general-purpose sub-agent:
+1. **Main context:** Complete Phase 0 (doc map) + Phase 1 (decomposition, dependency graph, parallel tracks). Produce a structured decomposition — bead titles, dependencies, FR mappings, gate placement — as the sub-agent's input.
+2. **Sub-agent:** Writes beads.md (full bead descriptions) + creates beads in br (titles, dependencies, labels, comment pointers). Give the sub-agent the full decomposition, the doc map, and explicit instructions to follow the bead description format.
+3. **Main context:** Run Phase 3 (self-assessment) on the sub-agent's output. The main context can verify cross-bead consistency, dependency integrity, and FR coverage without re-reading every bead description.
+
+The sub-agent will make micro-decisions (exact file paths for Context to Load, Given/When/Then wording, Approach section guidance). Accept that these may need spot-check correction — Phase 3's proportional path validation catches the most impactful errors.
 
 **Step 2.1 — Create Epic:**
 
@@ -805,11 +930,23 @@ Failure criteria are propagated from the plan's sub-plan Failure Criteria sectio
 - **Downstream consumers:** `{file path}` — {files that import/reference types this bead changes}
 - **First bead in module?** Also load: `docs/designs/{module}/design.md`, `docs/designs/{module}/data-model.md`, `docs/prd/{module}/prd.md`
 
+## Files (reservation globs)
+- `{file path or glob}` ({create|modify|delete})
+
+List every file the bead will create, modify, or delete. Use exact paths for known files, globs for pattern-generated sets (e.g., `src/Features/Roles/**/*SaveCommand*.cs`). The `(create)` / `(modify)` / `(delete)` suffix tells coordinating agents the conflict risk — two agents creating new files in different directories won't conflict even without reservation, but two agents modifying the same file will.
+
+This section is consumed by Agent Mail's `file_reservation_paths` — the executing agent passes these globs directly to claim file locks before starting work.
+
 **Contract change beads** (DTOs, request/response types, models) must list downstream consumers — components, endpoints, or services that import the changed type. A model shape change that breaks 3 consumers is in-scope for the bead, or the consumers must be listed in "Out of Scope" with a note saying which bead handles them.
 
 **Always include test files** that assert on the behavior being changed. For modification/migration beads, this means the test files for the endpoints or services being modified — not just the implementation files. A bead that changes a status code from 400→422 needs to list the test file that asserts on 400, or the executing agent will miss the test regression.
 
-**Path validation (Phase 3):** During self-assessment, verify every file path in every bead's "Context to Load" section actually exists in the codebase using glob/grep. Wrong paths are a common source of execution friction — the executing agent wastes time finding the right file. If a path doesn't exist, check for common mismatches: flat vs nested feature structure (e.g., `Features/Applications/Save/` vs `Features/Applications/Shared/Mappers/`), renamed files, or moved directories. Fix the path before finalizing the bead.
+**Path validation (Phase 3) — proportional to bead count:** Verify that file paths in "Context to Load" actually exist. Scale the effort to the bead count:
+- **≤20 beads:** Verify every path in every bead using glob/grep.
+- **20-50 beads:** Verify every path in the first bead of each feature slice + spot-check 30% of remaining beads (random selection).
+- **50+ beads:** Rely on Phase 0 code discovery paths. Spot-check 10 beads (prioritize beads with the most context files, and any bead touching unfamiliar directories). If Phase 0 was thorough, most paths will be correct.
+
+Wrong paths are a common source of execution friction — the executing agent wastes time finding the right file. If a path doesn't exist, check for common mismatches: flat vs nested feature structure (e.g., `Features/Applications/Save/` vs `Features/Applications/Shared/Mappers/`), renamed files, or moved directories. Fix the path before finalizing the bead.
 
 **Dependency validation (Phase 3):** For each bead, verify that referenced fields, types, and infrastructure actually exist in the codebase. If a bead references `Organization.BootstrapCompletedAt` and that field doesn't exist, the bead has an unmet dependency — it cannot be marked "Ready." Either add a prerequisite bead to create the missing infrastructure, or flag the bead as blocked.
 
@@ -908,12 +1045,13 @@ Register dependencies between beads as specified in the plan's dependency graph 
 - UC gates depend on all contributing feature test gates
 - Module gates depend on all UC gates
 
-**Stage gate dependency rules:**
-- Test gate depends on last impl bead of phase
+**Stage gate dependency rules (hard edges only — soft checkpoints are advisory, not `br dep add`):**
+- Backend test gate (HARD) depends on last backend impl bead
 - Frontend impl beads depend on backend test gate (NEVER on backend impl beads directly)
-- UC gates depend on all contributing feature test gates
-- Module gates depend on all UC gates
-- Epic depends on module verify gate
+- UI test gate (SOFT) — no `br dep add` from UI test gate to UC verify; UC verify notes "⚠ Soft checkpoint: verify test({feature}): UI tests passed before committing"
+- UC verify gate (SOFT) — no `br dep add` to module gate; module gate notes the soft dependency
+- Module verify gate (SOFT) — epic terminus, nothing depends on it
+- Epic depends on module verify gate (for tracking, not blocking)
 
 ---
 
@@ -1011,6 +1149,20 @@ After individual assessment, review the full bead set against these themes:
 - [ ] Test/verify gates have executable verification commands?
 - [ ] No `/review` or `/simplify` gate beads between implementation beads?
 
+**Parallelism (multi-agent readiness):**
+- [ ] Critical path depth ≤ ceil(total_beads / 3)? (heuristic: 3 agents should stay busy)
+- [ ] At least 3 beads ready at the start (no dependencies)?
+- [ ] No single bead blocks more than 40% of remaining beads?
+- [ ] Hard gate beads fan out to ≥3 parallel tracks?
+- [ ] Every bead has a `## Files (reservation globs)` section?
+
+If any parallelism check fails, revisit dependency wiring in Step 1.4b — the graph is likely over-constrained. Common fix: remove pattern-sequence edges that aren't compile-order edges.
+
+**File Reservation Completeness:**
+- [ ] Every bead lists all files it will create, modify, or delete?
+- [ ] Globs are specific enough to avoid overlapping reservations between parallel beads?
+- [ ] No two parallel beads (no dependency edge) modify the same file?
+
 **Step 3.5 — Record Assessment:**
 
 ```markdown
@@ -1084,6 +1236,12 @@ If self-assessment found issues that were resolved, briefly note them:
 **FR Coverage:** {N}/{N} Must-Have FRs fully covered (all ACs addressed)
 **UC Coverage:** {N}/{N} UCs with end-to-end scenario flow
 **Design Decision Coverage:** {N}/{N} decisions propagated as failure criteria
+
+### Parallelism
+- **Ready at start:** {N} beads (target: ≥3)
+- **Critical path depth:** {N} (target: ≤ ceil({total_impl} / 3) = {target})
+- **Max fan-in:** {bead title} blocks {N}% of remaining beads (target: ≤40%)
+- **Parallel tracks:** {N} (from dependency DAG)
 
 ### Dependency Flow
 {Compact ASCII showing bead phases and test gates}
@@ -1193,6 +1351,10 @@ has completed the verification process.
 - **Read:** `src/models/account.{ext}` — understand existing status flag pattern
 - **Pattern:** `IsActive` property — follow same structure and defaults
 - **Reference:** `docs/designs/account-verification/design.md` — design rationale
+
+## Files (reservation globs)
+- `src/models/account.{ext}` (modify)
+- `src/migrations/*_AddIsVerified.{ext}` (create)
 
 ## Approach
 Add boolean property following the pattern established by IsActive.
@@ -1324,7 +1486,7 @@ For a typical module with 3 entities, 3 UI features, and 2 use cases:
 **Why more beads is better:**
 1. Each bead is faster to execute — smaller context, single concern, clear pattern reference
 2. Each bead is independently verifiable — one commit, one test scope, one review target
-3. Parallelism — independent beads (e.g., EntityMapper and DTOMapper) can execute concurrently
+3. Parallelism — independent beads (e.g., EntityMapper and DTOMapper) can execute concurrently across multiple agents via `bv --robot-plan` track computation
 4. Defects caught early — gate beads at feature boundaries, not after the entire module
 5. Frontend never builds on broken backend — test gates enforce verification before UI work
 6. Git history is useful — each commit is one pattern artifact, easy to revert or cherry-pick
@@ -1402,4 +1564,4 @@ Beads live in the project's issue tracker (e.g., `br` database), not as files. T
 
 ---
 
-*Skill Version: 5.15 — [Version History](VERSIONS.md)*
+*Skill Version: 5.18 — [Version History](VERSIONS.md)*

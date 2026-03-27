@@ -1,7 +1,7 @@
 {
   "name": "workflow",
   "description": "Complete feature development workflow with structured SDLC phases, scope-based routing, and requirement traceability. 22 skills covering the full software development lifecycle.",
-  "version": "5.0.0",
+  "version": "5.1.0",
   "author": {
     "name": "Dirk Kok",
     "email": "dirkkok101@github.com"

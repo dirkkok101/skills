@@ -1,5 +1,8 @@
 # Review-Beads Skill — Version History
 
+## v2.9
+Multi-agent flywheel alignment with beads v5.16. Phase 5: dependency edges must reflect compile-time necessity (not pattern sequence), transitive edge pruning, parallelism metrics (≥3 ready at start, critical path depth check). Category 7b: gate serialization check, hard vs soft gate classification. Category 8: `## Files (reservation globs)` section required. What NOT to Flag: intentionally minimized dependencies, soft checkpoint gates without br dep edges. CONVERGE: dependency minimization is intentional — adding unnecessary edges to match pattern table ordering is itself WRONG_DEPENDENCY.
+
 ## v2.8
 Fixed stale /review+/simplify references in Phase 3 stage gate count table (was counting 3 gates per feature, now 1 test gate per feature). Fixed gate chain check in Phase 5 cross-bead consistency (was "/review → /simplify → test", now "impl → test gate → next phase").
 

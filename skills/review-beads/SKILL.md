@@ -92,6 +92,8 @@ When the user says "converge", "fix all issues", or selects CONVERGE mode, run t
 ADRs > Pattern docs > Architecture docs > PRD > Design (api-surface, data-model) > Plan (overview, sub-plans) > Beads
 ```
 
+**Dependency minimization is intentional.** When CONVERGE encounters a dependency graph that doesn't match the pattern decomposition tables' full ordering (e.g., Contracts has no edge to EF Config, Validators have no edge to Commands), verify compile-time necessity before adding edges. The `/beads` skill's Step 1.4b explicitly prunes pattern-sequence edges to compile-order edges for multi-agent parallelism. Adding unnecessary dependency edges to match the pattern table's logical sequence is itself a `WRONG_DEPENDENCY` finding — it serializes work that should be parallel.
+
 **Same-session detection:** If beads were generated in the current conversation, flag as same-session. Increase spot-checks to 5 minimum. Phase 2 confidence is LOW.
 
 **Non-greenfield bead review:** If the plan's Implementation Status shows >70% "Exists":
@@ -146,6 +148,8 @@ These standards are non-negotiable. Every finding must meet ALL of them:
 - **Missing global pattern references** — i18n, toast notifications, error handling patterns that are project-wide conventions agents already follow
 - **Redundant transitive dependencies** — if A depends on B and B depends on C, A does not need to explicitly depend on C
 - **Description style preferences** — ordering of sections, wording choices, formatting variations
+- **Intentionally minimized dependencies for parallelism** — if a bead omits a pattern-sequence dependency (e.g., Contracts doesn't depend on EF Config, Validators don't depend on Commands) but the omission doesn't create a compile error, this is correct parallelism optimization, not a missing dependency. Only flag `WRONG_DEPENDENCY` when the missing edge would cause a compilation failure or runtime error during execution. The `/beads` skill's Step 1.4b explicitly prunes pattern-sequence edges to compile-order edges.
+- **Soft checkpoint gates without `br dep add` edges** — the `/beads` skill distinguishes hard gates (dependency edges) from soft checkpoints (advisory notes). A UC verify gate or module completion gate without wired dependencies is intentional, not an `ORPHANED_GATE`.
 - **Issues in upstream docs** — tag as `UPSTREAM_DOC` and list separately; these are not bead defects
 
 ---
@@ -590,6 +594,8 @@ For each bead, review against all 11 categories. Not every category applies to e
 - [ ] No empty gates — every gate specifies what tests to run
 - [ ] No orphaned gates — every gate has downstream beads that depend on it
 - [ ] For Verification Mode (>90% exists): lightweight gates acceptable (test only, no UC/module verify for ≤10 impl beads)
+- [ ] Gate beads do not unnecessarily serialize parallel tracks — a hard gate that blocks ≥5 independent beads is a bottleneck. Verify: could downstream beads proceed with only their direct compile-time dependencies met? If yes, consider whether the gate should be a soft checkpoint (advisory note, no `br dep add` edge) rather than a hard gate
+- [ ] Hard vs soft gate classification: schema migration gates and backend test gates are hard (downstream would produce broken code). UI test gates, UC verify gates, and module completion gates can be soft (downstream can start optimistically)
 
 #### Category 8: Bead Quality
 
@@ -603,6 +609,7 @@ For each bead, review against all 11 categories. Not every category applies to e
 - [ ] **Verification commands are executable** — real commands with correct filters/paths
 - [ ] **Commit message specified** — conventional commit format, one per bead
 - [ ] **Implements section present** — FR/UC traceability
+- [ ] **Files (reservation globs) section present** — lists all files the bead will create, modify, or delete with `(create)` / `(modify)` / `(delete)` suffix. Globs are specific enough to avoid overlapping reservations between parallel beads. No two parallel beads (no dependency edge) should modify the same file.
 
 #### Category 9: No Backwards Compatibility
 
@@ -671,6 +678,9 @@ After reviewing individual beads, check cross-cutting concerns:
 - [ ] First bead(s) have zero dependencies and are ready to execute
 - [ ] Epic depends on `verify({module}): module complete` gate (last bead)
 - [ ] No `/review` or `/simplify` gate beads exist between implementation beads (these break future beads by deleting preparatory code)
+- [ ] Dependency edges reflect **compile-time necessity**, not pattern-sequence ordering (e.g., Contracts bead need NOT depend on EF Config — they're in different projects with no compile dependency)
+- [ ] No redundant transitive edges that serialize parallel work (if A→C and A→B→C both exist, the direct A→C edge is redundant — remove it)
+- [ ] Multi-agent parallelism: ≥3 beads ready at start, critical path depth ≤ ceil(total_impl_beads / 3), no single bead blocks >40% of remaining beads
 
 **Naming consistency:**
 - [ ] Entity names consistent across all beads (same casing, same abbreviation)
@@ -913,4 +923,4 @@ When approved: **"Bead review complete. Run /execute to start implementation."**
 
 ---
 
-*Skill Version: 2.8 — [Version History](VERSIONS.md)*
+*Skill Version: 2.9 — [Version History](VERSIONS.md)*

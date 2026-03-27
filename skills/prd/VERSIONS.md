@@ -1,5 +1,14 @@
 # PRD Skill — Version History
 
+## v3.10
+Reference persona format added. Personas with read-only involvement (dashboards, reports, notifications) can use lightweight `### P{n}: {Role} (Reference)` format with a link to the project personas doc and a 1-line module interaction note, instead of the full 6-field definition. Prevents generic boilerplate for dashboard consumers.
+
+## v3.9
+Table-compatible assumption/constraint format. `**A{n}:**` and `**C{n}:**` prefixes now accepted in both bullet format and as the first column of a table with Impact/Validate columns. Table format preferred for STANDARD+ when assumptions carry significant risk — preserves context that bullets lose.
+
+## v3.8
+Seven improvements from COMPREHENSIVE BFF NuGet package PRD feedback. (1) Consumer Research step (Phase 0.3) — for shared libraries/packages, identifies consuming projects and reads their integration expectations before drafting requirements. (2) Adaptive FR review pacing — after 3 consecutive approvals, offers batch mode for remaining FRs. (3) Package API Contract variant for Phase 8b — replaces microservices table format with public API surface, consumer integration pattern, and consumer responsibilities for library PRDs. (4) Self-review reduced from "2 consecutive clean rounds" to "1 thorough round + fix + re-check fixes only". (5) Cross-PRD Alignment step in Phase 9 — when Depends On references another PRD, enforces mapping of parent FR acceptance criteria to child FRs. (6) Adaptive pause density — after 3+ consecutive approvals without revision, offers to consolidate remaining gates. (7) Library & Package PRD variant — alongside Policy PRDs, covers the developer-as-persona, integration-scenario use cases, and package-specific NFR lens.
+
 ## v3.7
 Depends On field added to metadata template. Policy & Standards PRDs guidance added — handles PRDs for shared concerns that don't map to a single module (lighter personas, fewer use cases, policy-as-NFR pattern). Derived from applying the skill across 14 PRDs and identifying edge cases.
 
